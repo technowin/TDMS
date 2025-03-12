@@ -24,7 +24,7 @@ DATABASES = {
     'default': {
         # 'ENGINE': 'django.db.backends.mysql',
         'ENGINE': 'mysql.connector.django',
-        'NAME': 'mantra_db',      # Replace with your database name
+        'NAME': 'tdms',      # Replace with your database name
         'USER': 'root',      # Replace with your database user
         'PASSWORD': 'Mysql_MH-047319',  # Replace with your database password
         'HOST': '15.207.169.98',       # IP FOR TEST
