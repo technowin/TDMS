@@ -13,7 +13,7 @@ from pathlib import Path
 import os
 from datetime import timedelta
 
-ALLOWED_HOSTS = ['43.205.227.109']
+ALLOWED_HOSTS = ['15.207.169.98']
 # ALLOWED_HOSTS = ['127.0.0.1']
 
 # SECURITY WARNING: don't run with debug turned on in production!
@@ -24,11 +24,11 @@ DATABASES = {
     'default': {
         # 'ENGINE': 'django.db.backends.mysql',
         'ENGINE': 'mysql.connector.django',
-        'NAME': 'mantra_db',      # Replace with your database name
+        'NAME': 'tdms',      # Replace with your database name
         'USER': 'root',      # Replace with your database user
         'PASSWORD': 'Mysql_MH-047319',  # Replace with your database password
-        'HOST': '15.207.169.98',       # IP FOR TEST
-        # 'HOST': '127.0.0.1',       # IP FOR LOCAL VM
+        # 'HOST': '15.207.169.98',       # IP FOR TEST
+        'HOST': '127.0.0.1',       # IP FOR LOCAL VM
         'PORT': '3306',            
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
@@ -116,12 +116,12 @@ MIDDLEWARE = [
     'axes.middleware.AxesMiddleware',
 ]
 CORS_ALLOWED_ORIGINS = [
-    'http://43.205.227.109',
+    'http://15.207.169.98',
     'https://push3.aclgateway.com'
 ]
 CORS_ORIGIN_ALLOW_ALL = False
 CORS_ORIGIN_WHITELIST = [
-    'http://43.205.227.109',
+    'http://15.207.169.98',
     'https://push3.aclgateway.com'
 ]
 AUTO_LOGOUT = {
@@ -145,7 +145,7 @@ LOGGING = {
             'level': 'WARNING',
             'class': 'logging.FileHandler',
             # 'filename': os.path.join(BASE_DIR, 'D:/Python Projects/TDMS logs', 'django.log'),  
-            'filename': os.path.join(BASE_DIR, '/home/ubuntu/mantra_io logs', 'django.log'),  
+            'filename': os.path.join(BASE_DIR, '/home/ubuntu/TDMS logs', 'django.log'),  
         },
     },
     'loggers': {

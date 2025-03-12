@@ -176,14 +176,23 @@ def sample_xlsx(request):
 
 
 def form(request):
+    dropdown_options = ControlParameterMaster.objects.all()  # Fetch values from the model
+    return render(request, "Master/form.html", {"dropdown_options": dropdown_options})
+
+
+def get_control_values(request):
     if request.method == "POST":
-        form_name = request.POST.get("form_name")
-        parameter_name = request.POST.get("parameter_name")
-        dropdown_option = request.POST.get("dropdown_option")
+        try:
+            control_id = request.POST.get("control_value_id")  # Get the sent value
 
-        # Process the form data (You can save it to the database if needed)
-        print(f"Form Name: {form_name}, Parameter Name: {parameter_name}, Selected Option: {dropdown_option}")
+            if control_id:
+                # Fetch rows where control_value_uid matches control_value_id
+                control_values = ControlMaster.objects.filter(control_type_id=control_id).values("control_value", "data_type","list_of_values")
 
-        return HttpResponse("Form submitted successfully!")  # Or redirect to another page
-
-    return render(request, "Master/form.html")
+                return JsonResponse({"control_values": list(control_values)}, safe=False)
+        except Exception as e:
+            tb = traceback.extract_tb(e.__traceback__)
+            fun = tb[0].name
+            callproc("stp_error_log",[fun,str(e),user])  
+            messages.error(request, 'Oops...! Something went wrong!')
+    
