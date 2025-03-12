@@ -1,13 +1,13 @@
 
 How to host Django Application using gunicorn & nginx in Production:-
 
-git clone https://github.com/technowin/mantrainout.git
+git clone https://github.com/technowin/TDMS.git
 
-cd mantrainout
+cd TDMS
 
 git config credential.helper store
 
-git push https://github.com/technowin/mantrainout.git
+git push https://github.com/technowin/TDMS.git
 
 sudo apt update
 
@@ -31,9 +31,9 @@ pip install django gunicorn
 
 sudo ufw allow 8000
 
-python3 manage.py runserver  172.26.14.175:8000     
+python3 manage.py runserver  172.26.5.61:8000     
 
-gunicorn --bind 172.26.14.175:8000 TDMS.wsgi   
+gunicorn --bind 172.26.5.61:8000 TDMS.wsgi   
 
 deactivate
 
@@ -62,8 +62,8 @@ After=network.target
 [Service]
 User=ubuntu
 Group=www-data
-WorkingDirectory=/home/ubuntu/mantrainout
-ExecStart=/home/ubuntu/mantrainout/env/bin/gunicorn \
+WorkingDirectory=/home/ubuntu/TDMS
+ExecStart=/home/ubuntu/TDMS/env/bin/gunicorn \
           --access-logfile - \
           --workers 3 \
           --bind unix:/run/gunicorn.sock \
@@ -75,17 +75,17 @@ WantedBy=multi-user.target
 sudo systemctl start gunicorn.socket
 sudo systemctl enable gunicorn.socket
 
-sudo vim /etc/nginx/sites-available/mantrainout
+sudo vim /etc/nginx/sites-available/TDMS
 
 Enter i and then paste below part then for save Enter Esc :wq
 
 server {
     listen 80;
-    server_name 172.26.14.175;
+    server_name 172.26.5.61;
 
     location = /favicon.ico { access_log off; log_not_found off; }
     location /static/ {
-        root /home/ubuntu/mantrainout;
+        root /home/ubuntu/TDMS;
     }
 
     location / {
@@ -94,7 +94,7 @@ server {
     }
 }
 
-sudo ln -s /etc/nginx/sites-available/mantrainout /etc/nginx/sites-enabled/
+sudo ln -s /etc/nginx/sites-available/TDMS /etc/nginx/sites-enabled/
 
 cd /etc/nginx/sites-available/
 
@@ -163,4 +163,4 @@ python manage.py startapp Workflow
 
 git config --global user.name "technowin"
 git config --global user.email "technowinitinfra@gmail.com"
-git remote add origin https://github.com/technowin/mantrainout.git
+git remote add origin https://github.com/technowin/TDMS.git

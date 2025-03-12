@@ -20,81 +20,107 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 
 
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .container {
+            max-width: 1200px; /* Adjusted for a wider layout */
+        }
+        .card {
+            width: 100%; /* Ensures the card takes full container width */
+        }
+        
+        .form-container {
+            display: flex;
+            justify-content: space-between;
+            gap: 20px;
+        }
+        .form-section {
+            flex: 1;
+            background: #fff;
+            padding: 20px;
+            border-radius: 5px;
+        }
+        .right-section {
+            flex: 1;
+            background: black;
+            height: 100%;
+            border-radius: 5px;
+        }
+        .form-label {
+            font-weight: bold;
+        }
+        .form-control, .form-select {
+            border-radius: 5px;
+            padding: 10px;
+        }
+        .mb-3, .row {
+            margin-bottom: 15px;
+        }
+    </style>
+</head>
 <body>
 
-<div class="container mt-5" width="1800px">
+<div class="container mt-5">
     <div class="card shadow">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header">
             <h5 class="mb-0">Document Management System</h5>
         </div>
         <div class="card-body">
-            <form method="POST">
-                {% csrf_token %}
+            <div class="form-container">
                 
-                <!-- Form Name Input -->
-                <div class="mb-3">
-                    <label for="formName" class="form-label">Form Name</label>
-                    <input type="text" class="form-control" id="formName" name="form_name" placeholder="Enter form name">
+                <!-- Left: Form Section -->
+                <div class="form-section">
+                    <form method="POST">
+                        {% csrf_token %}
+                        
+                        <!-- Form Name Input -->
+                        <div class="mb-3">
+                            <label for="formName" class="form-label">Form Name</label>
+                            <input type="text" class="form-control" id="formName" name="form_name" placeholder="Enter form name">
+                        </div>
+
+                        <!-- Two-section layout -->
+                        <div class="row">
+                            <div class="col-md-6">
+                                <label for="parameterName" class="form-label">Parameter Name</label>
+                                <input type="text" class="form-control" id="parameterName" name="parameter_name" placeholder="Enter parameter">
+                            </div>
+                            <div class="col-md-6">
+                                <label for="dropdownSelect" class="form-label">Select Option</label>
+                                <select class="form-select" id="dropdownSelect" name="dropdown_option">
+                                    <option value="">Select</option>
+                                    {% for option in dropdown_options %}
+                                        <option value="{{ option.id }}">{{ option.control_value }}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </div>
+
+                        <div id="dynamicFieldsContainer"></div>  
+
+                        <!-- Submit Button -->
+                        <div class="mt-4">
+                            <button type="submit" class="btn btn-primary w-100">Submit</button>
+                        </div>
+                    </form>
                 </div>
 
-                <!-- Two-section layout -->
-                <div class="row">
-                    <div class="col-md-6">
-                        <label for="parameterName" class="form-label">Parameter Name</label>
-                        <input type="text" class="form-control" id="parameterName" name="parameter_name" placeholder="Enter parameter">
-                    </div>
-                    <div class="col-md-6">
-                        <select class="form-select" id="dropdownSelect" name="dropdown_option">
-                            <option value="">Select</option>
-                            {% for option in dropdown_options %}
-                                <option value="{{ option.id }}">{{ option.control_value }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
+                <!-- Right: Placeholder Section -->
+                <div class="right-section"></div>
 
-                    <div id="dynamicFieldsContainer"></div>  
-
-                </div>
-
-                <!-- Submit Button -->
-                <div class="mt-4">
-                    <button type="submit" class="btn btn-primary w-100">Submit</button>
-                </div>
-            </form>
+            </div>
         </div>
     </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-</body>
 
-{% comment %} <script>
-    $('#dropdownSelect').change(function() {
-        var selectedControlValueId = $(this).val(); // Get selected value
-    
-        if (selectedControlValueId) {
-            $.ajax({
-                url: "{% url 'get_control_values' %}",  
-                type: "POST",
-                data: {
-                    control_value_id: selectedControlValueId, // Send selected value
-                    csrfmiddlewaretoken: "{{ csrf_token }}"  // Include CSRF token
-                },
-                success: function(response) {
-                    // Handle success (You mentioned to leave this blank)
-                },
-                error: function(error) {
-                    console.log("Error fetching data:", error);
-                }
-            });
-        }
-    });
-</script> {% endcomment %}
+
 
 <script>
     $('#dropdownSelect').change(function() {
         var selectedControlValueId = $(this).val(); // Get selected value
-    
+
         if (selectedControlValueId) {
             $.ajax({
                 url: "{% url 'get_control_values' %}",  
@@ -104,25 +130,48 @@
                     csrfmiddlewaretoken: "{{ csrf_token }}"  // CSRF token
                 },
                 success: function(response) {
-                    debugger;
                     $('#dynamicFieldsContainer').empty(); // Clear previous fields
-    
+
                     $.each(response.control_values, function(index, item) {
                         var fieldHtml = '';
-    
-                        if (item.data_type === 'Dropdown') {
+
+                        if (item.data_type === 'Dropdown' || item.data_type === 'RadioButton') {
                             fieldHtml += '<div class="form-group">';
                             fieldHtml += '<label>' + item.control_value + '</label>';
-                            fieldHtml += '<select class="form-select">';
-    
-                            if (item.list_of_values) {  // **Check if list_of_values is not null**
-                                var options = item.list_of_values.split(","); // Ensure it's a valid string
+
+                            if (item.data_type === 'Dropdown') {
+                                fieldHtml += '<select class="form-select">';
+                            } else if (item.data_type === 'RadioButton') {
+                                fieldHtml += '<div class="radio-group">';
+                            }
+
+                            if (item.list_of_values) { 
+                                var options = item.list_of_values.split(",");
                                 $.each(options, function(i, option) {
-                                    fieldHtml += '<option value="' + option.trim() + '">' + option.trim() + '</option>';
+                                    if (item.data_type === 'Dropdown') {
+                                        fieldHtml += '<option value="' + option.trim() + '">' + option.trim() + '</option>';
+                                    } else if (item.data_type === 'RadioButton') {
+                                        fieldHtml += '<div class="form-check">';
+                                        fieldHtml += '<input class="form-check-input" type="radio" name="radio_' + index + '" value="' + option.trim() + '">';
+                                        fieldHtml += '<label class="form-check-label">' + option.trim() + '</label>';
+                                        fieldHtml += '</div>';
+                                    }
                                 });
                             }
-    
-                            fieldHtml += '</select></div>';
+
+                            if (selectedControlValueId=== 'Dropdown') {
+                                fieldHtml += '</select>';
+                            } else if (item.data_type === 'RadioButton') {
+                                fieldHtml += '</div>';
+                            }
+
+                            // Add textbox to add new values dynamically
+                            fieldHtml += '<div class="input-group mt-2">';
+                            fieldHtml += '<input type="text" class="form-control new-value-input" placeholder="Enter new value">';
+                            fieldHtml += '<button type="button" class="btn btn-success add-option">+</button>';
+                            fieldHtml += '</div>';
+
+                            fieldHtml += '</div>';
                         } 
                         else if (item.data_type === 'Checkbox') {
                             fieldHtml += '<div class="form-check">';
@@ -136,7 +185,7 @@
                             fieldHtml += '<input type="text" class="form-control">';
                             fieldHtml += '</div>';
                         }
-    
+
                         $('#dynamicFieldsContainer').append(fieldHtml);
                     });
                 },
@@ -146,8 +195,37 @@
             });
         }
     });
-    </script>
-    
+
+    // Add new values dynamically to Dropdown or RadioButton
+    $(document).on("click", ".add-option", function() {
+        var newValue = $(this).siblings(".new-value-input").val().trim();
+        var selectElement = $(this).closest(".form-group").find("select");
+        var radioGroup = $(this).closest(".form-group").find(".radio-group");
+
+        if (newValue) {
+            if (selectElement.length) {
+                selectElement.append('<option value="' + newValue + '">' + newValue + '</option>');
+            } 
+            else if (radioGroup.length) {
+                var radioIndex = radioGroup.children().length + 1;
+                var newRadioHtml = '<div class="form-check">';
+                newRadioHtml += '<input class="form-check-input" type="radio" name="radio_dynamic_' + radioIndex + '" value="' + newValue + '">';
+                newRadioHtml += '<label class="form-check-label">' + newValue + '</label>';
+                newRadioHtml += '<button type="button" class="btn btn-danger btn-sm remove-option">X</button>';
+                newRadioHtml += '</div>';
+                radioGroup.append(newRadioHtml);
+            }
+
+            $(this).siblings(".new-value-input").val(""); // Clear input field
+        }
+    });
+
+    // Remove dynamically added radio options
+    $(document).on("click", ".remove-option", function() {
+        $(this).closest(".form-check").remove();
+    });
+</script>
+
     
     
 

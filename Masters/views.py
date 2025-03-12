@@ -187,7 +187,7 @@ def get_control_values(request):
 
             if control_id:
                 # Fetch rows where control_value_uid matches control_value_id
-                control_values = ControlMaster.objects.filter(control_type_id=control_id).values("control_value", "data_type","list_of_values")
+                control_values = ControlMaster.objects.filter(control_type_id=control_id).values("control_type_id","control_value", "data_type","list_of_values")
 
                 return JsonResponse({"control_values": list(control_values)}, safe=False)
         except Exception as e:
