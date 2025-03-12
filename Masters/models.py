@@ -124,5 +124,55 @@ class Log(models.Model):
     class Meta:
         db_table = 'logs'
 
+class ControlParameterMaster(models.Model):
+    id = models.AutoField(primary_key=True)
+    control_value = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'control_parameter_master'
+
+class ControlMaster(models.Model):
+    control_id = models.AutoField(primary_key=True)
+    control_type_id = models.TextField(null=True, blank=True)
+    control_type = models.TextField(null=True, blank=True)
+    control_value = models.TextField(null=True, blank=True)
+    data_type = models.TextField(null=True, blank=True)
+    list_of_values = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'control_master'
+
+class FormMaster(models.Model):
+    form_id =  models.AutoField(primary_key=True)
+    form_name = models.TextField(null=True, blank=True)
+    paramter_name = models.TextField(null=True, blank=True)
+    label_name = models.TextField(null=True, blank=True)
+    control_id = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'form_master'
+
+class FieldMaster(models.Model):
+    field_id = models.AutoField(primary_key=True)
+    control_id = models.TextField(null=True, blank=True)
+    control_type_id = models.TextField(null=True, blank=True)
+    value = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'field_master'
+
 
     

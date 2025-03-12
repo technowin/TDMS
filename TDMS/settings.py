@@ -26,8 +26,8 @@ DATABASES = {
         'ENGINE': 'mysql.connector.django',
         'NAME': 'mantra_db',      # Replace with your database name
         'USER': 'root',      # Replace with your database user
-        'PASSWORD': 'Mysql_7319',  # Replace with your database password
-        'HOST': '13.202.157.7',       # IP FOR TEST
+        'PASSWORD': 'Mysql_MH-047319',  # Replace with your database password
+        'HOST': '15.207.169.98',       # IP FOR TEST
         # 'HOST': '127.0.0.1',       # IP FOR LOCAL VM
         'PORT': '3306',            
         'OPTIONS': {

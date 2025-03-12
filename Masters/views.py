@@ -173,3 +173,17 @@ def sample_xlsx(request):
         messages.error(request, 'Oops...! Something went wrong!')
     finally:
         return response      
+
+
+def form(request):
+    if request.method == "POST":
+        form_name = request.POST.get("form_name")
+        parameter_name = request.POST.get("parameter_name")
+        dropdown_option = request.POST.get("dropdown_option")
+
+        # Process the form data (You can save it to the database if needed)
+        print(f"Form Name: {form_name}, Parameter Name: {parameter_name}, Selected Option: {dropdown_option}")
+
+        return HttpResponse("Form submitted successfully!")  # Or redirect to another page
+
+    return render(request, "Master/form.html")

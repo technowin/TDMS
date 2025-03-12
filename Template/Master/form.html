@@ -1,0 +1,69 @@
+{% extends "Shared/Layout.html" %} {% block username %}{{username}}{% endblock %}
+{% block content %}
+{% load static %}
+{% csrf_token %}
+
+
+<link href="{% static 'css/masters.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/table.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/uploadExcel.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/uploadModal.css' %}" rel="stylesheet" type="text/css" >
+<link rel="stylesheet" type="text/css" href="{% static 'css/tooltips.css' %}" />
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<!-- Include DataTables CSS -->
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.min.css">
+<!-- Include DataTables JS -->
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+
+<body>
+
+<div class="container mt-5" width="1800px">
+    <div class="card shadow">
+        <div class="card-header bg-primary text-white">
+            <h5 class="mb-0">Document Management System</h5>
+        </div>
+        <div class="card-body">
+            <form method="POST">
+                {% csrf_token %}
+                
+                <!-- Form Name Input -->
+                <div class="mb-3">
+                    <label for="formName" class="form-label">Form Name</label>
+                    <input type="text" class="form-control" id="formName" name="form_name" placeholder="Enter form name">
+                </div>
+
+                <!-- Two-section layout -->
+                <div class="row">
+                    <div class="col-md-6">
+                        <label for="parameterName" class="form-label">Parameter Name</label>
+                        <input type="text" class="form-control" id="parameterName" name="parameter_name" placeholder="Enter parameter">
+                    </div>
+                    <div class="col-md-6">
+                        <label for="dropdownSelect" class="form-label">Select Option</label>
+                        <select class="form-select" id="dropdownSelect" name="dropdown_option">
+                            <option value="">Choose an option</option>
+                            <option value="option1">Option 1</option>
+                            <option value="option2">Option 2</option>
+                            <option value="option3">Option 3</option>
+                        </select>
+                    </div>
+                </div>
+
+                <!-- Submit Button -->
+                <div class="mt-4">
+                    <button type="submit" class="btn btn-primary w-100">Submit</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
+{% endblock %}

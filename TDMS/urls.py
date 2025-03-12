@@ -51,6 +51,7 @@ urlpatterns = [
 
     # Masters
     path('masters/', masters, name='masters'),
+    path("form/", form, name="form"),
 
     #Reports 
     path('common_html', common_html, name='common_html'),
