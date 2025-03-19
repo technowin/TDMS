@@ -1,5 +1,6 @@
 import json
 import pydoc
+import re
 from django.contrib import messages
 from django.http import HttpResponse, JsonResponse
 from django.shortcuts import render,redirect,get_object_or_404
@@ -175,24 +176,242 @@ def sample_xlsx(request):
         return response      
 
 
+def format_label_name(parameter_name):
+    """Convert parameter name to a proper label format."""
+    return " ".join(re.findall(r'[A-Za-z]+', parameter_name)).title()
+
+
 def form(request):
-    dropdown_options = ControlParameterMaster.objects.all()  # Fetch values from the model
-    return render(request, "Master/form.html", {"dropdown_options": dropdown_options})
+    user = request.session.get('user_id', '')
+
+    if request.method == "POST":
+        try:
+            form_name = request.POST.get("form_name", "")
+            parameter_name = request.POST.get("parameter_name", "").strip()
+            control_id = request.POST.get("dropdown_option", "")
+
+            # Standardize the parameter_name format
+            label_name = re.sub(r'\s+', ' ', parameter_name).title()  # Capitalize Each Word
+
+            # Save the form entry in FormMaster
+            form_entry = FormMaster.objects.filter(form_name=form_name).first()
+
+            if form_entry:
+                form_id = form_entry.form_id  # Use existing form_id
+            else:
+                # Get last form_id and increment it
+                last_form = FormMaster.objects.order_by('-form_id').first()
+                new_form_id = last_form.form_id + 1 if last_form else 1  # Handle empty case
+
+                # Check if a record already exists with the same form_name and form_id to avoid duplicates
+                form_entry, created = FormMaster.objects.get_or_create(
+                    form_name=form_name,
+                    defaults={  # Only set these values if a new record is created
+                        "form_id": new_form_id,
+                        "parameter_name": parameter_name,
+                        "label_name": label_name,
+                        "control_id": control_id,
+                        "created_by": user,
+                        "updated_by": user
+                    }
+                )
+                form_id = form_entry.form_id  # Assign new form_id if created
+
+            field_entries = []
+
+
+            # Loop through POST data to capture all inputs dynamically
+            for key, value in request.POST.items():
+                if key.startswith("dropdown_") and value:  # Handle Dropdowns
+                    index = key.split("_")[1]  # Extract the unique index
+                    subvalues = request.POST.getlist(f"subvalue_{index}[]")  # Get subvalues as a list
+                    subvalue_str = ",".join(filter(None, subvalues))  # Convert to comma-separated string
+
+                    control_master_id = request.POST.get(f"control_master_id_{index}")  # Fetch the control_master_id
+
+                    # Save everything in a single row
+                    field_entries.append(FieldMaster(
+                        control_master_id=control_master_id,  # Store the correct control_master_id
+                        form_id=form_id,
+                        value=value,         # Store dropdown value
+                        sub_value=subvalue_str,  # Store subvalues as comma-separated
+                        created_by=user,
+                        updated_by=user
+                    ))
+
+                elif key.startswith("value_"):  # Handle Value Inputs
+                    values_list = request.POST.getlist(key)  # Get all values as a list
+                    combined_values = ",".join(filter(None, values_list))  # Join values, remove empty ones
+
+                    if combined_values:  # Only store if there are values
+                        control_master_id = request.POST.get(f"control_master_id_{key.split('_')[1]}")
+                        field_entries.append(FieldMaster(
+                            control_master_id=control_master_id,  # Store correct control_master_id
+                            form_id=form_id,
+                            value=combined_values,  # Save as comma-separated string
+                            created_by=user,
+                            updated_by=user
+                        ))
+
+                elif key.startswith("checkbox_") and value == "on":  # Handle Checkbox
+                    control_master_id = request.POST.get(f"control_master_id_{key.split('_')[1]}")
+                    field_entries.append(FieldMaster(
+                        control_master_id=control_master_id,  # Store correct control_master_id
+                        form_id=form_id,
+                        value="Checked",  # Save as 'Checked'
+                        created_by=user,
+                        updated_by=user
+                    ))
+
+                elif key.startswith("textbox_") and value:  # Handle Textbox
+                    control_master_id = request.POST.get(f"control_master_id_{key.split('_')[1]}")
+                    field_entries.append(FieldMaster(
+                        control_master_id=control_master_id, 
+                        form_id=form_id,
+                        value=value,
+                        created_by=user,
+                        updated_by=user
+                    ))
+
+            # Bulk insert all field entries
+            if field_entries:
+                FieldMaster.objects.bulk_create(field_entries)
+
+            messages.success(request, "Form and fields saved successfully!!")
+
+        except Exception as e:
+            tb = traceback.extract_tb(e.__traceback__)
+            fun = tb[0].name
+            callproc("stp_error_log", [fun, str(e), user])
+            messages.error(request, 'Oops...! Something went wrong!')
+            return JsonResponse({"error": "Something went wrong!"}, status=500)
+
+    else:
+        id  = request.GET.get('form_id', '')
+        if id:
+            form_id = request.GET.get("form_id")  # Get form_id from request
+            form_id = dec(form_id)
+            dropdown_options = ControlParameterMaster.objects.all()  # Fetch dropdown options
+            
+
+            dropdown_options = ControlParameterMaster.objects.all()
+            form_entries = FormMaster.objects.filter(form_id=form_id)
+            field_entries = FieldMaster.objects.filter(form_id=form_id) if form_id else []
+
+            # Split field values into a list
+            for field in field_entries:
+                field.dropdown_values = [option.strip() for option in field.value.split(",")] if field.value else []
+
+
+            return render(request, "Master/form.html", {
+                "dropdown_options": dropdown_options,
+                "form_entries": form_entries,
+                "field_entries": field_entries,
+            })
+
+        else:
+            dropdown_options = ControlParameterMaster.objects.all()  
+            return render(request, "Master/form.html", {"dropdown_options": dropdown_options})
+
+
+
 
 
 def get_control_values(request):
     if request.method == "POST":
         try:
-            control_id = request.POST.get("control_value_id")  # Get the sent value
+            control_value_id = request.POST.get("control_value_id")
 
-            if control_id:
-                # Fetch rows where control_value_uid matches control_value_id
-                control_values = ControlMaster.objects.filter(control_type_id=control_id).values("control_type_id","control_value", "data_type","list_of_values")
+            if control_value_id:
+                print(f"Fetching control values for control_id: {control_value_id}")  # Debug
 
-                return JsonResponse({"control_values": list(control_values)}, safe=False)
+                # Fetch rows from ControlMaster
+                control_values = list(ControlMaster.objects.filter(control_type_id=control_value_id)
+                                      .values("control_id", "control_type_id", 
+                                              "control_value", "data_type", "sub_master1"))
+
+                response_data = []
+
+                for control in control_values:
+                    control_id = control["control_id"]
+                    sub_master1 = control.get("sub_master1", 0)
+
+                    print(f"Processing control_id: {control_id}, sub_master1: {sub_master1}")  # Debug
+
+                    control_entry = {
+                        "control_master_id": control_id,
+                        "control_type_id": control["control_type_id"],
+                        "control_value": control["control_value"],
+                        "data_type": control["data_type"],
+                        "sub_master1": sub_master1,
+                        "sub_controls": []
+                    }
+
+                    # Fetch sub-controls if sub_master1 is '1'
+                    if sub_master1 == '1':
+                        sub_controls = list(ControlSubMaster1.objects.filter(control_id=control_id)
+                                        .values("control_type_id", "sub_control_type", 
+                                                "sub_control_value", "datatype"))
+
+                        for sub_control in sub_controls:
+                            sub_control_values = sub_control["sub_control_type"].split(",")  # Split values
+
+                            control_entry["sub_controls"].append({
+                                "control_type_id": sub_control["control_type_id"],
+                                "sub_control_type": sub_control["sub_control_type"],
+                                "datatype": sub_control["datatype"],
+                                "sub_control_value_list": sub_control_values  # Pass as a list
+                            })
+
+                    response_data.append(control_entry)
+
+                # Pass the updated response_data to the template
+                return render(request, "Master/_partialForm.html", {"control_values": response_data})
+
         except Exception as e:
             tb = traceback.extract_tb(e.__traceback__)
             fun = tb[0].name
-            callproc("stp_error_log",[fun,str(e),user])  
-            messages.error(request, 'Oops...! Something went wrong!')
-    
+            callproc("stp_error_log", [fun, str(e), request.user.id])
+            print(f"Error: {e}")
+            return JsonResponse({'result': 'fail', 'message': 'Something went wrong!'}, status=500)
+
+    return JsonResponse({"error": "Invalid request"}, status=400)
+
+
+def get_sub_item(request):
+    if request.method == "POST":
+        try:
+            sub_control_type = request.POST.get("selected_value")  # Receiving sub_control_type
+            
+            if sub_control_type:
+                print(f"Fetching sub-control for sub_control_type: {sub_control_type}")  # Debugging
+
+                # Fetch only one row based on sub_control_type
+                sub_control = ControlSubMaster1.objects.filter(sub_control_type=sub_control_type).values(
+                    "control_type_id", "sub_control_type", "sub_control_value", "datatype"
+                ).first()  # Fetch only the first row
+
+                if sub_control:
+                    sub_control_values = sub_control["sub_control_type"].split(",")  # Split values if needed
+
+                    response_data = {
+                        "control_type_id": sub_control["control_type_id"],
+                        "sub_control_type": sub_control["sub_control_type"],
+                        "sub_control_value": sub_control["sub_control_value"],
+                        "datatype": sub_control["datatype"],
+                        "sub_control_value_list": sub_control_values  # Pass as a list
+                    }
+
+                    return JsonResponse({"result": "success", "data": response_data}, status=200)
+                else:
+                    return JsonResponse({"result": "fail", "message": "No matching data found"}, status=404)
+
+        except Exception as e:
+            tb = traceback.extract_tb(e.__traceback__)
+            fun = tb[0].name
+            callproc("stp_error_log", [fun, str(e), request.user.id])
+            print(f"Error: {e}")
+            return JsonResponse({'result': 'fail', 'message': 'Something went wrong!'}, status=500)
+
+    return JsonResponse({"error": "Invalid request"}, status=400)
+

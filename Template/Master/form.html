@@ -23,7 +23,7 @@
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
         .container {
-            max-width: 1200px; /* Adjusted for a wider layout */
+            max-width: 1600px; /* Adjusted for a wider layout */
         }
         .card {
             width: 100%; /* Ensures the card takes full container width */
@@ -42,7 +42,6 @@
         }
         .right-section {
             flex: 1;
-            background: black;
             height: 100%;
             border-radius: 5px;
         }
@@ -68,9 +67,10 @@
         <div class="card-body">
             <div class="form-container">
                 
+                
                 <!-- Left: Form Section -->
                 <div class="form-section">
-                    <form method="POST">
+                    <form method="POST" action="{% url 'form' %}">
                         {% csrf_token %}
                         
                         <!-- Form Name Input -->
@@ -78,7 +78,7 @@
                             <label for="formName" class="form-label">Form Name</label>
                             <input type="text" class="form-control" id="formName" name="form_name" placeholder="Enter form name">
                         </div>
-
+                    
                         <!-- Two-section layout -->
                         <div class="row">
                             <div class="col-md-6">
@@ -86,7 +86,7 @@
                                 <input type="text" class="form-control" id="parameterName" name="parameter_name" placeholder="Enter parameter">
                             </div>
                             <div class="col-md-6">
-                                <label for="dropdownSelect" class="form-label">Select Option</label>
+                                <label for="dropdownSelect" class="form-label">Control Type</label>
                                 <select class="form-select" id="dropdownSelect" name="dropdown_option">
                                     <option value="">Select</option>
                                     {% for option in dropdown_options %}
@@ -95,9 +95,10 @@
                                 </select>
                             </div>
                         </div>
-
+                    
+                        <!-- Container for Partial View -->
                         <div id="dynamicFieldsContainer"></div>  
-
+                    
                         <!-- Submit Button -->
                         <div class="mt-4">
                             <button type="submit" class="btn btn-primary w-100">Submit</button>
@@ -106,127 +107,94 @@
                 </div>
 
                 <!-- Right: Placeholder Section -->
-                <div class="right-section"></div>
+                <div class="right-section">
+                    {% if form_entries %}
+                    {% for form in form_entries %}
+                        <div class="field-box">
+                            <!-- Label Name -->
+                            <label>{{ form.label_name }}</label>
+                
+                            {% if form.control_id == "1" %}
+                                <!-- Textbox -->
+                                <input type="text" placeholder="{{ form.sub_value }}" class="form-control">
+                
+                            {% elif form.control_id == "2" %}
+                                <!-- Dropdown -->
+                                    <select class="form-control">
+                                        {% for field in field_entries %}
+                                            {% if field.control_master_id == form.control_id %}
+                                                {% for option in field.dropdown_values %}
+                                                    <option value="{{ option}}">{{ option}}</option>
+                                                {% endfor %}
+                                            {% endif %}
+                                        {% endfor %}
+                                     </select>
+                
+                            {% else %}
+                                <p>Unknown Control Type: {{ form.control_id }}</p>
+                            {% endif %}
+                        </div>
+                    {% endfor %}
+                {% else %}
+                    <p>No fields found for this form.</p>
+                {% endif %}
+                
+
+                </div>
+                
+                
 
             </div>
         </div>
     </div>
 </div>
 
+
+{% if messages %}
+  {% for message in messages %}
+    <script>
+    Swal.fire({
+      title: "{{ message.tags }}",
+      text: "{{ message }}",
+      icon: "{{ message.tags }}",
+      confirmButtonText: "OK",
+    });
+  </script>
+  {% endfor %}
+{% endif %}
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 
-
 <script>
-    $('#dropdownSelect').change(function() {
-        var selectedControlValueId = $(this).val(); // Get selected value
+    $(document).ready(function() {
+        $('#dropdownSelect').change(function() {
+            var selectedControlValueId = $(this).val(); // Get selected value
 
-        if (selectedControlValueId) {
-            $.ajax({
-                url: "{% url 'get_control_values' %}",  
-                type: "POST",
-                data: {
-                    control_value_id: selectedControlValueId, // Send selected value
-                    csrfmiddlewaretoken: "{{ csrf_token }}"  // CSRF token
-                },
-                success: function(response) {
-                    $('#dynamicFieldsContainer').empty(); // Clear previous fields
-
-                    $.each(response.control_values, function(index, item) {
-                        var fieldHtml = '';
-
-                        if (item.data_type === 'Dropdown' || item.data_type === 'RadioButton') {
-                            fieldHtml += '<div class="form-group">';
-                            fieldHtml += '<label>' + item.control_value + '</label>';
-
-                            if (item.data_type === 'Dropdown') {
-                                fieldHtml += '<select class="form-select">';
-                            } else if (item.data_type === 'RadioButton') {
-                                fieldHtml += '<div class="radio-group">';
-                            }
-
-                            if (item.list_of_values) { 
-                                var options = item.list_of_values.split(",");
-                                $.each(options, function(i, option) {
-                                    if (item.data_type === 'Dropdown') {
-                                        fieldHtml += '<option value="' + option.trim() + '">' + option.trim() + '</option>';
-                                    } else if (item.data_type === 'RadioButton') {
-                                        fieldHtml += '<div class="form-check">';
-                                        fieldHtml += '<input class="form-check-input" type="radio" name="radio_' + index + '" value="' + option.trim() + '">';
-                                        fieldHtml += '<label class="form-check-label">' + option.trim() + '</label>';
-                                        fieldHtml += '</div>';
-                                    }
-                                });
-                            }
-
-                            if (selectedControlValueId=== 'Dropdown') {
-                                fieldHtml += '</select>';
-                            } else if (item.data_type === 'RadioButton') {
-                                fieldHtml += '</div>';
-                            }
-
-                            // Add textbox to add new values dynamically
-                            fieldHtml += '<div class="input-group mt-2">';
-                            fieldHtml += '<input type="text" class="form-control new-value-input" placeholder="Enter new value">';
-                            fieldHtml += '<button type="button" class="btn btn-success add-option">+</button>';
-                            fieldHtml += '</div>';
-
-                            fieldHtml += '</div>';
-                        } 
-                        else if (item.data_type === 'Checkbox') {
-                            fieldHtml += '<div class="form-check">';
-                            fieldHtml += '<input class="form-check-input" type="checkbox" id="checkbox_' + index + '">';
-                            fieldHtml += '<label class="form-check-label" for="checkbox_' + index + '">' + item.control_value + '</label>';
-                            fieldHtml += '</div>';
-                        } 
-                        else if (item.data_type === 'Textbox') {
-                            fieldHtml += '<div class="form-group">';
-                            fieldHtml += '<label>' + item.control_value + '</label>';
-                            fieldHtml += '<input type="text" class="form-control">';
-                            fieldHtml += '</div>';
-                        }
-
-                        $('#dynamicFieldsContainer').append(fieldHtml);
-                    });
-                },
-                error: function(error) {
-                    console.log("Error fetching data:", error);
-                }
-            });
-        }
-    });
-
-    // Add new values dynamically to Dropdown or RadioButton
-    $(document).on("click", ".add-option", function() {
-        var newValue = $(this).siblings(".new-value-input").val().trim();
-        var selectElement = $(this).closest(".form-group").find("select");
-        var radioGroup = $(this).closest(".form-group").find(".radio-group");
-
-        if (newValue) {
-            if (selectElement.length) {
-                selectElement.append('<option value="' + newValue + '">' + newValue + '</option>');
-            } 
-            else if (radioGroup.length) {
-                var radioIndex = radioGroup.children().length + 1;
-                var newRadioHtml = '<div class="form-check">';
-                newRadioHtml += '<input class="form-check-input" type="radio" name="radio_dynamic_' + radioIndex + '" value="' + newValue + '">';
-                newRadioHtml += '<label class="form-check-label">' + newValue + '</label>';
-                newRadioHtml += '<button type="button" class="btn btn-danger btn-sm remove-option">X</button>';
-                newRadioHtml += '</div>';
-                radioGroup.append(newRadioHtml);
+            if (selectedControlValueId) {
+                $.ajax({
+                    url: "{% url 'get_control_values' %}",
+                    type: "POST",
+                    data: {
+                        control_value_id: selectedControlValueId,
+                        csrfmiddlewaretoken: "{{ csrf_token }}"
+                    },
+                    success: function(response) {
+                        // Load response into the dynamic field container
+                        $('#dynamicFieldsContainer').html(response);
+                    },
+                    error: function(error) {
+                        console.log("Error fetching data:", error);
+                    }
+                });
+            } else {
+                $('#dynamicFieldsContainer').empty();
             }
-
-            $(this).siblings(".new-value-input").val(""); // Clear input field
-        }
+        });
     });
 
-    // Remove dynamically added radio options
-    $(document).on("click", ".remove-option", function() {
-        $(this).closest(".form-check").remove();
-    });
+
+  
+    
 </script>
-
-    
-    
-
 {% endblock %}

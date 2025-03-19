@@ -1,0 +1,132 @@
+
+
+
+{% block content %}
+{% load static %}
+{% csrf_token %}
+
+
+<link href="{% static 'css/masters.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/table.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/uploadExcel.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/uploadModal.css' %}" rel="stylesheet" type="text/css" >
+<link rel="stylesheet" type="text/css" href="{% static 'css/tooltips.css' %}" />
+
+{% for item in control_values %}
+    <input type="hidden" name="control_master_id_{{ forloop.counter }}" value="{{ item.control_master_id }}">
+
+    {% if item.data_type == 'Dropdown' %}
+    <div class="form-group">
+        <label>{{ item.control_value }}</label>
+        <select class="form-select dynamic-dropdown" name="dropdown_{{ forloop.counter }}" data-index="{{ forloop.counter }}">
+            <option value="">Select an option</option>
+            {% for subItem in item.sub_controls %}
+                {% for value in subItem.sub_control_value_list %}
+                    <option value="{{ value }}">{{ value }}</option>
+                {% endfor %}
+            {% endfor %}
+        </select>
+        <br/>
+        <div class="dynamicInputs" id="dynamicInputs_{{ forloop.counter }}"></div>
+    </div>
+
+    {% elif item.data_type == 'Value' %}
+    <div class="form-group value-group">
+        <label>{{ item.control_value }}</label>
+        <div class="d-flex flex-wrap">
+            <div class="input-group mt-2 me-2" style="width: 48%;">
+                <input type="text" class="form-control new-value-input" name="value_{{ forloop.counter }}[]" placeholder="{{ item.control_value }}">
+                <button type="button" class="btn btn-success add-textbox">+</button>
+            </div>
+        </div>
+    </div>
+    
+    {% elif item.data_type == 'Checkbox' %}
+    <div class="form-check">
+        <input class="form-check-input" type="checkbox" id="checkbox_{{ forloop.counter }}" name="checkbox_{{ forloop.counter }}">
+        <label class="form-check-label" for="checkbox_{{ forloop.counter }}">{{ item.control_value }}</label>
+    </div>
+    
+    {% elif item.data_type == 'Textbox' %}
+    <div class="form-group">
+        <label>{{ item.control_value }}</label>
+        <input type="text" class="form-control" name="textbox_{{ forloop.counter }}" placeholder="{{ item.control_value }}">
+    </div>
+    
+    {% endif %}
+{% endfor %}
+
+
+
+<script>
+    $(document).on("click", ".add-textbox", function() {
+        var parentGroup = $(this).closest(".value-group").find(".d-flex");
+        var controlValue = $(this).closest(".value-group").find("label").text().trim();
+        var index = parentGroup.find(".new-value-input").length + 1; // Ensure name uniqueness
+        var fieldName = parentGroup.find(".new-value-input").attr("name"); // Get name from existing input
+        
+        var newTextBoxHtml = '<div class="input-group mt-2 me-2" style="width: 48%;">';
+        newTextBoxHtml += '<input type="text" class="form-control new-value-input" name="' + fieldName + '" placeholder="' + controlValue + '">';
+        newTextBoxHtml += '<button type="button" class="btn btn-danger remove-textbox">X</button>';
+        newTextBoxHtml += '</div>';
+    
+        parentGroup.append(newTextBoxHtml);
+    });
+    
+    $(document).on("click", ".remove-textbox", function() {
+        $(this).closest(".input-group").remove();
+    });
+    
+</script>
+
+<script>
+
+    $(document).ready(function () {
+        $(".dynamic-dropdown").change(function () {
+            var selectedValue = $(this).val();
+            var index = $(this).data("index"); // Get unique row index
+            var dynamicInputsContainer = $("#dynamicInputs_" + index);
+    
+            $.ajax({
+                url: "{% url 'get_sub_item' %}",
+                type: "POST",
+                data: {
+                    selected_value: selectedValue,
+                    csrfmiddlewaretoken: "{{ csrf_token }}"
+                },
+                success: function (response) {
+                    if (response.result === "success") {
+                        var datatype = response.data.datatype;
+                        var subControlValues = response.data.sub_control_value_list; 
+    
+                        // Clear previous inputs
+                        dynamicInputsContainer.empty();
+    
+                        if (datatype === "Double Textbox") {
+                            var minValue = subControlValues.length > 0 ? subControlValues[0] : "";
+                            var maxValue = subControlValues.length > 1 ? subControlValues[1] : "";
+    
+                            dynamicInputsContainer.append(`
+                                <div class="d-flex gap-2">
+                                    <input type="text" class="form-control" name="subvalue_${index}[]" placeholder="Min Value: ${minValue}">
+                                    <input type="text" class="form-control" name="subvalue_${index}[]" placeholder="Max Value: ${maxValue}">
+                                </div>
+                            `);
+                        } else if (datatype === "Textbox") {
+                            var subControlValue = response.data.sub_control_value;
+                            dynamicInputsContainer.append(`
+                                <input type="text" class="form-control mt-2" name="subvalue_${index}[]" placeholder="${subControlValue}">
+                            `);
+                        }
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error("Error:", error);
+                }
+            });
+        });
+    });
+    
+</script>    
+
+{% endblock %}

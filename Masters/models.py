@@ -141,7 +141,8 @@ class ControlMaster(models.Model):
     control_type = models.TextField(null=True, blank=True)
     control_value = models.TextField(null=True, blank=True)
     data_type = models.TextField(null=True, blank=True)
-    list_of_values = models.TextField(null=True, blank=True)
+    sub_master1 = models.TextField(null=True, blank=True)
+    sub_master2 = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
@@ -150,9 +151,10 @@ class ControlMaster(models.Model):
         db_table = 'control_master'
 
 class FormMaster(models.Model):
-    form_id =  models.AutoField(primary_key=True)
+    id =  models.AutoField(primary_key=True)
+    form_id =  models.TextField(null=True, blank=True)
     form_name = models.TextField(null=True, blank=True)
-    paramter_name = models.TextField(null=True, blank=True)
+    parameter_name = models.TextField(null=True, blank=True)
     label_name = models.TextField(null=True, blank=True)
     control_id = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
@@ -164,8 +166,10 @@ class FormMaster(models.Model):
 
 class FieldMaster(models.Model):
     field_id = models.AutoField(primary_key=True)
-    control_id = models.TextField(null=True, blank=True)
-    control_type_id = models.TextField(null=True, blank=True)
+    form_id =  models.TextField(null=True, blank=True)
+    control_master_id = models.TextField(null=True, blank=True)
+    sub_control_id = models.TextField(null=True, blank=True)
+    sub_value = models.TextField(null=True, blank=True)
     value = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
@@ -174,5 +178,19 @@ class FieldMaster(models.Model):
     class Meta:
         db_table = 'field_master'
 
+
+class ControlSubMaster1(models.Model):
+    id = models.AutoField(primary_key=True)
+    control_id = models.TextField(null=True, blank=True)
+    control_type_id = models.TextField(null=True, blank=True)
+    sub_control_type = models.TextField(null=True, blank=True)
+    datatype = models.TextField(null=True,blank=True)
+    sub_control_value = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'control_sub_master1'
 
     
