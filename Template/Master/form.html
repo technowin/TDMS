@@ -11,6 +11,7 @@
 <link rel="stylesheet" type="text/css" href="{% static 'css/tooltips.css' %}" />
 
 <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<script src="{% static 'js/cloudflare.js' %}"></script>
 <!-- Include DataTables CSS -->
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.min.css">
 <!-- Include DataTables JS -->
@@ -18,10 +19,43 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-
+<link href="{% static 'css/form.css' %}" rel="stylesheet" type="text/css" >
 
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <style>
+     <style>
+
+        {% comment %} .field-container {
+            border: 2px dashed #007bff; /* Dashed border */
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            position: relative;
+        } {% endcomment %}
+        .field-box {
+            margin-bottom: 10px;
+        }
+        .btn-group {
+            margin-top: 10px;
+        }
+        .btn {
+            padding: 5px 10px;
+            margin-right: 5px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        .btn-edit {
+            background-color: #28a745;
+            color: white;
+        }
+        .btn-remove {
+            background-color: #dc3545;
+            color: white;
+        }
+        .btn:hover {
+            opacity: 0.8;
+        }
         .container {
             max-width: 1600px; /* Adjusted for a wider layout */
         }
@@ -55,7 +89,29 @@
         .mb-3, .row {
             margin-bottom: 15px;
         }
-    </style>
+
+        #sortable-container {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        
+        .field-container {
+            border: 2px dashed #007bff; /* Dashed border */
+            margin-bottom: 15px;
+            border-radius: 8px;
+            background-color: #f9f9f9;
+            position: relative;
+            min-width: 200px;
+            flex-grow: 1;
+            transition: width 0.3s ease;
+        }
+    
+        .sortable-ghost {
+            opacity: 0.5;
+            background: #f8f9fa;
+        }
+    </style> 
 </head>
 <body>
 
@@ -64,90 +120,199 @@
         <div class="card-header">
             <h5 class="mb-0">Document Management System</h5>
         </div>
-        <div class="card-body">
-            <div class="form-container">
-                
-                
-                <!-- Left: Form Section -->
-                <div class="form-section">
+        <div class="container mt-4">
+            <!-- Main Form Card -->
+           
                     <form method="POST" action="{% url 'form' %}">
                         {% csrf_token %}
-                        
-                        <!-- Form Name Input -->
-                        <div class="mb-3">
-                            <label for="formName" class="form-label">Form Name</label>
-                            <input type="text" class="form-control" id="formName" name="form_name" placeholder="Enter form name">
+        
+                        <!-- Centered Form Name Section -->
+                        <div class="text-center mb-4">
+                            <h4 class="card-title">Create Form</h4>
+                            <input type="text" class="form-control mx-auto w-50 mt-2" id="formName" name="form_name" placeholder="Enter form name">
                         </div>
-                    
-                        <!-- Two-section layout -->
+        
+                        <div class="card">
+                            <div class="card-body">
                         <div class="row">
-                            <div class="col-md-6">
-                                <label for="parameterName" class="form-label">Parameter Name</label>
-                                <input type="text" class="form-control" id="parameterName" name="parameter_name" placeholder="Enter parameter">
-                            </div>
-                            <div class="col-md-6">
-                                <label for="dropdownSelect" class="form-label">Control Type</label>
-                                <select class="form-select" id="dropdownSelect" name="dropdown_option">
-                                    <option value="">Select</option>
-                                    {% for option in dropdown_options %}
-                                        <option value="{{ option.id }}">{{ option.control_value }}</option>
-                                    {% endfor %}
-                                </select>
-                            </div>
-                        </div>
-                    
-                        <!-- Container for Partial View -->
-                        <div id="dynamicFieldsContainer"></div>  
-                    
-                        <!-- Submit Button -->
-                        <div class="mt-4">
-                            <button type="submit" class="btn btn-primary w-100">Submit</button>
-                        </div>
-                    </form>
-                </div>
-
-                <!-- Right: Placeholder Section -->
-                <div class="right-section">
-                    {% if form_entries %}
-                    {% for form in form_entries %}
-                        <div class="field-box">
-                            <!-- Label Name -->
-                            <label>{{ form.label_name }}</label>
-                
-                            {% if form.control_id == "1" %}
-                                <!-- Textbox -->
-                                <input type="text" placeholder="{{ form.sub_value }}" class="form-control">
-                
-                            {% elif form.control_id == "2" %}
-                                <!-- Dropdown -->
-                                    <select class="form-control">
-                                        {% for field in field_entries %}
-                                            {% if field.control_master_id == form.control_id %}
-                                                {% for option in field.dropdown_values %}
-                                                    <option value="{{ option}}">{{ option}}</option>
-                                                {% endfor %}
-                                            {% endif %}
+                            <!-- Left Section: Form Inputs -->
+                            <div class="col-md-5">
+                                <div class="mb-3">
+                                    <label for="parameterName" class="form-label">Parameter Name</label>
+                                    <input type="text" class="form-control" id="parameterName" name="parameter_name" placeholder="Enter parameter">
+                                </div>
+        
+                                <div class="mb-3">
+                                    <label for="dropdownSelect" class="form-label">Control Type</label>
+                                    <select class="form-select" id="dropdownSelect" name="dropdown_option">
+                                        <option value="">Select</option>
+                                        {% for option in dropdown_options %}
+                                            <option value="{{ option.id }}">{{ option.control_value }}</option>
                                         {% endfor %}
-                                     </select>
-                
-                            {% else %}
-                                <p>Unknown Control Type: {{ form.control_id }}</p>
-                            {% endif %}
+                                    </select>
+                                </div>
+        
+                                <!-- Dynamic Fields Container -->
+                                <div id="dynamicFieldsContainer"></div>
+        
+                                <!-- Submit Button -->
+                                <div class="mt-4">
+                                    <button type="submit" class="btn btn-primary w-100">Submit</button>
+                                </div>
+                            </div>
+                    </form>
+        
+                            <div class="col-md-7">
+                                {% if form_entries %}
+                                <div id="sortable-container" class="d-flex flex-wrap gap-3">
+                                    {% for form in form_entries %}
+                                        <div class="field-container card p-3 mb-3" data-id="{{ form.form_id }}">
+                                            <label class="fw-bold">{{ form.label_name }}</label>
+                                
+                                            {% if form.control_id == "1" %}
+                                                <!-- Textbox -->
+                                                <input type="text" placeholder="{{ field_entries.sub_value }}" class="form-control">
+                                
+                                            {% elif form.control_id == "2" %}
+                                                <!-- Dropdown -->
+                                                <select class="form-control">
+                                                    {% for field in field_entries %}
+                                                        {% if field.control_master_id == dropdown_options.control_id %}
+                                                            {% for option in field.options_list %}
+                                                                <option value="{{ option }}">{{ option }}</option>
+                                                            {% endfor %}
+                                                        {% endif %} 
+                                                    {% endfor %}
+                                                </select>
+                                
+                                            {% elif form.control_id == "3" %}
+                                                <!-- Radio Buttons -->
+                                                {% for field in field_entries %}
+                                                    {% if field.control_master_id == form.control_id %}
+                                                        {% for option in field.options_list %}
+                                                            <label>
+                                                                <input type="radio" name="radio_{{ form.form_id }}" value="{{ option }}"> {{ option }}
+                                                            </label>
+                                                        {% endfor %}
+                                                    {% endif %}
+                                                {% endfor %}
+                                            {% else %}
+                                                <p>Unknown Control Type: {{ form.control_id }}</p>
+                                            {% endif %}
+                                
+                                            <!-- Buttons -->
+                                            <div class="mt-2">
+                                                <button class="btn btn-sm btn-edit">Edit</button>
+                                                <button class="btn btn-sm btn-danger">Remove</button>
+                                            </div>
+                                        </div>
+                                        {% endfor %}
+                                    </div>
+                                {% else %}
+                                    <p class="text-muted">Please add fields for this form...</p>
+                                {% endif %}
+                            </div>
                         </div>
-                    {% endfor %}
-                {% else %}
-                    <p>No fields found for this form.</p>
-                {% endif %}
-                
-
                 </div>
-                
-                
-
             </div>
         </div>
+        
+        </div>
     </div>
-</div>
+    
+    <script>
+    document.addEventListener("DOMContentLoaded", function () {
+        var sortable = new Sortable(document.getElementById("sortable-container"), {
+            animation: 150,  // Smooth animation
+            ghostClass: "sortable-ghost",  // Class for dragged item
+            onEnd: function (evt) {
+                let order = [];
+                document.querySelectorAll(".field-container").forEach((el, index) => {
+                    order.push({ form_id: el.getAttribute("data-id"), position: index + 1 });
+                });
+
+                // Send the updated order to the backend (Optional)
+                fetch("/update-field-order/", {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-CSRFToken": "{{ csrf_token }}"
+                    },
+                    body: JSON.stringify({ order: order })
+                }).then(response => response.json())
+                .then(data => console.log("Updated Order:", data))
+                .catch(error => console.error("Error:", error));
+            }
+        });
+    });
+</script>
+
+{% comment %} <script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const container = document.getElementById("sortable-container");
+
+        new Sortable(container, {
+            animation: 200,
+            ghostClass: "sortable-ghost",
+            swapThreshold: 0.5, 
+            direction: 'horizontal',  // Enables horizontal drag
+            onEnd: function () {
+                adjustBoxSizes();
+            }
+        });
+
+        function adjustBoxSizes() {
+            let items = document.querySelectorAll('.field-container');
+            let count = items.length;
+            
+            items.forEach(item => {
+                if (count === 1) {
+                    item.style.width = "100%";
+                } else if (count === 2) {
+                    item.style.width = "48%";  // Adjusted for 2 boxes
+                } else {
+                    item.style.width = "32%";  // Adjusted for 3 boxes
+                }
+            });
+        }
+
+        adjustBoxSizes(); // Initial Adjustment
+    });
+</script> {% endcomment %}
+
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        const container = document.getElementById("sortable-container");
+
+        new Sortable(container, {
+            animation: 200,
+            ghostClass: "sortable-ghost",
+            swapThreshold: 0.5, 
+            direction: 'horizontal',  // Enables horizontal drag
+            onEnd: function () {
+                adjustBoxSizes();
+            }
+        });
+
+        function adjustBoxSizes() {
+            let items = document.querySelectorAll('.field-container');
+            let totalItems = items.length;
+
+            items.forEach(item => {
+                if (totalItems === 1) {
+                    item.style.width = "100%";
+                } else if (totalItems === 2) {
+                    item.style.width = "48%";  // Adjust for 2 boxes in a row
+                } else {
+                    item.style.width = "32%";  // Adjust for 3 boxes in a row
+                }
+            });
+        }
+
+        adjustBoxSizes(); // Initial Adjustment
+    });
+</script>
+
 
 
 {% if messages %}

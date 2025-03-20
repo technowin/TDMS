@@ -1,0 +1,65 @@
+.field-container {
+    border: 2px dashed #007bff; /* Dashed border */
+    padding: 15px;
+    margin-bottom: 15px;
+    border-radius: 8px;
+    background-color: #f9f9f9;
+    position: relative;
+}
+.field-box {
+    margin-bottom: 10px;
+}
+.btn-group {
+    margin-top: 10px;
+}
+.btn {
+    padding: 5px 10px;
+    margin-right: 5px;
+    border: none;
+    cursor: pointer;
+    border-radius: 5px;
+}
+.btn-edit {
+    background-color: #28a745;
+    color: white;
+}
+.btn-remove {
+    background-color: #dc3545;
+    color: white;
+}
+.btn:hover {
+    opacity: 0.8;
+}
+.container {
+    max-width: 1600px; /* Adjusted for a wider layout */
+}
+.card {
+    width: 100%; /* Ensures the card takes full container width */
+}
+
+.form-container {
+    display: flex;
+    justify-content: space-between;
+    gap: 20px;
+}
+.form-section {
+    flex: 1;
+    background: #fff;
+    padding: 20px;
+    border-radius: 5px;
+}
+.right-section {
+    flex: 1;
+    height: 100%;
+    border-radius: 5px;
+}
+.form-label {
+    font-weight: bold;
+}
+.form-control, .form-select {
+    border-radius: 5px;
+    padding: 10px;
+}
+.mb-3, .row {
+    margin-bottom: 15px;
+}

@@ -14,6 +14,7 @@
 
 {% for item in control_values %}
     <input type="hidden" name="control_master_id_{{ forloop.counter }}" value="{{ item.control_master_id }}">
+    {% comment %} <input type="hidden" name="control_sub_id_{{ forloop.counter }}" value="{{ item.control_sub_id }}"> {% endcomment %}
 
     {% if item.data_type == 'Dropdown' %}
     <div class="form-group">
@@ -62,7 +63,7 @@
     $(document).on("click", ".add-textbox", function() {
         var parentGroup = $(this).closest(".value-group").find(".d-flex");
         var controlValue = $(this).closest(".value-group").find("label").text().trim();
-        var index = parentGroup.find(".new-value-input").length + 1; // Ensure name uniqueness
+        var index = parentGroup.find(".new-value-input").length ; // Ensure name uniqueness
         var fieldName = parentGroup.find(".new-value-input").attr("name"); // Get name from existing input
         
         var newTextBoxHtml = '<div class="input-group mt-2 me-2" style="width: 48%;">';
@@ -76,54 +77,58 @@
     $(document).on("click", ".remove-textbox", function() {
         $(this).closest(".input-group").remove();
     });
-    
+     
+
 </script>
 
 <script>
 
-    $(document).ready(function () {
-        $(".dynamic-dropdown").change(function () {
-            var selectedValue = $(this).val();
-            var index = $(this).data("index"); // Get unique row index
-            var dynamicInputsContainer = $("#dynamicInputs_" + index);
+    $(document).on("change", ".dynamic-dropdown", function () {
+        var selectedValue = $(this).val();
+        var index = $(this).data("index");
+        var dynamicInputsContainer = $("#dynamicInputs_" + index);
     
-            $.ajax({
-                url: "{% url 'get_sub_item' %}",
-                type: "POST",
-                data: {
-                    selected_value: selectedValue,
-                    csrfmiddlewaretoken: "{{ csrf_token }}"
-                },
-                success: function (response) {
-                    if (response.result === "success") {
-                        var datatype = response.data.datatype;
-                        var subControlValues = response.data.sub_control_value_list; 
+        $.ajax({
+            url: "{% url 'get_sub_item' %}",
+            type: "POST",
+            data: {
+                selected_value: selectedValue,
+                csrfmiddlewaretoken: "{{ csrf_token }}"
+            },
+            success: function (response) {
+                if (response.result === "success") {
+                    debugger;
+                    var controlSubId = response.data.control_sub_id;
+                    var subControlValues = response.data.sub_control_value_list;
     
-                        // Clear previous inputs
-                        dynamicInputsContainer.empty();
+                    // Clear previous inputs
+                    dynamicInputsContainer.empty();
     
-                        if (datatype === "Double Textbox") {
-                            var minValue = subControlValues.length > 0 ? subControlValues[0] : "";
-                            var maxValue = subControlValues.length > 1 ? subControlValues[1] : "";
+                    // Append hidden field for control_sub_id dynamically
+                    dynamicInputsContainer.append(`
+                        <input type="hidden" name="control_sub_id_${index}" value="${controlSubId}">
+                    `);
     
-                            dynamicInputsContainer.append(`
-                                <div class="d-flex gap-2">
-                                    <input type="text" class="form-control" name="subvalue_${index}[]" placeholder="Min Value: ${minValue}">
-                                    <input type="text" class="form-control" name="subvalue_${index}[]" placeholder="Max Value: ${maxValue}">
-                                </div>
-                            `);
-                        } else if (datatype === "Textbox") {
-                            var subControlValue = response.data.sub_control_value;
-                            dynamicInputsContainer.append(`
-                                <input type="text" class="form-control mt-2" name="subvalue_${index}[]" placeholder="${subControlValue}">
-                            `);
-                        }
+                    if (response.data.datatype === "Double Textbox") {
+                        var subValue1 = subControlValues.length > 0 ? subControlValues[0] : "";
+                        var subValue2 = subControlValues.length > 1 ? subControlValues[1] : "";
+    
+                        dynamicInputsContainer.append(`
+                            <div class="d-flex gap-2">
+                                <input type="text" class="form-control" name="subvalue_${index}[]" placeholder="Min Value: ${subValue1}">
+                                <input type="text" class="form-control" name="subvalue_${index}[]" placeholder="Max Value: ${subValue2}">
+                            </div>
+                        `);
+                    } else if (response.data.datatype === "Textbox") {
+                        dynamicInputsContainer.append(`
+                            <input type="text" class="form-control mt-2" name="subvalue_${index}[]" placeholder="Enter value">
+                        `);
                     }
-                },
-                error: function (xhr, status, error) {
-                    console.error("Error:", error);
                 }
-            });
+            },
+            error: function (xhr, status, error) {
+                console.error("Error:", error);
+            }
         });
     });
     

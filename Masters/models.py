@@ -151,9 +151,19 @@ class ControlMaster(models.Model):
         db_table = 'control_master'
 
 class FormMaster(models.Model):
+    form_id = models.AutoField(primary_key=True)
+    form_name = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'form_master'
+
+
+class FormFieldMaster(models.Model):
     id =  models.AutoField(primary_key=True)
     form_id =  models.TextField(null=True, blank=True)
-    form_name = models.TextField(null=True, blank=True)
     parameter_name = models.TextField(null=True, blank=True)
     label_name = models.TextField(null=True, blank=True)
     control_id = models.TextField(null=True, blank=True)
@@ -162,7 +172,7 @@ class FormMaster(models.Model):
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     updated_by =  models.TextField(null=True, blank=True)
     class Meta:
-        db_table = 'form_master'
+        db_table = 'form_field_master'
 
 class FieldMaster(models.Model):
     field_id = models.AutoField(primary_key=True)
