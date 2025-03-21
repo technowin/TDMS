@@ -1,5 +1,6 @@
 {% extends "Shared/Layout.html" %} {% block username %}{{username}}{% endblock %}
 {% block content %}
+{% load master_custom_filters %}
 {% load static %}
 {% csrf_token %}
 
@@ -119,9 +120,12 @@
         
                         <!-- Centered Form Name Section -->
                         <div class="text-center mb-4">
-                            <h4 class="card-title">Create Form</h4>
-                            <input type="text" class="form-control mx-auto w-50 mt-2" id="formName" name="form_name" placeholder="Enter form name">
+                            <h4 class="card-title">Enter Form Name</h4>
+                            <input type="text" class="form-control mx-auto w-25 mt-2  text-truncate" 
+                                   value="{{ form.form_name }}" id="formName" name="form_name" 
+                                   placeholder="Enter form name" style="min-width: 150px;" required>
                         </div>
+                        
         
                         <div class="card">
                             <div class="card-body">
@@ -130,12 +134,12 @@
                             <div class="col-md-5">
                                 <div class="mb-3">
                                     <label for="parameterName" class="form-label">Parameter Name</label>
-                                    <input type="text" class="form-control" id="parameterName" name="parameter_name" placeholder="Enter parameter">
+                                    <input type="text" class="form-control" id="parameterName" name="parameter_name" placeholder="Enter parameter" required>
                                 </div>
         
                                 <div class="mb-3">
                                     <label for="dropdownSelect" class="form-label">Control Type</label>
-                                    <select class="form-select" id="dropdownSelect" name="dropdown_option">
+                                    <select class="form-select" id="dropdownSelect" name="dropdown_option" required>
                                         <option value="">Select</option>
                                         {% for option in dropdown_options %}
                                             <option value="{{ option.id }}">{{ option.control_value }}</option>
@@ -153,72 +157,87 @@
                             </div>
                     </form>
         
-                            <div class="col-md-7">
-                                {% if form_entries %}
-                                <div id="sortable-container" class="d-flex flex-wrap gap-3">
-                                    {% for form in form_entries %}
-                                    <div class="field-container card p-3 mb-3" data-id="{{ form.form_id }}">
-                                        <label class="fw-bold">{{ form.label_name }}</label>
-                                
-                                        {% if form.control_id == "1" %}
-                                            <!-- Textbox -->
-                                            <input type="text" placeholder="{{ field_entries.sub_value }}" class="form-control">
-                                
-                                        {% elif form.control_id == "2" %}
-                                            <!-- Dropdown -->
-                                            <select class="form-control">
-                                                {% for field in field_entries %}
-                                                    {% if field.control_master_id == form.control_id %}
-                                                        {% for option in field.options_list %}
-                                                            <option value="{{ option }}">{{ option }}</option>
-                                                        {% endfor %}
-                                                    {% endif %}
-                                                {% endfor %}
-                                            </select>
-                                
-                                        {% elif form.control_id == "3" %}
-                                            <!-- Radio Buttons -->
-                                            {% for field in field_entries %}
-                                                {% if field.control_master_id == form.control_id %}
-                                                    {% for option in field.options_list %}
-                                                        <label>
-                                                            <input type="radio" name="radio_{{ form.form_id }}" value="{{ option }}"> {{ option }}
-                                                        </label>
-                                                    {% endfor %}
-                                                {% endif %}
+                    <div class="col-md-7">
+                        {% if field_entries %}
+                <div id="sortable-container" class="d-flex flex-wrap gap-3">
+                    {% for form in form_entries %}
+                        <div class="field-container card p-3 mb-3" data-id="{{ form.form_id }}">
+                            <label class="fw-bold">{{ form.label_name }}</label>
+
+                            {% if form.control_id == "1" %}
+                                <!-- Textbox -->
+                                <input type="text" placeholder="{{ form.sub_value }}" class="form-control">
+
+                            {% elif form.control_id == "2" %}
+                                <!-- Dropdown -->
+                                <select class="form-control">
+                                    {% for field in field_entries %}
+                                        {% if field_entries.control_master_id  == 6 %}
+                                            {% for option in field.options_list %}
+                                                <option value="{{ option }}">{{ option }}</option>
                                             {% endfor %}
-                                
-                                        {% elif form.control_id == "4" %}
-                                            <input type="file" class="form-control">
-                                
-                                        {% elif form.control_id == "5" %}
-                                            <!-- Checkbox -->
-                                            {% for field in field_entries %}
-                                                {% if field.control_master_id == form.control_id %}
-                                                    {% for option in field.options_list %}
-                                                        <label>
-                                                            <input type="checkbox" name="checkbox_{{ form.form_id }}" value="{{ option }}"> {{ option }}
-                                                        </label>
-                                                    {% endfor %}
-                                                {% endif %}
-                                            {% endfor %}
-                                
-                                        {% else %}
-                                            <p>Unknown Control Type: {{ form.control_id }}</p>
                                         {% endif %}
-                                
-                                        <!-- Buttons -->
-                                        <div class="mt-2">
-                                            <button class="btn btn-sm btn-edit">Edit</button>
-                                            <button class="btn btn-sm btn-danger">Remove</button>
-                                        </div>
-                                    </div>
+                                    {% endfor %}
+                                </select>
+
+                            {% elif form.control_id == "3" %}
+                                <!-- Radio Buttons -->
+                                {% for field in field_entries %}
+                                    {% if field.form_field_id == form.form_field_id %}
+                                        {% for option in field.options_list %}
+                                            <label>
+                                                <input type="radio" name="radio_{{ form.form_id }}" value="{{ option }}"> {{ option }}
+                                            </label>
+                                        {% endfor %}
+                                    {% endif %}
                                 {% endfor %}
-                                
-                                    </div>
-                                {% else %}
-                                    <p class="text-muted">Please add fields for this form...</p>
-                                {% endif %}
+
+                            {% elif form.control_id == "4" %}
+                                <!-- File Upload -->
+                                <input type="file" class="form-control">
+
+                            {% elif form.control_id == "5" %}
+                                <!-- Checkbox -->
+                                {% for field in field_entries %}
+                                    {% if field.form_field_id == form.form_field_id %}
+                                        {% for option in field.options_list %}
+                                            <label>
+                                                <input type="checkbox" name="checkbox_{{ form.form_id }}" value="{{ option }}"> {{ option }}
+                                            </label>
+                                        {% endfor %}
+                                    {% endif %}
+                                {% endfor %}
+
+                            {% else %}
+                                <p>Unknown Control Type: {{ form.control_id }}</p>
+                            {% endif %}
+
+                            <!-- Buttons -->
+                            <div class="mt-2 d-flex gap-2">
+                                <form method="post" action="{% url 'update_form' %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="form_id" value="{{ form.form_id }}">
+                                    <input type="hidden" name="form_field_id" value="{{ form_field_ids|get_item:form.form_id }}">
+                                    <button type="submit" class="btn btn-sm btn-edit">Edit</button>
+                                </form>
+                            
+                                <form method="post" action="{% url 'delete_form' %}">
+                                    {% csrf_token %}
+                                    <input type="hidden" name="form_id" value="{{ form.form_id }}">
+                                    <input type="hidden" name="form_field_id" value="{{ form_field_ids|get_item:form.form_id }}">
+                                    <button type="submit" class="btn btn-sm btn-danger">Remove</button>
+                                </form>
+                            </div>
+                            
+                        </div>
+                    {% endfor %}
+                </div>
+            {% else %}
+                <p class="text-muted">Please add fields for this form...</p>
+            {% endif %}
+
+
+                    
                             </div>
                         </div>
                 </div>
@@ -279,9 +298,9 @@
                 if (totalItems === 1) {
                     item.style.width = "100%";
                 } else if (totalItems === 2) {
-                    item.style.width = "60%";  
+                    item.style.width = "46%";  
                 } else {
-                    item.style.width = "20%";  
+                    item.style.width = "22%";  
                 }
             });
         }

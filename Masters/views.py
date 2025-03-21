@@ -210,8 +210,8 @@ def form(request):
                     created_by=user,
                     updated_by=user
                 ) 
-
                 field_entries = []
+                form_field_master_id = new_form_entry.id
 
 
                 # Loop through POST data to capture all inputs dynamically
@@ -231,33 +231,48 @@ def form(request):
                             value=value, 
                             sub_control_id = control_sub_id,
                             sub_value=subvalue_str,
+                            form_field_id = form_field_master_id,
+                            control_id = control_id,
                             created_by=user,
                             updated_by=user
                         ))
+                    
 
-                    elif key.startswith("value_"):  # Handle Value Inputs
-                        values_list = request.POST.getlist(key)  # Get all values as a list
-                        combined_values = ",".join(filter(None, values_list))  # Join values, remove empty ones
+                    elif key.startswith("value_"):  
+                        values_list = request.POST.getlist(key) 
+                        combined_values = ",".join(filter(None, values_list)) 
 
-                        if combined_values:  # Only store if there are values
-                            control_master_id = request.POST.get(f"control_master_id_{key.split('_')[1]}")
+                        index = key.split("_")[1].replace("[]", "")  # Clean index (remove brackets if present)
+                        control_master_id = request.POST.get(f"control_master_id_{index}")  
+
+                        print(f"Processing: key={key}, control_master_id={control_master_id}, values={values_list}")  # Debugging
+
+                        if combined_values:
                             field_entries.append(FieldMaster(
                                 control_master_id=control_master_id,  # Store correct control_master_id
                                 form_id=form_id,
+                                form_field_id = form_field_master_id,
+                                control_id = control_id,
                                 value=combined_values,  # Save as comma-separated string
                                 created_by=user,
-                                updated_by=user
+                                updated_by=user,
                             ))
+
+
+
 
                     elif key.startswith("checkbox_") and value == "on":  # Handle Checkbox
                         control_master_id = request.POST.get(f"control_master_id_{key.split('_')[1]}")
                         field_entries.append(FieldMaster(
                             control_master_id=control_master_id,  # Store correct control_master_id
                             form_id=form_id,
-                            value="Checked",  # Save as 'Checked'
+                            form_field_id = form_field_master_id,
+                            control_id = control_id,
+                            value="Checked",  
                             created_by=user,
                             updated_by=user
                         ))
+
 
                     elif key.startswith("textbox_") and value:  # Handle Textbox
                         control_master_id = request.POST.get(f"control_master_id_{key.split('_')[1]}")
@@ -265,15 +280,21 @@ def form(request):
                             control_master_id=control_master_id, 
                             form_id=form_id,
                             value=value,
+                            form_field_id = form_field_master_id,
+                            control_id = control_id,
                             created_by=user,
                             updated_by=user
                         ))
+
 
                 # Bulk insert all field entries
                 if field_entries:
                     FieldMaster.objects.bulk_create(field_entries)
 
                 messages.success(request, "Form and fields saved successfully!!")
+
+                enc_form_id = enc(str(form_id))  # Encrypt the form_id before passing
+                return redirect(f'/form?form_id={enc_form_id}')
 
             except Exception as e:
                 tb = traceback.extract_tb(e.__traceback__)
@@ -290,15 +311,23 @@ def form(request):
                 
 
                 dropdown_options = ControlParameterMaster.objects.all()
+                form = FormMaster.objects.get(form_id=form_id)
+                control_master = ControlMaster.objects.all()
                 form_entries = FormFieldMaster.objects.filter(form_id=form_id)
-                field_entries = FieldMaster.objects.filter(form_id=form_id) if form_id else []
+                field_entries = FieldMaster.objects.filter(form_id=form_id) 
 
-                # Split field values into a list
+                form_field_ids = {field.form_id: field.form_field_id for field in field_entries}
+
+
                 for field in field_entries:
-                    field.options_list = field.value.split(",") if field.value else [] 
+                    field.options_list = [option.strip() for option in field.value.split(",")] if field.value else []
+                    print(field.options_list)
 
 
                 return render(request, "Master/form.html", {
+                    "form":form,
+                    "form_field_ids":form_field_ids,
+                    "control_master":control_master,
                     "dropdown_options": dropdown_options,
                     "form_entries": form_entries,
                     "field_entries": field_entries,
@@ -315,9 +344,6 @@ def form(request):
                 return JsonResponse({"error": "Something went wrong!"}, status=500)
     finally:
         Db.closeConnection()
-        if request.method=="POST":
-            new_url = f'/masters?entity=form&type=i'
-            return redirect(new_url) 
         
 
 
@@ -421,4 +447,37 @@ def get_sub_item(request):
             return JsonResponse({'result': 'fail', 'message': 'Something went wrong!'}, status=500)
 
     return JsonResponse({"error": "Invalid request"}, status=400)
+
+
+def update_form(request):
+    try:
+        form_id = request.POST.get("form_id")
+
+
+    except Exception as e:
+            tb = traceback.extract_tb(e.__traceback__)
+            fun = tb[0].name
+            callproc("stp_error_log", [fun, str(e), request.user.id])
+            print(f"Error: {e}")
+            return JsonResponse({'result': 'fail', 'message': 'Something went wrong!'}, status=500)
+
+
+def delete_form(request):
+    try:
+        pk = request.POST.get("form_id")
+        fk = request.POST.get("form_field_id")
+        FormFieldMaster.objects.filter(form_id=pk,id=fk).delete()
+        FieldMaster.objects.filter(form_id=pk,form_field_id=fk).delete()
+
+        enc_form_id = enc(str(pk))  # Encrypt the form_id before passing
+        return redirect(f'/form?form_id={enc_form_id}')
+
+    except Exception as e:
+            tb = traceback.extract_tb(e.__traceback__)
+            fun = tb[0].name
+            callproc("stp_error_log", [fun, str(e), request.user.id])
+            print(f"Error: {e}")
+            return JsonResponse({'result': 'fail', 'message': 'Something went wrong!'}, status=500)()
+    
+
 

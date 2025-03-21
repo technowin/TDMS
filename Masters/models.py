@@ -167,6 +167,7 @@ class FormFieldMaster(models.Model):
     parameter_name = models.TextField(null=True, blank=True)
     label_name = models.TextField(null=True, blank=True)
     control_id = models.TextField(null=True, blank=True)
+    order_by = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
@@ -176,6 +177,8 @@ class FormFieldMaster(models.Model):
 
 class FieldMaster(models.Model):
     field_id = models.AutoField(primary_key=True)
+    form_field_id  = models.TextField(null=True, blank=True)
+    control_id = models.TextField(null=True, blank=True)
     form_id =  models.TextField(null=True, blank=True)
     control_master_id = models.TextField(null=True, blank=True)
     sub_control_id = models.TextField(null=True, blank=True)

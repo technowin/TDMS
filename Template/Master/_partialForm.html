@@ -14,7 +14,6 @@
 
 {% for item in control_values %}
     <input type="hidden" name="control_master_id_{{ forloop.counter }}" value="{{ item.control_master_id }}">
-    {% comment %} <input type="hidden" name="control_sub_id_{{ forloop.counter }}" value="{{ item.control_sub_id }}"> {% endcomment %}
 
     {% if item.data_type == 'Dropdown' %}
     <div class="form-group">
@@ -60,7 +59,7 @@
 
 
 <script>
-    $(document).on("click", ".add-textbox", function() {
+    {% comment %} $(document).on("click", ".add-textbox", function() {
         var parentGroup = $(this).closest(".value-group").find(".d-flex");
         var controlValue = $(this).closest(".value-group").find("label").text().trim();
         var index = parentGroup.find(".new-value-input").length ; // Ensure name uniqueness
@@ -77,7 +76,44 @@
     $(document).on("click", ".remove-textbox", function() {
         $(this).closest(".input-group").remove();
     });
-     
+    $(document).on("change", "#dropdownSelect", function() {
+        $(".value-group .d-flex").each(function() {
+            $(this).empty();  // Clear existing textboxes
+        });
+    });
+      {% endcomment %}
+
+      $(document).on("click", ".add-textbox", function() {
+        debugger;
+        var parentGroup = $(this).closest(".value-group").find(".d-flex").first(); // Get the correct container
+        var controlValue = $(this).closest(".value-group").find("label").text().trim();
+        var fieldName = parentGroup.find(".new-value-input").first().attr("name") || "dynamic_field";
+    
+        // Ensure count resets properly when dropdown changes
+        var currentCount = parentGroup.children(".input-group").length;
+    
+        var newTextBoxHtml = '<div class="input-group mt-2 me-2" style="width: 48%;">';
+        newTextBoxHtml += '<input type="text" class="form-control new-value-input" name="' + fieldName + '" placeholder="' + controlValue + '">';
+        newTextBoxHtml += '<button type="button" class="btn btn-danger remove-textbox">X</button>';
+        newTextBoxHtml += '</div>';
+    
+        parentGroup.append(newTextBoxHtml);
+    });
+    
+    $(document).on("click", ".remove-textbox", function() {
+        $(this).closest(".input-group").remove();
+    });
+    
+    // Reset inputs when the main dropdown changes
+    $(document).on("change", "select", function() { // Works for any dropdown
+        $(".value-group .d-flex").each(function() {
+            $(this).html($(this).find(".input-group").first()); // Keep only the first input, remove extras
+            $(this).data("textbox-count", 1); // Reset count for new selection
+        });
+    });
+    
+    
+    
 
 </script>
 

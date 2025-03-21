@@ -54,6 +54,8 @@ urlpatterns = [
     path("form/", form, name="form"),
     path("get_control_values/", get_control_values, name="get_control_values"),
     path("get_sub_item/", get_sub_item, name="get_sub_item"),
+    path("update_form/", update_form, name="update_form"),
+    path("delete_form/", delete_form, name="delete_form"),
 
     #Reports 
     path('common_html', common_html, name='common_html'),
