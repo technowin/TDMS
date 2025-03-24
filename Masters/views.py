@@ -223,6 +223,15 @@ def form(request):
 
                         control_master_id = request.POST.get(f"control_master_id_{index}") 
                         control_sub_id  = request.POST.get(f"control_sub_id_{index}") 
+                        if value == "Simple":
+                            result = "text"
+                        elif value == "Numeric":
+                            result = "number"
+                        else:
+                            result = value
+
+                        print(result)  # This will output the final result
+
 
                         # Save everything in a single row
                         field_entries.append(FieldMaster(
@@ -236,6 +245,31 @@ def form(request):
                             created_by=user,
                             updated_by=user
                         ))
+
+                # for key, value in request.POST.items():
+                #     if key.startswith("dropdown_") and value:  # Handle Dropdowns
+                #         index = key.split("_")[1]  # Extract the unique index
+                #         subvalues = request.POST.getlist(f"subvalue_{index}[]")  # Get subvalues as a list
+                        
+                #         # Format each subvalue individually and join them with a comma
+                #         formatted_subvalues = ", ".join([f"Only {sub} characters are allowed" for sub in subvalues if sub])
+
+                #         control_master_id = request.POST.get(f"control_master_id_{index}") 
+                #         control_sub_id = request.POST.get(f"control_sub_id_{index}") 
+
+                #         # Save everything in a single row
+                #         field_entries.append(FieldMaster(
+                #             control_master_id=control_master_id, 
+                #             form_id=form_id,
+                #             value=value, 
+                #             sub_control_id=control_sub_id,
+                #             sub_value=formatted_subvalues,  # Store formatted values
+                #             form_field_id=form_field_master_id,
+                #             control_id=control_id,
+                #             created_by=user,
+                #             updated_by=user
+                #         ))
+
                     
 
                     elif key.startswith("value_"):  
@@ -316,9 +350,6 @@ def form(request):
                 form_entries = FormFieldMaster.objects.filter(form_id=form_id)
                 field_entries = FieldMaster.objects.filter(form_id=form_id) 
 
-                form_field_ids = {field.form_id: field.form_field_id for field in field_entries}
-
-
                 for field in field_entries:
                     field.options_list = [option.strip() for option in field.value.split(",")] if field.value else []
                     print(field.options_list)
@@ -326,7 +357,6 @@ def form(request):
 
                 return render(request, "Master/form.html", {
                     "form":form,
-                    "form_field_ids":form_field_ids,
                     "control_master":control_master,
                     "dropdown_options": dropdown_options,
                     "form_entries": form_entries,
@@ -379,7 +409,7 @@ def get_control_values(request):
                     }
 
                     # Fetch sub-controls if sub_master1 is '1'
-                    if sub_master1 == '1':
+                    if sub_master1 == 1:
                         sub_controls = list(ControlSubMaster1.objects.filter(control_id=control_id)
                                         .values("id","control_type_id", "sub_control_type", 
                                                 "sub_control_value", "datatype"))
@@ -449,17 +479,35 @@ def get_sub_item(request):
     return JsonResponse({"error": "Invalid request"}, status=400)
 
 
+    
 def update_form(request):
     try:
-        form_id = request.POST.get("form_id")
+        pk = request.POST.get("form_id")
+        fk = request.POST.get("form_field_id")
 
+        # Fetch form field details using form_id and fk
+        form_field_master = FormFieldMaster.objects.get(form_id=pk, id=fk)
+
+        # Fetch the necessary fields from FieldMaster and DropdownOption
+        field_master_data = FieldMaster.objects.filter(form_id=pk,form_field_id=fk)
+        dropdown_options = ControlParameterMaster.objects.all()
+
+        # Prepare the data for rendering in the template
+        context = {
+            'form_field_master': form_field_master,
+            'field_master_data': field_master_data,
+            "dropdown_options": dropdown_options
+        }
+
+        return render(request, "Master/form.html", context)
+        # return render(request, 'update_form_template.html', context)
 
     except Exception as e:
-            tb = traceback.extract_tb(e.__traceback__)
-            fun = tb[0].name
-            callproc("stp_error_log", [fun, str(e), request.user.id])
-            print(f"Error: {e}")
-            return JsonResponse({'result': 'fail', 'message': 'Something went wrong!'}, status=500)
+        tb = traceback.extract_tb(e.__traceback__)
+        fun = tb[0].name
+        callproc("stp_error_log", [fun, str(e), request.user.id])
+        print(f"Error: {e}")
+        return JsonResponse({'result': 'fail', 'message': 'Something went wrong!'}, status=500)
 
 
 def delete_form(request):
