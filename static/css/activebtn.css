@@ -1,5 +1,4 @@
-/* From Uiverse.io by arghyaBiswasDev */ 
-/* The switch - the box around the slider */
+/* Toggle Switch Container */
 .switch {
   font-size: 17px;
   position: relative;
@@ -15,7 +14,7 @@
   height: 0;
 }
 
-/* The slider */
+/* The slider (background) */
 .slider {
   position: absolute;
   cursor: pointer;
@@ -23,34 +22,38 @@
   left: 0;
   right: 0;
   bottom: 0;
-  background-color: #fff;
+  background-color: #e0e0e0;
   border: 1px solid #adb5bd;
-  transition: .4s;
+  transition: all 0.4s ease-in-out;
   border-radius: 30px;
 }
 
+/* The circle inside the switch */
 .slider:before {
   position: absolute;
   content: "";
   height: 1.4em;
   width: 1.4em;
-  border-radius: 20px;
-  left: 0.27em;
-  bottom: 0.25em;
+  border-radius: 50%;
+  left: 0.3em;
+  bottom: 0.3em;
   background-color: #adb5bd;
-  transition: .4s;
+  transition: all 0.4s ease-in-out;
 }
 
+/* Checked state - Blue background */
 input:checked + .slider {
   background-color: #4e73df;
   border: 1px solid #4e73df;
 }
 
+/* Focus Effect */
 input:focus + .slider {
-  box-shadow: 0 0 1px #4e73df;
+  box-shadow: 0 0 5px rgba(78, 115, 223, 0.5);
 }
 
+/* Checked state - Move the circle */
 input:checked + .slider:before {
-  transform: translateX(1.4em);
-  background-color: #fff;
+  transform: translateX(1.5em);
+  background-color: #ffffff;
 }

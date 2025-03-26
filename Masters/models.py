@@ -126,6 +126,7 @@ class Log(models.Model):
 
 class ControlParameterMaster(models.Model):
     id = models.AutoField(primary_key=True)
+    control_name = models.TextField(null=True, blank=True)
     control_value = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
@@ -153,6 +154,7 @@ class ControlMaster(models.Model):
 class FormMaster(models.Model):
     form_id = models.AutoField(primary_key=True)
     form_name = models.TextField(null=True, blank=True)
+    form_description = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
@@ -206,4 +208,67 @@ class ControlSubMaster1(models.Model):
     class Meta:
         db_table = 'control_sub_master1'
 
+
     
+class Form(models.Model):
+    name = models.CharField(max_length=255)
+    description = models.TextField(blank=True, null=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'form'
+
+class FormField(models.Model):
+    form = models.ForeignKey('Masters.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='fields')
+    label = models.CharField(max_length=255)
+    field_type =  models.CharField(max_length=255,null=True, blank=True)
+    values = models.TextField(null=True,blank=True)
+    required = models.BooleanField(default=False)
+    searchable = models.BooleanField(default=False)
+    disable = models.BooleanField(default=False)
+    order = models.IntegerField(default=0)  
+    class Meta:
+        db_table = 'form_field'
+
+class FieldValidation(models.Model):
+    field = models.ForeignKey('Masters.FormField',null=True, blank=True, on_delete=models.CASCADE, related_name='validations')
+    rule = models.TextField(null=True,blank=True)
+    value = models.CharField(max_length=255)
+    class Meta:
+        db_table = 'field_validation'
+
+class FieldDependency(models.Model):
+    field = models.ForeignKey(FormField,null=True, blank=True, on_delete=models.CASCADE, related_name='dependencies')
+    dependent_on = models.ForeignKey(FormField,null=True, blank=True, on_delete=models.CASCADE, related_name='dependent_fields')
+    condition = models.CharField(max_length=255)  
+    class Meta:
+        db_table = 'field_dependency'
+
+class ControlMasters(models.Model):
+    id = models.AutoField(primary_key=True)
+    control_type = models.TextField(null=True, blank=True)
+    control_value = models.TextField(null=True, blank=True)
+    datatype = models.TextField(null=True, blank=True)
+    sub_master1 = models.IntegerField(null=True, blank=True)
+    sub_master2 = models.IntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'control_masters'
+
+
+class SubControlMaster(models.Model):
+    field_type = models.TextField(null=True, blank=True)
+    control_name = models.TextField(null=True, blank=True)
+    control_value = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'sub_control_master'
+

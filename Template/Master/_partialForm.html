@@ -1,6 +1,5 @@
 
 
-
 {% block content %}
 {% load static %}
 {% csrf_token %}
@@ -59,29 +58,6 @@
 
 
 <script>
-    {% comment %} $(document).on("click", ".add-textbox", function() {
-        var parentGroup = $(this).closest(".value-group").find(".d-flex");
-        var controlValue = $(this).closest(".value-group").find("label").text().trim();
-        var index = parentGroup.find(".new-value-input").length ; // Ensure name uniqueness
-        var fieldName = parentGroup.find(".new-value-input").attr("name"); // Get name from existing input
-        
-        var newTextBoxHtml = '<div class="input-group mt-2 me-2" style="width: 48%;">';
-        newTextBoxHtml += '<input type="text" class="form-control new-value-input" name="' + fieldName + '" placeholder="' + controlValue + '">';
-        newTextBoxHtml += '<button type="button" class="btn btn-danger remove-textbox">X</button>';
-        newTextBoxHtml += '</div>';
-    
-        parentGroup.append(newTextBoxHtml);
-    });
-    
-    $(document).on("click", ".remove-textbox", function() {
-        $(this).closest(".input-group").remove();
-    });
-    $(document).on("change", "#dropdownSelect", function() {
-        $(".value-group .d-flex").each(function() {
-            $(this).empty();  // Clear existing textboxes
-        });
-    });
-      {% endcomment %}
 
       $(document).on("click", ".add-textbox", function() {
         debugger;

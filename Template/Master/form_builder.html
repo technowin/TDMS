@@ -1,0 +1,415 @@
+{% extends "Shared/Layout.html" %} {% block username %}{{username}}{% endblock %}
+{% block content %}
+{% load static %}
+{% csrf_token %}
+
+ <!-- Custom styles for this html-->
+ <link href="{% static 'css/masters.css' %}" rel="stylesheet" type="text/css" >
+ <link href="{% static 'css/table.css' %}" rel="stylesheet" type="text/css" >
+ <link href="{% static 'css/activebtn.css' %}" rel="stylesheet" type="text/css" >
+
+ <link rel="stylesheet" type="text/css" href="{% static 'css/tooltips.css' %}" />
+
+ <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+ <!-- Include DataTables CSS -->
+ <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.min.css">
+ <!-- Include DataTables JS -->
+ <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+ <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+ <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+ <!-- Selectize.js CSS -->
+{% comment %} <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/css/selectize.bootstrap3.min.css"> {% endcomment %}
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<!-- Selectize.js JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js"></script>
+
+<style>
+
+    .file-input {
+        display: block; 
+        max-width: 100%; 
+        padding: 0.375rem 0.75rem; 
+        font-size: 1rem; 
+        line-height: 1.5; 
+        color: #495057; 
+        background-color: #fff; 
+        border: 1px solid #ced4da; 
+        border-radius: 0.375rem; 
+        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075); 
+        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+    }
+</style>
+<div class="mt-4">
+    <form method="POST" action="{% url 'save_form' %}" class="row col-md-12" id="main-form" style="padding: 20px; border: 2px solid #b3b3b3; border-radius: 15px; margin-left:0px; text-align:center">
+        {% csrf_token %}
+        <div class="col-md-4">
+            <label>Form Name:</label>
+            <input type="text" class="form-control" name="form_name" value="{{ form.name }}" required>
+        </div>
+        
+        <div class="col-md-4">
+            <label>Form Description:</label>
+            <input type="text" class="form-control" name="form_description" value="{{ form.description }}">
+        </div>
+    
+        <!-- 🔴 Hidden field to store JSON form data -->
+        <input type="hidden" name="form_data" id="form-data-input">
+    
+        <div class="col-md-4 mt-3">
+            <button type="submit" class="btn btn-primary mt-3">Save Form</button>
+        </div>
+    </form>
+      
+    <br> 
+    <div class="row" style="padding: 20px; border: 2px solid #b3b3b3; border-radius: 15px;">
+        <!-- Form Builder (Left Panel) -->
+        <div class="col-md-8">
+                <div class="card shadow"  style="border: 2px solid #b3b3b3;border-radius: 15px;margin-left:0px;">
+            <h2 style="text-align:center; font-weight:600; color:black">
+                Form Builder &nbsp;&nbsp;&nbsp;
+                <button class="btn btn-primary" onclick="addField()"> Add Field</button>
+            </h2>
+            <div id="form-builder" class="row col-md-12 mt-3"></div>
+        </div>
+        </div>
+
+        <!-- Live Preview (Right Panel) -->
+        <div class="col-md-4">
+            <div class="card shadow"  style="border: 2px solid #b3b3b3;border-radius: 15px;margin-left:0px;">
+            <h2 style="text-align:center; font-weight:600; color:black">Live Preview</h2>
+            <form id="dynamic-form" class="row col-md-12"></form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let commonOptions = JSON.parse('{{ common_options|escapejs|safe }}');
+    let dropdownOptions = JSON.parse('{{ dropdown_options|escapejs|safe }}');
+    let subControls = JSON.parse('{{ sub_control|escapejs|safe }}');
+
+    let formFields = [];
+
+    function addField() {
+        let selectedValues = saveSelectedValues(); // Save previous selections
+        let newField = {
+            id: formFields.length + 1,
+            label: "Label Name",
+            type: "text",
+            commonType: []
+        };
+        formFields.push(newField);
+        renderFormBuilder(); 
+        restoreSelectedValues(selectedValues); // Restore selections
+        renderFormPreview(); 
+    }
+
+    function renderFormBuilder() {
+        let builder = document.getElementById("form-builder");
+        builder.innerHTML = "";
+    
+        formFields.forEach(field => {
+            let dropdownHtml = `<select class="form-control select" onchange="updateField(${field.id}, 'type', this.value)">`;
+            dropdownOptions.forEach(option => {
+                dropdownHtml += `<option value="${option.control_value}" ${field.type === option.control_value ? "selected" : ""}>${option.control_name}</option>`;
+            });
+            dropdownHtml += `</select>`;
+    
+            let commonDropdownHtml = `
+                <select id="common-dropdown-${field.id}" class="form-control common-select" multiple>
+            `;
+            commonOptions.forEach(option => {
+                let isSelected = field.commonType.includes(option.control_value) ? "selected" : "";
+                commonDropdownHtml += `<option value="${option.control_value}" ${isSelected}>${option.control_value}</option>`;
+            });
+            commonDropdownHtml += `</select>`;
+    
+            // Logic for SubControls
+            let optionDropdownHtml = "";
+            let subControlHtml = "";
+            let subControlData = subControls.filter(sub => sub.field_type === field.type);
+    
+            if (subControlData.length > 0) {
+                if (field.type === "file") {
+                    subControlHtml = `<select class="form-control">`;
+                    subControlData.forEach(sub => {
+                        subControlHtml += `<option value="${sub.control_value}">${sub.control_name}</option>`;
+                    });
+                    subControlHtml += `</select>`;
+                } else if (field.type === "text" || field.type === "number") {
+                    let inputWidth = 100 / subControlData.length;
+                    subControlHtml = `<div style="display: flex; gap: 10px; width: 100%;">`;
+                    subControlData.forEach((sub, index) => {
+                        let value = field.subValues ? field.subValues[index] || "" : "";
+                        subControlHtml += `
+                            <input type="${field.type}" class="form-control" placeholder="${sub.control_name}" 
+                            style="flex: 1; width: ${inputWidth}%;" value="${value}" 
+                            oninput="updateSubField(${field.id}, ${index}, this.value)">
+                        `;
+                    });
+                    subControlHtml += `</div>`;
+                }
+            } else {
+                if (field.type === "select" || field.type === "radio" || field.type === "select multiple") {
+                    optionDropdownHtml = `
+                        <select id="option-dropdown-${field.id}" class="form-control option-select" multiple>
+                    `;
+                    (field.options || []).forEach(option => {
+                        optionDropdownHtml += `<option value="${option}" selected>${option}</option>`;
+                    });
+                    optionDropdownHtml += `</select>`;
+                }
+            }
+    
+            builder.innerHTML += `
+                <div class="col-md-2 mb-3">
+                    <input class="form-control" type="text" value="${field.label}" onchange="updateField(${field.id}, 'label', this.value)">
+                </div>
+                <div class="col-md-2 mb-3">
+                    ${dropdownHtml}
+                </div>
+                <div class="col-md-4 mb-3">
+                    ${commonDropdownHtml}
+                </div>
+                <div class="col-md-3 mb-3">
+                    ${subControlHtml || optionDropdownHtml} 
+                </div>
+                <div class="col-md-1 mt-2">
+                    <span onclick="removeField(${field.id})" style="cursor: pointer;">
+                        <i class="fa-solid fa-trash" style="color: #dc3545; font-size: 1.5rem;"></i>
+                    </span>
+                </div>
+            `;
+        });
+    
+        document.querySelectorAll(".common-select").forEach(select => {
+            $(select).selectize({
+                plugins: ["remove_button"],
+                delimiter: ",",
+                placeholder: "Select attributes",
+                persist: false,
+                create: false,
+                onChange: function(value) {
+                    let fieldId = select.id.split("-").pop();
+                    updateField(parseInt(fieldId), 'commonType', value);
+                }
+            });
+        });
+    
+        document.querySelectorAll(".option-select").forEach(select => {
+            $(select).selectize({
+                plugins: ["remove_button"],
+                delimiter: ",",
+                placeholder: "Enter options",
+                persist: false,
+                create: true,
+                onChange: function(value) {
+                    let fieldId = select.id.split("-").pop();
+                    updateField(parseInt(fieldId), 'options', value);
+                }
+            });
+        });
+    }
+    
+    function updateSubField(fieldId, index, value) {
+        let field = formFields.find(f => f.id === fieldId);
+        if (!field.subValues) {
+            field.subValues = [];
+        }
+    
+        let subControlData = subControls.filter(sub => sub.field_type === field.type);
+    
+        if (subControlData.length > index) {
+            let controlValue = subControlData[index].control_value;
+    
+            // Exclude 'required' and other unwanted attributes
+            if (controlValue !== "Required" || controlValue !== "Searchable" || controlValue !== "Disabled" ) {
+                field.subValues[index] = { control_value: controlValue, fvalue: value };
+            }
+        }
+    }
+    
+    
+    
+    
+
+
+function renderFormPreview() {
+    let preview = document.getElementById("dynamic-form");
+    preview.innerHTML = "";
+
+    formFields.forEach(field => {
+        let inputHtml = "";
+        let fieldName = `field_${field.id}`;
+
+        if (field.type === "select") {
+            inputHtml = `<select class="form-control select w-100" name="${fieldName}">`;
+            (field.options || []).forEach(option => {
+                inputHtml += `<option value="${option}">${option}</option>`;
+            });
+            inputHtml += `</select>`;
+        } 
+        else if (field.type === "radio") {
+            inputHtml = `<div class="d-flex flex-wrap">`;
+            (field.options || []).forEach(option => {
+                inputHtml += `
+                    <div style="font-size:18px;" class="form-check me-2">
+                        <input class="form-check-input" type="radio" name="${fieldName}" value="${option}" id="radio_${option}" style="transform: scale(1.5);">
+                        <label class="form-check-label" for="radio_${option}" style="cursor: pointer; font-size: 18px;">
+                            ${option}&nbsp;&nbsp;
+                        </label>
+                    </div>
+                `;
+            });
+            inputHtml += `</div>`;
+        } 
+        else if (field.type === "select multiple") {
+            inputHtml = `<select class="form-control select-multiple w-100" name="${fieldName}" multiple>`;
+            (field.options || []).forEach(option => {
+                inputHtml += `<option value="${option}">${option}</option>`;
+            });
+            inputHtml += `</select>`;
+        }
+       else if (field.type === "checkbox") {
+           inputHtml = `
+                   <label class="switch">
+                       <input type="checkbox" value="1" id="${fieldName}" name="${fieldName}"}>
+                       <span class="slider"></span>
+                   </label>
+           `;
+       } 
+       else if (field.type === "file") {
+            let acceptedFormats = Array.isArray(field.option) ? field.option.join(",") : field.option;
+            inputHtml = `<input type="file" accept="${acceptedFormats}" class="form-control w-100 file-input" name="${fieldName}">`;
+        } 
+        else {
+            inputHtml = `<input type="${field.type}" class="form-control w-100" name="${fieldName}">`;
+        }
+
+        // Append form field to preview
+        let fieldContainer = document.createElement("div");
+        fieldContainer.classList.add("col-md-6", "mb-3", "d-flex", "flex-column");
+        fieldContainer.innerHTML = `
+            <label class="fw-bold">${field.label}</label>
+            ${inputHtml}
+            <input type="hidden" name="${fieldName}_type" value="${field.type}">
+        `;
+        preview.appendChild(fieldContainer);
+
+        // Initialize Selectize IMMEDIATELY after adding the element
+        if (field.type === "select multiple") {
+            $(fieldContainer).find('.select-multiple').selectize({
+                plugins: ['remove_button'],
+                delimiter: ',',
+                persist: false,
+                create: false
+            });
+        }
+    });
+}
+
+
+
+
+
+
+// Update hidden input with JSON data before submitting
+document.getElementById("main-form").addEventListener("submit", function(event) {
+    document.getElementById("form-data-input").value = JSON.stringify(formFields);
+});
+
+
+function saveSelectedValues() {
+    let selectedValues = {};
+    document.querySelectorAll(".common-select").forEach(select => {
+        let fieldId = select.id.split("-").pop();
+        selectedValues[fieldId] = $(select).val() || []; // Get selected values
+    });
+    return selectedValues;
+}
+
+function restoreSelectedValues(selectedValues) {
+    document.querySelectorAll(".common-select").forEach(select => {
+        let fieldId = select.id.split("-").pop();
+        let selectizeInstance = $(select)[0].selectize;
+        if (selectizeInstance) {
+            selectizeInstance.setValue(selectedValues[fieldId] || []);
+        }
+    });
+}
+
+
+
+
+
+function updateField(id, key, value) {
+    formFields = formFields.map(f => f.id === id ? { ...f, [key]: value } : f);
+    renderFormBuilder();
+    renderFormPreview();
+}
+
+function addOption(id) {
+    let optionInput = document.getElementById(`option-input-${id}`);
+    let optionValue = optionInput.value.trim();
+
+    if (optionValue !== "") {
+        formFields = formFields.map(f => {
+            if (f.id === id) {
+                return {
+                    ...f,
+                    options: [...(f.options || []), optionValue] 
+                };
+            }
+            return f;
+        });
+
+        optionInput.value = ""; 
+        renderFormBuilder();
+        renderFormPreview();
+    }
+}
+
+function removeOption(id, index) {
+    formFields = formFields.map(f => {
+        if (f.id === id) {
+            let updatedOptions = [...(f.options || [])];
+            updatedOptions.splice(index, 1);
+            return { ...f, options: updatedOptions };
+        }
+        return f;
+    });
+
+    renderFormBuilder();
+    renderFormPreview();
+}
+
+function removeField(id) {
+    formFields = formFields.filter(f => f.id !== id);
+    renderFormBuilder();
+    renderFormPreview();
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    renderFormBuilder();
+    renderFormPreview();
+});
+
+</script>
+
+{% if messages %}
+{% for message in messages %}
+  <script>
+  Swal.fire({
+    title: "{{ message.tags }}",
+    text: "{{ message }}",
+    icon: "{{ message.tags }}",
+    confirmButtonText: "OK",
+  });
+</script>
+{% endfor %}
+{% endif %}
+
+
+  {% endblock %}

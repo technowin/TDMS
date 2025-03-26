@@ -1,0 +1,131 @@
+{% extends "Shared/Layout.html" %} {% block username %}{{username}}{% endblock %}
+{% block content %}
+{% load static %}
+{% csrf_token %}
+
+ <!-- Custom styles for this html-->
+ <link href="{% static 'css/masters.css' %}" rel="stylesheet" type="text/css" >
+ <link href="{% static 'css/table.css' %}" rel="stylesheet" type="text/css" >
+ <link href="{% static 'css/activebtn.css' %}" rel="stylesheet" type="text/css" >
+
+ <link rel="stylesheet" type="text/css" href="{% static 'css/tooltips.css' %}" />
+
+ <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+ <!-- Include DataTables CSS -->
+ <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.min.css">
+ <!-- Include DataTables JS -->
+ <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+ <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+ <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+ <!-- Selectize.js CSS -->
+{% comment %} <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/css/selectize.bootstrap3.min.css"> {% endcomment %}
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<!-- Selectize.js JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js"></script>
+
+
+<div class="mt-4">
+    <form method="POST" action="{% url 'update_form' %}" class="row col-md-12" id="edit-form"
+        style="padding: 20px; border: 2px solid #b3b3b3; border-radius: 15px; margin-left:0px; text-align:center">
+        {% csrf_token %}
+        <div class="col-md-4">
+            <label>Form Name:</label>
+            <input type="text" class="form-control" name="form_name" value="{{ form.name }}" required>
+        </div>
+
+        <div class="col-md-4">
+            <label>Form Description:</label>
+            <input type="text" class="form-control" name="form_description" value="{{ form.description }}">
+        </div>
+
+        <input type="hidden" name="form_data" id="form-data-input">
+
+        <div class="col-md-4 mt-3">
+            <button type="submit" class="btn btn-success mt-3">Update Form</button>
+        </div>
+    </form>
+
+    <br>
+    <div class="row" style="padding: 20px; border: 2px solid #b3b3b3; border-radius: 15px;">
+        <div class="col-md-8">
+            <div class="card shadow" style="border: 2px solid #b3b3b3;border-radius: 15px;margin-left:0px;">
+                <h2 style="text-align:center; font-weight:600; color:black">
+                    Edit Form Fields &nbsp;&nbsp;&nbsp;
+                    <button class="btn btn-primary" onclick="addField()"> Add Field</button>
+                </h2>
+                <div id="form-builder" class="row col-md-12 mt-3"></div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card shadow" style="border: 2px solid #b3b3b3;border-radius: 15px;margin-left:0px;">
+                <h2 style="text-align:center; font-weight:600; color:black">Live Preview</h2>
+                <form id="dynamic-form" class="row col-md-12"></form>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    let formFields = JSON.parse('{{ form_fields_json|escapejs|safe }}');
+
+    function renderFormBuilder() {
+        let builder = document.getElementById("form-builder");
+        builder.innerHTML = "";
+
+        formFields.forEach(field => {
+            let inputHtml = `
+                <div class="col-md-3 mb-3">
+                    <input class="form-control" type="text" value="${field.label}" 
+                           onchange="updateField(${field.id}, 'label', this.value)">
+                </div>
+                <div class="col-md-3 mb-3">
+                    <select class="form-control" onchange="updateField(${field.id}, 'type', this.value)">
+                        <option value="text" ${field.type === 'text' ? 'selected' : ''}>Text</option>
+                        <option value="number" ${field.type === 'number' ? 'selected' : ''}>Number</option>
+                        <option value="select" ${field.type === 'select' ? 'selected' : ''}>Dropdown</option>
+                    </select>
+                </div>
+                <div class="col-md-3 mb-3">
+                    <button class="btn btn-danger" onclick="removeField(${field.id})">Remove</button>
+                </div>
+            `;
+            builder.innerHTML += inputHtml;
+        });
+    }
+
+    function updateField(id, key, value) {
+        formFields = formFields.map(f => f.id === id ? { ...f, [key]: value } : f);
+        renderFormBuilder();
+    }
+
+    function removeField(id) {
+        formFields = formFields.filter(f => f.id !== id);
+        renderFormBuilder();
+    }
+
+    document.getElementById("edit-form").addEventListener("submit", function(event) {
+        document.getElementById("form-data-input").value = JSON.stringify(formFields);
+    });
+
+    document.addEventListener("DOMContentLoaded", renderFormBuilder);
+</script>
+
+
+{% if messages %}
+{% for message in messages %}
+  <script>
+  Swal.fire({
+    title: "{{ message.tags }}",
+    text: "{{ message }}",
+    icon: "{{ message.tags }}",
+    confirmButtonText: "OK",
+  });
+</script>
+{% endfor %}
+{% endif %}
+
+
+  {% endblock %}

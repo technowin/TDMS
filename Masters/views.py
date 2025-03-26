@@ -440,6 +440,59 @@ def get_control_values(request):
     return JsonResponse({"error": "Invalid request"}, status=400)
 
 
+
+
+def get_control_values_data(request):
+    if request.method == "GET":
+        try:
+            control_value_id = request.GET.get("control_value_id")
+            parameter = request.GET.get("parameter")
+            form_name = request.GET.get("form")
+
+            form = FormMaster.objects.filter(form_name=form_name).first()
+            if not form:
+                return JsonResponse({"error": "Form not found"}, status=404)
+
+            form_id = form.form_id
+
+            # Get field_id from FormFieldMaster
+            form_field = FormFieldMaster.objects.filter(label_name=parameter, form_id=form_id).first()
+            if not form_field:
+                return JsonResponse({"error": "Form field not found"}, status=404)
+
+            field_id = form_field.id
+
+            # Get all fields for the form
+            form_fields = FormFieldMaster.objects.filter(form_id=form_id).values()
+
+            # Fetch ControlMaster based on field_id
+            control_values = []
+            for field in form_fields:
+                control_id = field.get("control_master_id")
+                control_master = ControlMaster.objects.filter(id=control_id).first()
+
+                if control_master:
+                    sub_controls = control_master.sub_control_values.split(",") if control_master.sub_control_values else []
+                    control_values.append({
+                        "control_value": control_master.control_value,
+                        "data_type": control_master.data_type,
+                        "control_master_id": control_master.id,
+                        "sub_controls": [{"sub_control_value_list": sub_controls}]
+                    })
+
+            return JsonResponse({
+                "form_id": form_id,
+                "control_values": control_values,
+                "fields": list(form_fields)
+            })
+
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=500)
+
+
+
+
+
 def get_sub_item(request):
     if request.method == "POST":
         try:
@@ -485,7 +538,7 @@ def update_form(request):
         pk = request.POST.get("form_id")
         fk = request.POST.get("form_field_id")
 
-        # Fetch form field details using form_id and fk
+        form = FormMaster.objects.get(form_id = pk)
         form_field_master = FormFieldMaster.objects.get(form_id=pk, id=fk)
 
         # Fetch the necessary fields from FieldMaster and DropdownOption
@@ -494,6 +547,7 @@ def update_form(request):
 
         # Prepare the data for rendering in the template
         context = {
+            'form':form,
             'form_field_master': form_field_master,
             'field_master_data': field_master_data,
             "dropdown_options": dropdown_options
@@ -529,3 +583,156 @@ def delete_form(request):
     
 
 
+
+
+
+
+def form_builder(request):
+    common_options = list(ControlMasters.objects.filter(datatype='select').values("control_value", "control_type"))
+    sub_control = list(SubControlMaster.objects.values("id","control_name", "control_value","field_type"))
+    dropdown_options = list(ControlParameterMaster.objects.values("control_name", "control_value"))
+    return render(request, "Master/form_builder.html", {"dropdown_options": json.dumps(dropdown_options),"common_options": json.dumps(common_options),"sub_control": json.dumps(sub_control)})
+
+def format_label(label):
+    """Format label to have proper capitalization."""
+    words = re.split(r'[_ ]+', label.strip())
+    return ' '.join(word.capitalize() for word in words)
+
+# @csrf_exempt
+# def save_form(request):
+#     if request.method == "POST":
+#         form_name = request.POST.get("form_name")
+#         form_description = request.POST.get("form_description")
+#         form_data_json = request.POST.get("form_data")  # JSON string
+
+#         if not form_data_json:
+#             return JsonResponse({"error": "No form data received"}, status=400)
+
+#         try:
+#             form_data = json.loads(form_data_json)  # Convert JSON string to Python list
+#         except json.JSONDecodeError:
+#             return JsonResponse({"error": "Invalid JSON data"}, status=400)
+
+#         # Save the form
+#         form = Form.objects.create(name=form_name, description=form_description)
+
+#         # Save fields
+#         for index, field in enumerate(form_data):
+#             common_type = field.get("commonType", [])
+
+#             FormField.objects.create(
+#                 form=form,
+#                 label=field.get("label", ""),
+#                 field_type=field.get("type", ""),
+
+#                 values=",".join(option.strip() for option in field.get("options", [])),  
+#                 required="Required" in common_type,  # Check if "Required" is present
+#                 searchable="Searchable" in common_type,  # Check if "Searchable" is present
+#                 disable="Disable" in common_type,  # Check if "Disable" is present
+#                 order=index + 1,  
+#             )
+
+#         return JsonResponse({"message": "Form saved successfully!"})
+#     else:
+#         return JsonResponse({"error": "Invalid request method"}, status=405)
+
+@csrf_exempt
+def save_form(request):
+    try:
+        if request.method == "POST":
+            form_name = request.POST.get("form_name")
+            form_description = request.POST.get("form_description")
+            form_data_json = request.POST.get("form_data")
+
+            if not form_data_json:
+                return JsonResponse({"error": "No form data received"}, status=400)
+
+            try:
+                form_data = json.loads(form_data_json)
+            except json.JSONDecodeError:
+                return JsonResponse({"error": "Invalid JSON data"}, status=400)
+
+            # Create the form
+            form = Form.objects.create(name=form_name, description=form_description)
+
+            for field in form_data:
+                # Create the form field entry
+                form_field = FormField.objects.create(
+                    form=form,
+                    label=field.get("label", ""),
+                    field_type=field.get("type", ""),
+                    values=",".join(option.strip() for option in field.get("options", [])),
+                )
+                field_id = form_field.id
+
+                # Save sub-control values into FieldValidation table
+                if "subValues" in field and isinstance(field["subValues"], list):
+                    for sub_value in field["subValues"]:
+                        if sub_value["control_value"] != "required":  # Exclude 'required'
+                            FieldValidation.objects.create(
+                                field=get_object_or_404(FormField,id = field_id),
+                                rule=sub_value["control_value"],
+                                value=sub_value["fvalue"]
+                            )
+
+            messages.success(request, "Form and fields saved successfully!!")
+            new_url = f'/masters?entity=form&type=i'
+            return redirect(new_url) 
+    except Exception as e:
+                tb = traceback.extract_tb(e.__traceback__)
+                fun = tb[0].name
+                callproc("stp_error_log", [fun, str(e), user])
+                messages.error(request, 'Oops...! Something went wrong!')
+                return JsonResponse({"error": "Something went wrong!"}, status=500)
+    finally:
+        Db.closeConnection()
+
+def edit_form(request):
+    form_id = request.GET.get('form_id')
+    form_id = dec(form_id)
+    form = Form.objects.filter(id = form_id)
+    fields = FormField.objects.filter(form_id=form_id)
+
+    # Convert fields to a JSON format for JavaScript use
+    form_fields_json = json.dumps([
+        {
+            "id": field.id,
+            "label": field.label,
+            "type": field.field_type,
+            "options": field.values.split(",") if field.values else []
+        }
+        for field in fields
+    ])
+
+    return render(request, 'Master/edit_form.html', {
+        'form': form,
+        'form_fields_json': form_fields_json
+    })
+
+
+@csrf_exempt
+def get_form(request, form_id):
+    try:
+        form = Form.objects.prefetch_related('fields').get(id=form_id)
+        form_data = {
+            "name": form.name,
+            "description": form.description,
+            "fields": []
+        }
+        
+        for field in form.fields.all():
+            field_data = {
+                "id": field.id,
+                "label": field.label,
+                "type": field.field_type,
+                "required": field.required,
+                "order": field.order,
+                "row": field.row_position,
+                "validations": [{"rule": v.rule, "value": v.value} for v in field.validations.all()],
+                "dependencies": [{"field_id": d.dependent_on.id, "condition": json.loads(d.condition)} for d in field.dependencies.all()]
+            }
+            form_data['fields'].append(field_data)
+
+        return JsonResponse(form_data)
+    except Form.DoesNotExist:
+        return JsonResponse({"error": "Form not found"}, status=404)

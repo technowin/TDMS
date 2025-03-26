@@ -16,6 +16,7 @@
 <script src="{% static 'js/cloudflare.js' %}"></script>
 <!-- Include DataTables CSS -->
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.min.css">
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <!-- Include DataTables JS -->
 <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -93,7 +94,7 @@
             gap: 10px;
         }      
         .field-container {
-            {% comment %} border: 2px dashed #007bff; /* Dashed border */ {% endcomment %}
+            border: 2px dashed #007bff; /* Dashed border */
             margin-bottom: 15px;
             border-radius: 15px;
             border: 2px solid #b3b3b3
@@ -105,6 +106,19 @@
         .sortable-ghost {
             opacity: 0.5;
             background: #f8f9fa;
+        }
+        .checkbox-inputs {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+        }
+        
+        .checkbox-inputs label {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            white-space: nowrap;
+            cursor: pointer;
         }
     </style> 
 </head>
@@ -120,6 +134,8 @@
            
                     <form method="POST" action="{% url 'form' %}">
                         {% csrf_token %}
+
+                        
         
                         <!-- Centered Form Name Section -->
                         <div class="text-center mb-4">
@@ -127,6 +143,10 @@
                             <input type="text" class="form-control mx-auto w-25 mt-2  text-truncate" 
                                    value="{{ form.form_name }}" id="formName" name="form_name" 
                                    placeholder="Enter form name" style="min-width: 150px;" required>
+                        </div>
+
+                        <div id="form-container">
+                            <!-- The updated form fields will be injected here dynamically -->
                         </div>
                         
         
@@ -145,8 +165,10 @@
                                     <select class="form-select" id="dropdownSelect" name="dropdown_option" required>
                                         <option value="">Select</option>
                                         {% for option in dropdown_options %}
-                                            <option value="{{ option.id }}">{{ option.control_value }}</option>
-                                        {% endfor %}
+                                    <option value="{{ option.id }}" {% if form_field_master.control_id == option.id %} selected {% endif %}>
+                                        {{ option.control_name }}
+                                    </option>
+                                {% endfor %}
                                     </select>
                                 </div>
         
@@ -160,7 +182,6 @@
                                             Save Form
                                         </button>
                                     </div>
-                                    
                                 </div>
                     </form>
                 </div>
@@ -177,11 +198,11 @@
                     <label class="fw-bold">{{ form.label_name }}</label>
                     <div class="d-flex justify-content-between align-items-center">
                         <div class="d-flex">
-                            <form method="post" action="{% url 'update_form' %}">
+                            <form id="updateForm" method="post" action="{% url 'update_form' %}">
                                 {% csrf_token %}
                                 <input type="hidden" name="form_id" value="{{ form.form_id }}">
                                 <input type="hidden" name="form_field_id" value="{{ form.id }}">
-                                <button type="submit" class="btn btn-lg">
+                                <button type="submit" class="btn btn-lg edit-btn">
                                     <i class="fa-solid fa-pen-to-square" style="color: #28a745;"></i>
                                 </button>
                             </form>
@@ -223,11 +244,13 @@
                     <!-- Dropdown -->
                     {% for field in field_entries %}
                         {% if field.control_master_id == 6 %}
+                        {% if field.form_field_id == form.id %}
                             <select class="form-control select">
                                 {% for option in field.options_list %}
                                     <option value="{{ option }}">{{ option }}</option>
                                 {% endfor %}
                             </select>
+                            {% endif %}
                         {% endif %} 
                     {% comment %} {% endfor %} {% endcomment %}
                  {% endfor %}
@@ -235,6 +258,7 @@
                     <!-- Radio Buttons -->
                     {% for field in field_entries %}
                         {% if  field.control_master_id == 13 %}
+                        {% if field.form_field_id == form.id %}
                             {% for option in field.options_list %}
                             <div class="radio-inputs">
                                 <label class="radio">
@@ -245,21 +269,18 @@
                             </div>
                             {% endfor %}
                         {% endif %}
+                        {% endif %}
                     {% endfor %}
                 {% elif form.control_id == 4 %}
                     <!-- File Upload -->
                     <input type="file" class="form-control">
                 {% elif form.control_id == 5 %}
-                    <!-- Checkbox -->
-                    {% for field in field_entries %}
-                        {% if field.form_field_id == form.form_field_id %}
-                        <div class="radio-inputs">
-                                <label>
-                                    <input type="checkbox" name="checkbox_{{ form.form_id }}" value="{{ option }}"> {{ option }}
-                                </label>
-                            </div>
-                        {% endif %}
-                    {% endfor %}
+              
+                    <label style="display: flex; align-items: center; gap: 0.5rem;">
+                        <input type="checkbox" name="checkbox_{{ form.form_id }}" value="{{ form.label }}">
+                        <span>{{ form.label }}</span>
+                    </label>
+
                 {% else %}
                     <p>Unknown Control Type: {{ form.control_id }}</p>
                 {% endif %}
@@ -387,35 +408,93 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 
-<script>
-    $(document).ready(function() {
-        $('#dropdownSelect').change(function() {
-            var selectedControlValueId = $(this).val(); // Get selected value
 
-            if (selectedControlValueId) {
+    <script>
+      
+           $(document).ready(function() {
+                function fetchControlValues() {
+                    var selectedControlValueId = $('#dropdownSelect').val(); 
+                    var parameter = $('#parameterName').val();
+                    var form = $('#formName').val();
+        
+                    if (selectedControlValueId) {
+                        $.ajax({
+                            url: "{% url 'get_control_values' %}",
+                            type: "POST",
+                            data: {
+                                control_value_id: selectedControlValueId,
+                                csrfmiddlewaretoken: "{{ csrf_token }}"
+                            },
+                            success: function(response) {
+                                // Load response into the dynamic field container
+                                $('#dynamicFieldsContainer').html(response);
+        
+                                // **Now send this data to another Django function**
+                                sendToAnotherFunction(selectedControlValueId);
+                            },
+                            error: function(error) {
+                                console.log("Error fetching data:", error);
+                            }
+                        });
+                    } else {
+                        $('#dynamicFieldsContainer').empty();
+                    }
+                }
+        
+                function sendToAnotherFunction(selectedControlValueId) {
+                    debugger;
+                    var parameter = $('#parameterName').val();
+                    var form = $('#formName').val();
+                    $.ajax({
+                        url: "{% url 'get_control_values_data' %}",
+                        type: "GET",
+                        data: {
+                            parameter:parameter,
+                            form:form,
+                            control_value_id: selectedControlValueId,
+                            csrfmiddlewaretoken: "{{ csrf_token }}"
+                        },
+                        success: function(response) {
+                            console.log("Successfully sent to another function:", response);
+                        },
+                        error: function(error) {
+                            console.log("Error in second function:", error);
+                        }
+                    });
+                }
+        
+                $('#dropdownSelect').change(fetchControlValues); // Trigger function on change
+        
+                // **Trigger change event on page load if value is already selected**
+                if ($('#dropdownSelect').val()) {
+                    fetchControlValues();
+                }
+            }); 
+        </script>
+        
+        <script>
+            $(document).on("submit", "#updateForm", function (e) {
+                debugger;
+                e.preventDefault(); // Prevent default form submission
+                var formData = $(this).serialize(); // Serialize form data
+        
                 $.ajax({
-                    url: "{% url 'get_control_values' %}",
                     type: "POST",
-                    data: {
-                        control_value_id: selectedControlValueId,
-                        csrfmiddlewaretoken: "{{ csrf_token }}"
+                    url: $(this).attr("action"),  // Get the form action URL
+                    data: formData,
+                    dataType: "json",
+                    success: function (response) {
+                        if (response.success) {
+                            $("#form-container").html(response.html);
+                        } else {
+                            alert("Error updating form: " + response.error);
+                        }
                     },
-                    success: function(response) {
-                        // Load response into the dynamic field container
-                        $('#dynamicFieldsContainer').html(response);
-                    },
-                    error: function(error) {
-                        console.log("Error fetching data:", error);
+                    error: function () {
+                        alert("An error occurred while updating the form.");
                     }
                 });
-            } else {
-                $('#dynamicFieldsContainer').empty();
-            }
-        });
-    });
+            });
+        </script>
 
-
-  
-    
-</script>
 {% endblock %}
