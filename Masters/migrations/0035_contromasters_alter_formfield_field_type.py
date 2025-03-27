@@ -11,7 +11,7 @@ class Migration(migrations.Migration):
 
     operations = [
         migrations.CreateModel(
-            name='ControMasters',
+            name='CommonMaster',
             fields=[
                 ('control_id', models.AutoField(primary_key=True, serialize=False)),
                 ('control_type_id', models.IntegerField(blank=True, null=True)),
@@ -26,7 +26,7 @@ class Migration(migrations.Migration):
                 ('updated_by', models.TextField(blank=True, null=True)),
             ],
             options={
-                'db_table': 'control_masters',
+                'db_table': 'common_master',
             },
         ),
         migrations.AlterField(
