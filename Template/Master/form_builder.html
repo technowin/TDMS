@@ -41,362 +41,7 @@
         transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
     }
 </style>
-{% comment %} <div class="mt-4">
-    <form method="POST" action="{% url 'save_form' %}" class="row col-md-12" id="main-form" style="padding: 20px; border: 2px solid #b3b3b3; border-radius: 15px; margin-left:0px; text-align:center">
-        {% csrf_token %}
-        <div class="col-md-4">
-            <label>Form Name:</label>
-            <input type="text" class="form-control" name="form_name" value="{{ form.name }}" required>
-        </div>
-        
-        <div class="col-md-4">
-            <label>Form Description:</label>
-            <input type="text" class="form-control" name="form_description" value="{{ form.description }}">
-        </div>
-    
-        <!-- Hidden field to store JSON form data -->
-        <input type="hidden" name="form_data" id="form-data-input">
-    
-        <div class="col-md-4 mt-3">
-            <button type="submit" class="btn btn-primary mt-3">Save Form</button>
-        </div>
-    </form>
-      
-    <br> 
-    <div class="row" style="padding: 20px; border: 2px solid #b3b3b3; border-radius: 15px;">
-        <!-- Form Builder (Left Panel) -->
-        <div class="col-md-8">
-                <div class="card shadow"  style="border: 2px solid #b3b3b3;border-radius: 15px;margin-left:0px;">
-            <h2 style="text-align:center; font-weight:600; color:black">
-                Form Builder &nbsp;&nbsp;&nbsp;
-                <button class="btn btn-primary" onclick="addField()"> Add Field</button>
-            </h2>
-            <div id="form-builder" class="row col-md-12 mt-3"></div>
-        </div>
-        </div>
 
-        <!-- Live Preview (Right Panel) -->
-        <div class="col-md-4">
-            <div class="card shadow"  style="border: 2px solid #b3b3b3;border-radius: 15px;margin-left:0px;">
-            <h2 style="text-align:center; font-weight:600; color:black">Live Preview</h2>
-            <form id="dynamic-form" class="row col-md-12"></form>
-            </div>
-        </div>
-    </div>
-</div>
-
-<script>
-    let commonOptions = JSON.parse('{{ common_options|escapejs|safe }}');
-    let dropdownOptions = JSON.parse('{{ dropdown_options|escapejs|safe }}');
-    let subControls = JSON.parse('{{ sub_control|escapejs|safe }}');
-
-    let formFields = [];
-
-    function addField() {
-        let selectedValues = saveSelectedValues(); // Save previous selections
-        let newField = {
-            id: formFields.length + 1,
-            label: "Label Name",
-            type: "text",
-            commonType: []
-        };
-        formFields.push(newField);
-        renderFormBuilder(); 
-        restoreSelectedValues(selectedValues); 
-        renderFormPreview(); 
-    }
-
-    function renderFormBuilder() {
-        let builder = document.getElementById("form-builder");
-        builder.innerHTML = "";
-    
-        formFields.forEach(field => {
-            let dropdownHtml = `<select class="form-control select" onchange="updateField(${field.id}, 'type', this.value)">`;
-            dropdownOptions.forEach(option => {
-                dropdownHtml += `<option value="${option.control_value}" ${field.type === option.control_value ? "selected" : ""}>${option.control_name}</option>`;
-            });
-            dropdownHtml += `</select>`;
-    
-            let commonDropdownHtml = `
-                <select id="common-dropdown-${field.id}" class="form-control common-select" multiple>
-            `;
-            commonOptions.forEach(option => {
-                let isSelected = field.commonType.includes(option.control_value) ? "selected" : "";
-                commonDropdownHtml += `<option value="${option.control_value}" ${isSelected}>${option.control_value}</option>`;
-            });
-            commonDropdownHtml += `</select>`;
-    
-            // Logic for SubControls
-            let optionDropdownHtml = "";
-            let subControlHtml = "";
-            let subControlData = subControls.filter(sub => sub.field_type === field.type);
-    
-            if (subControlData.length > 0) {
-                if (field.type === "file") {
-                    subControlHtml = `<select class="form-control">`;
-                    subControlData.forEach(sub => {
-                        subControlHtml += `<option value="${sub.control_value}">${sub.control_name}</option>`;
-                    });
-                    subControlHtml += `</select>`;
-                } else if (field.type === "text" || field.type === "number") {
-                    let inputWidth = 100 / subControlData.length;
-                    subControlHtml = `<div style="display: flex; gap: 10px; width: 100%;">`;
-                    subControlData.forEach((sub, index) => {
-                        let value = field.subValues ? field.subValues[index] || "" : "";
-                        subControlHtml += `
-                            <input type="${field.type}" class="form-control" placeholder="${sub.control_name}" 
-                            style="flex: 1; width: ${inputWidth}%;" value="${value}" 
-                            oninput="updateSubField(${field.id}, ${index}, this.value)">
-                        `;
-                    });
-                    subControlHtml += `</div>`;
-                }
-            } else {
-                if (field.type === "select" || field.type === "radio" || field.type === "select multiple") {
-                    optionDropdownHtml = `
-                        <select id="option-dropdown-${field.id}" class="form-control option-select" multiple>
-                    `;
-                    (field.options || []).forEach(option => {
-                        optionDropdownHtml += `<option value="${option}" selected>${option}</option>`;
-                    });
-                    optionDropdownHtml += `</select>`;
-                }
-            }
-    
-            builder.innerHTML += `
-                <div class="col-md-2 mb-3">
-                    <input class="form-control" type="text" value="${field.label}" onchange="updateField(${field.id}, 'label', this.value)">
-                </div>
-                <div class="col-md-2 mb-3">
-                    ${dropdownHtml}
-                </div>
-                <div class="col-md-4 mb-3">
-                    ${commonDropdownHtml}
-                </div>
-                <div class="col-md-3 mb-3">
-                    ${subControlHtml || optionDropdownHtml} 
-                </div>
-                <div class="col-md-1 mt-2">
-                    <span onclick="removeField(${field.id})" style="cursor: pointer;">
-                        <i class="fa-solid fa-trash" style="color: #dc3545; font-size: 1.5rem;"></i>
-                    </span>
-                </div>
-            `;
-        });
-    
-        document.querySelectorAll(".common-select").forEach(select => {
-            $(select).selectize({
-                plugins: ["remove_button"],
-                delimiter: ",",
-                placeholder: "Select attributes",
-                persist: false,
-                create: false,
-                onChange: function(value) {
-                    let fieldId = select.id.split("-").pop();
-                    updateField(parseInt(fieldId), 'commonType', value);
-                }
-            });
-        });
-    
-        document.querySelectorAll(".option-select").forEach(select => {
-            $(select).selectize({
-                plugins: ["remove_button"],
-                delimiter: ",",
-                placeholder: "Enter options",
-                persist: false,
-                create: true,
-                onChange: function(value) {
-                    let fieldId = select.id.split("-").pop();
-                    updateField(parseInt(fieldId), 'options', value);
-                }
-            });
-        });
-    }
-    
-    function updateSubField(fieldId, index, value) {
-        let field = formFields.find(f => f.id === fieldId);
-        if (!field.subValues) {
-            field.subValues = [];
-        }
-    
-        let subControlData = subControls.filter(sub => sub.field_type === field.type);
-    
-        if (subControlData.length > index) {
-            let controlValue = subControlData[index].control_value;
-    
-            // Exclude 'required' and other unwanted attributes
-            if (controlValue !== "Required" || controlValue !== "Searchable" || controlValue !== "Disabled" ) {
-                field.subValues[index] = { control_value: controlValue, fvalue: value };
-            }
-        }
-    }
-    
-    
-    
-    
-
-
-function renderFormPreview() {
-    let preview = document.getElementById("dynamic-form");
-    preview.innerHTML = "";
-
-    formFields.forEach(field => {
-        let inputHtml = "";
-        let fieldName = `field_${field.id}`;
-
-        if (field.type === "select") {
-            inputHtml = `<select class="form-control select w-100" name="${fieldName}">`;
-            (field.options || []).forEach(option => {
-                inputHtml += `<option value="${option}">${option}</option>`;
-            });
-            inputHtml += `</select>`;
-        } 
-        else if (field.type === "radio") {
-            inputHtml = `<div class="d-flex flex-wrap">`;
-            (field.options || []).forEach(option => {
-                inputHtml += `
-                    <div style="font-size:18px;" class="form-check me-2">
-                        <input class="form-check-input" type="radio" name="${fieldName}" value="${option}" id="radio_${option}" style="transform: scale(1.5);">
-                        <label class="form-check-label" for="radio_${option}" style="cursor: pointer; font-size: 18px;">
-                            ${option}&nbsp;&nbsp;
-                        </label>
-                    </div>
-                `;
-            });
-            inputHtml += `</div>`;
-        } 
-        else if (field.type === "select multiple") {
-            inputHtml = `<select class="form-control select-multiple w-100" name="${fieldName}" multiple>`;
-            (field.options || []).forEach(option => {
-                inputHtml += `<option value="${option}">${option}</option>`;
-            });
-            inputHtml += `</select>`;
-        }
-       else if (field.type === "checkbox") {
-           inputHtml = `
-                   <label class="switch">
-                       <input type="checkbox" value="1" id="${fieldName}" name="${fieldName}"}>
-                       <span class="slider"></span>
-                   </label>
-           `;
-       } 
-       else if (field.type === "file") {
-            let acceptedFormats = Array.isArray(field.option) ? field.option.join(",") : field.option;
-            inputHtml = `<input type="file" accept="${acceptedFormats}" class="form-control w-100 file-input" name="${fieldName}">`;
-        } 
-        else {
-            inputHtml = `<input type="${field.type}" class="form-control w-100" name="${fieldName}">`;
-        }
-
-        // Append form field to preview
-        let fieldContainer = document.createElement("div");
-        fieldContainer.classList.add("col-md-6", "mb-3", "d-flex", "flex-column");
-        fieldContainer.innerHTML = `
-            <label class="fw-bold">${field.label}</label>
-            ${inputHtml}
-            <input type="hidden" name="${fieldName}_type" value="${field.type}">
-        `;
-        preview.appendChild(fieldContainer);
-
-        // Initialize Selectize IMMEDIATELY after adding the element
-        if (field.type === "select multiple") {
-            $(fieldContainer).find('.select-multiple').selectize({
-                plugins: ['remove_button'],
-                delimiter: ',',
-                persist: false,
-                create: false
-            });
-        }
-    });
-}
-
-
-
-
-
-
-// Update hidden input with JSON data before submitting
-document.getElementById("main-form").addEventListener("submit", function(event) {
-    document.getElementById("form-data-input").value = JSON.stringify(formFields);
-});
-
-
-function saveSelectedValues() {
-    let selectedValues = {};
-    document.querySelectorAll(".common-select").forEach(select => {
-        let fieldId = select.id.split("-").pop();
-        selectedValues[fieldId] = $(select).val() || []; // Get selected values
-    });
-    return selectedValues;
-}
-
-function restoreSelectedValues(selectedValues) {
-    document.querySelectorAll(".common-select").forEach(select => {
-        let fieldId = select.id.split("-").pop();
-        let selectizeInstance = $(select)[0].selectize;
-        if (selectizeInstance) {
-            selectizeInstance.setValue(selectedValues[fieldId] || []);
-        }
-    });
-}
-
-
-
-
-
-function updateField(id, key, value) {
-    formFields = formFields.map(f => f.id === id ? { ...f, [key]: value } : f);
-    renderFormBuilder();
-    renderFormPreview();
-}
-
-function addOption(id) {
-    let optionInput = document.getElementById(`option-input-${id}`);
-    let optionValue = optionInput.value.trim();
-
-    if (optionValue !== "") {
-        formFields = formFields.map(f => {
-            if (f.id === id) {
-                return {
-                    ...f,
-                    options: [...(f.options || []), optionValue] 
-                };
-            }
-            return f;
-        });
-
-        optionInput.value = ""; 
-        renderFormBuilder();
-        renderFormPreview();
-    }
-}
-
-function removeOption(id, index) {
-    formFields = formFields.map(f => {
-        if (f.id === id) {
-            let updatedOptions = [...(f.options || [])];
-            updatedOptions.splice(index, 1);
-            return { ...f, options: updatedOptions };
-        }
-        return f;
-    });
-
-    renderFormBuilder();
-    renderFormPreview();
-}
-
-function removeField(id) {
-    formFields = formFields.filter(f => f.id !== id);
-    renderFormBuilder();
-    renderFormPreview();
-}
-
-document.addEventListener("DOMContentLoaded", function() {
-    renderFormBuilder();
-    renderFormPreview();
-});
-
-</script> {% endcomment %}
 
 <div class="mt-4">
     <form method="POST" action="{% if form %}{% url 'update_form' form.id %}{% else %}{% url 'save_form' %}{% endif %}" class="row col-md-12" id="main-form"
@@ -513,16 +158,16 @@ document.addEventListener("DOMContentLoaded", function() {
     
             if (subControlData.length > 0) {
                 debugger;
-                if (field.type === "file") {
-                    subControlHtml = `<select class="form-control">`;
-                    subControlData.forEach(sub => {
-                        let selectedValue = field.validation && field.validation[sub.id] ? field.validation[sub.id][sub.control_value] || "" : "";
-                        let isSelected = selectedValue ? "selected" : "";
-                        subControlHtml += `<option value="${sub.control_value}" ${isSelected}>${sub.control_name}</option>`;
-                    });
-                    subControlHtml += `</select>`;
+               //  if (field.type === "file") {
+               //      subControlHtml = `<select class="form-control">`;
+               //      subControlData.forEach(sub => {
+               //          let selectedValue = field.validation && field.validation[sub.id] ? field.validation[sub.id][sub.control_value] || "" : "";
+               //          let isSelected = selectedValue ? "selected" : "";
+               //          subControlHtml += `<option value="${sub.control_value}" ${isSelected}>${sub.control_name}</option>`;
+               //      });
+               //      subControlHtml += `</select>`;
             
-                } else if (field.type === "text" || field.type === "number") {
+                if (field.type === "text" || field.type === "number") {
                     let inputWidth = 100 / subControlData.length;
                     subControlHtml = `<div style="display: flex; gap: 10px; width: 100%;">`;
             
@@ -612,86 +257,8 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     }
     
-    
-    
-    {% comment %} function renderFormPreview() {
-        let preview = document.getElementById("dynamic-form");
-        preview.innerHTML = "";
-    
-        formFields.forEach(field => {
-            let inputHtml = "";
-            let fieldName = `field_${field.id}`;
-    
-            if (field.type === "select") {
-                inputHtml = `<select class="form-control select w-100" name="${fieldName}">`;
-                (field.options || []).forEach(option => {
-                    inputHtml += `<option value="${option}" ${field.value === option ? "selected" : ""}>${option}</option>`;
-                });
-                inputHtml += `</select>`;
-            } 
-            else if (field.type === "radio") {
-                inputHtml = `<div class="d-flex flex-wrap">`;
-                (field.options || []).forEach(option => {
-                    let isChecked = field.value === option ? "checked" : "";
-                    inputHtml += `
-                        <div style="font-size:18px;" class="form-check me-2">
-                            <input class="form-check-input" type="radio" name="${fieldName}" value="${option}" ${isChecked} id="radio_${option}" style="transform: scale(1.5);">
-                            <label class="form-check-label" for="radio_${option}" style="cursor: pointer; font-size: 18px;">
-                                ${option}&nbsp;&nbsp;
-                            </label>
-                        </div>
-                    `;
-                });
-                inputHtml += `</div>`;
-            } 
-            else if (field.type === "select multiple") {
-                inputHtml = `<select class="form-control select-multiple w-100" name="${fieldName}" multiple>`;
-                (field.options || []).forEach(option => {
-                    let isSelected = (field.value || []).includes(option) ? "selected" : "";
-                    inputHtml += `<option value="${option}" ${isSelected}>${option}</option>`;
-                });
-                inputHtml += `</select>`;
-            }
-           else if (field.type === "checkbox") {
-               let isChecked = field.value == "1" ? "checked" : "";
-               inputHtml = `
-                       <label class="switch">
-                           <input type="checkbox" value="1" id="${fieldName}" name="${fieldName}" ${isChecked}>
-                           <span class="slider"></span>
-                       </label>
-               `;
-           } 
-            else if (field.type === "file") {
-                let acceptedFormats = Array.isArray(field.options) ? field.options.join(",") : field.options;
-                inputHtml = `<input type="file" accept="${acceptedFormats}" class="form-control w-100 file-input" name="${fieldName}">`;
-            } 
-            else {
-                inputHtml = `<input type="${field.type}" class="form-control w-100" name="${fieldName}" value="${field.value || ""}">`;
-            }
-    
-            let fieldContainer = document.createElement("div");
-            fieldContainer.classList.add("col-md-6", "mb-3", "d-flex", "flex-column");
-            fieldContainer.innerHTML = `
-                <label class="fw-bold">${field.label}</label>
-                ${inputHtml}
-                <input type="hidden" name="${fieldName}_type" value="${field.type}">
-            `;
-            preview.appendChild(fieldContainer);
-    
-            // Initialize Selectize for Multiple Selection
-            if (field.type === "select multiple") {
-                $(fieldContainer).find('.select-multiple').selectize({
-                    plugins: ['remove_button'],
-                    delimiter: ',',
-                    persist: false,
-                    create: true
-                });
-            }
-        });
-    } {% endcomment %}
 
     function renderFormPreview() {
-        debugger;
         let preview = document.getElementById("dynamic-form");
         preview.innerHTML = "";
     
@@ -729,6 +296,18 @@ document.addEventListener("DOMContentLoaded", function() {
                 });
                 inputHtml += `</select>`;
             }
+            else if (field.type === "textarea") {
+                inputHtml = `<textarea class="form-control" name="${fieldName}"></textarea>`;
+                
+            }
+           // else if (field.type === "textarea") {
+           //     inputHtml = `<select class="form-control select-multiple w-100" name="${fieldName}" multiple>`;
+           //     (field.options || []).forEach(option => {
+           //         let isSelected = (field.value || []).includes(option) ? "selected" : "";
+           //         inputHtml += `<option value="${option}" ${isSelected}>${option}</option>`;
+           //     });
+           //     inputHtml += `</select>`;
+           // }
             else if (field.type === "checkbox") {
                 let isChecked = field.value == "1" ? "checked" : "";
                 inputHtml = `
@@ -738,20 +317,47 @@ document.addEventListener("DOMContentLoaded", function() {
                     </label>
                 `;
             } 
-            else if (field.type === "file") {
-                let acceptedFormats = Array.isArray(field.options) ? field.options.join(",") : field.options;
-                let placeholderText = `Only ${acceptedFormats} files are allowed.`;
-                inputHtml = `<input type="file" accept="${acceptedFormats}" class="form-control w-100 file-input" name="${fieldName}" placeholder="${placeholderText}">`;
-            } 
+           //  else if (field.type === "file") {
+           //      let acceptedFormats = Array.isArray(field.options) ? field.options.join(",") : field.options;
+           //      let placeholderText = `Only ${acceptedFormats} files are allowed.`;
+           //      inputHtml = `<input type="file" accept="${acceptedFormats}" class="form-control w-100 file-input" name="${fieldName}" placeholder="${placeholderText}">`;
+           //  } 
             else {
-                let minAttr = field.validation?.min !== undefined ? `min="${field.validation.min}"` : "";
-                let maxAttr = field.validation?.max !== undefined ? `max="${field.validation.max}"` : "";
-                let maxLengthAttr = field.validation?.maxLength !== undefined ? `maxlength="${field.validation.maxLength}"` : "";
-                let minLengthAttr = field.validation?.minLength !== undefined ? `minlength="${field.validation.minLength}"` : "";
-                let placeholderText = field.type === "text" ? `Max ${field.validation?.maxLength || "N/A"} characters allowed.` : "";
+                debugger;
+                let maxLengthAttr = "";
+                let minLengthAttr = "";
+                let minAttr = "";
+                let maxAttr = "";
                 
-                inputHtml = `<input type="${field.type}" class="form-control w-100" name="${fieldName}" value="${field.value || ""}" ${minAttr} ${maxAttr} ${minLengthAttr} ${maxLengthAttr} placeholder="${placeholderText}">`;
-            }
+                // Loop through validations to extract values
+                field.validation?.forEach((rule) => {
+                    if (rule.validation_type === "max_length") {
+                        maxLengthAttr = `maxlength="${rule.validation_value}"`;
+                    }
+                    if (rule.validation_type === "min_length") {
+                        minLengthAttr = `minlength="${rule.validation_value}"`;
+                    }
+                    if (rule.validation_type === "min_value") {
+                        minAttr = `min="${rule.validation_value}"`;
+                    }
+                    if (rule.validation_type === "max_value") {
+                        maxAttr = `max="${rule.validation_value}"`;
+                    }
+                });
+                
+                let placeholderText = field.type === "text" || field.type === "number"
+                    ? `Max ${maxLengthAttr ? field.validation.find(v => v.validation_type === "max_length")?.validation_value : "N/A"} characters allowed.`
+                    : "";
+                
+                inputHtml = `<input type="${field.type}" class="form-control w-100" 
+                                name="${fieldName}" 
+                                value="${field.value || ""}" 
+                                ${minAttr} 
+                                ${maxAttr} 
+                                ${minLengthAttr} 
+                                ${maxLengthAttr} 
+                                placeholder="${placeholderText}">`;
+                }
     
             let fieldContainer = document.createElement("div");
             fieldContainer.classList.add("col-md-6", "mb-3", "d-flex", "flex-column");
@@ -775,8 +381,6 @@ document.addEventListener("DOMContentLoaded", function() {
     }
     
     
-    
-
     function updateField(id, key, value) {
         formFields = formFields.map(f => f.id === id ? { ...f, [key]: value } : f);
         renderFormBuilder();
@@ -794,14 +398,17 @@ document.addEventListener("DOMContentLoaded", function() {
             if (!subControl) return;
     
             formFields[fieldIndex].subValues[index] = {
-                id: subControl.id,  // ✅ Matches backend format
-                control_name: subControl.control_name,  // ✅ Name of control
-                control_value: subControl.control_value,  // ✅ Control identifier
-                field_type: subControl.field_type,  // ✅ Type (text, number, etc.)
-                value: value  // ✅ Store value under 'len()' (if that's what your backend expects)
+                id: subControl.id,  
+                control_name: subControl.control_name,  
+                control_value: subControl.control_value,  
+                field_type: subControl.field_type,  
+                value: value  
             };
+    
+            console.log(`Updated subValues for field ${fieldId}:`, formFields[fieldIndex].subValues);  // ✅ Debug log
         }
     }
+    
     
     document.querySelectorAll(".common-select").forEach(select => {
         let selectedOptions = $(select).val() || [];
@@ -818,6 +425,7 @@ document.addEventListener("DOMContentLoaded", function() {
     document.getElementById("main-form").addEventListener("submit", function() {
         document.getElementById("form-data-input").value = JSON.stringify(formFields);
     });
+
 
     document.addEventListener("DOMContentLoaded", function() {
         renderFormBuilder();

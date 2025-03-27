@@ -585,58 +585,67 @@ def delete_form(request):
 
 def form_builder(request):
     form_id = request.GET.get('form_id')
-    if form_id:
-        form_id = dec(form_id)
-        form = Form.objects.get(id = form_id)
-        fields = FormField.objects.filter(form_id=form_id)
-        validations = FieldValidation.objects.filter(form_id=form_id)
 
-
-        # Organizing validations in a dictionary {field_id: {validation_type: value}}
-        validation_dict = {}
-
-        for validation in validations:
-            field_id = validation.field.id
-            sub_master_id = validation.sub_master.id
-            validation_type = validation.sub_master.control_value  # Assuming 'control_value' holds validation type
-            validation_value = validation.value
-
-            # ✅ Ensure 'sub_master_id' exists in dictionary
-            if sub_master_id not in validation_dict:
-                validation_dict[sub_master_id] = {}
-
-            # ✅ Ensure 'field_id' exists inside 'sub_master_id' in dictionary
-            if field_id not in validation_dict[sub_master_id]:
-                validation_dict[sub_master_id][field_id] = {}
-
-            # ✅ Store validation type and its value
-            validation_dict[sub_master_id][field_id][validation_type] = validation_value
-  # Store type-value pair
-
-        # Convert fields and their validation rules to JSON
-        form_fields_json = json.dumps([
-            {
-                "id": field.id,
-                "label": field.label,
-                "type": field.field_type,
-                "options": field.values.split(",") if field.values else [],
-                "attributes":field.attributes,
-                "validation": validation_dict.get(field.id, {})  # Attach validation rules
-            }
-            for field in fields
-        ])
-    common_options = list(CommonMaster.objects.filter(datatype='select').values("id","control_value"))
-    sub_control = list(ValidationMaster.objects.values("id","control_name", "control_value","field_type"))
+    # Common dropdown data
+    common_options = list(CommonMaster.objects.filter(datatype='select').values("id", "control_value"))
+    sub_control = list(ValidationMaster.objects.values("id", "control_name", "control_value", "field_type"))
     dropdown_options = list(ControlParameterMaster.objects.values("control_name", "control_value"))
-    if form_id:
-        return render(request, "Master/form_builder.html", {'form': form,
-            'form_fields_json': form_fields_json,
+
+    if not form_id:  
+        return render(request, "Master/form_builder.html", {
             "dropdown_options": json.dumps(dropdown_options),
             "common_options": json.dumps(common_options),
             "sub_control": json.dumps(sub_control)
         })
-    else:
-        return render(request, "Master/form_builder.html", {"dropdown_options": json.dumps(dropdown_options),"common_options": json.dumps(common_options),"sub_control": json.dumps(sub_control)})
+
+    try:
+        form_id = dec(form_id)  # Decrypt form_id
+        form = get_object_or_404(Form, id=form_id)  # Get form or return 404
+        fields = FormField.objects.filter(form_id=form_id)
+        validations = FieldValidation.objects.filter(form_id=form_id)
+    except Exception as e:
+        print(f"Error fetching form data: {e}")  # Debugging
+        return render(request, "Master/form_builder.html", {
+            "dropdown_options": json.dumps(dropdown_options),
+            "common_options": json.dumps(common_options),
+            "sub_control": json.dumps(sub_control),
+            "error": "Invalid form ID"
+        })
+
+    # Organizing validations in a dictionary {field_id: [{validation_type, validation_value}]}
+    validation_dict = {}
+
+    for validation in validations:
+        field_id = validation.field.id
+
+        if field_id not in validation_dict:
+            validation_dict[field_id] = []
+
+        validation_dict[field_id].append({
+            "validation_type": validation.sub_master.control_value,  # Assuming 'control_value' holds validation type
+            "validation_value": validation.value
+        })
+
+    # Convert fields and their validation rules to JSON
+    form_fields_json = json.dumps([
+        {
+            "id": field.id,
+            "label": field.label,
+            "type": field.field_type,
+            "options": field.values.split(",") if field.values else [],
+            "attributes": field.attributes,
+            "validation": validation_dict.get(field.id, [])  # Attach validation rules
+        }
+        for field in fields
+    ])
+
+    return render(request, "Master/form_builder.html", {
+        "form": form,
+        "form_fields_json": form_fields_json,
+        "dropdown_options": json.dumps(dropdown_options),
+        "common_options": json.dumps(common_options),
+        "sub_control": json.dumps(sub_control)
+    })
 
 def format_label(label):
     """Format label to have proper capitalization."""
