@@ -583,58 +583,66 @@ def delete_form(request):
     
 
 
-
-
-
-
 def form_builder(request):
-    common_options = list(ControlMasters.objects.filter(datatype='select').values("control_value", "control_type"))
-    sub_control = list(SubControlMaster.objects.values("id","control_name", "control_value","field_type"))
+    form_id = request.GET.get('form_id')
+    if form_id:
+        form_id = dec(form_id)
+        form = Form.objects.get(id = form_id)
+        fields = FormField.objects.filter(form_id=form_id)
+        validations = FieldValidation.objects.filter(form_id=form_id)
+
+
+        # Organizing validations in a dictionary {field_id: {validation_type: value}}
+        validation_dict = {}
+
+        for validation in validations:
+            field_id = validation.field.id
+            sub_master_id = validation.sub_master.id
+            validation_type = validation.sub_master.control_value  # Assuming 'control_value' holds validation type
+            validation_value = validation.value
+
+            # ✅ Ensure 'sub_master_id' exists in dictionary
+            if sub_master_id not in validation_dict:
+                validation_dict[sub_master_id] = {}
+
+            # ✅ Ensure 'field_id' exists inside 'sub_master_id' in dictionary
+            if field_id not in validation_dict[sub_master_id]:
+                validation_dict[sub_master_id][field_id] = {}
+
+            # ✅ Store validation type and its value
+            validation_dict[sub_master_id][field_id][validation_type] = validation_value
+  # Store type-value pair
+
+        # Convert fields and their validation rules to JSON
+        form_fields_json = json.dumps([
+            {
+                "id": field.id,
+                "label": field.label,
+                "type": field.field_type,
+                "options": field.values.split(",") if field.values else [],
+                "attributes":field.attributes,
+                "validation": validation_dict.get(field.id, {})  # Attach validation rules
+            }
+            for field in fields
+        ])
+    common_options = list(CommonMaster.objects.filter(datatype='select').values("id","control_value"))
+    sub_control = list(ValidationMaster.objects.values("id","control_name", "control_value","field_type"))
     dropdown_options = list(ControlParameterMaster.objects.values("control_name", "control_value"))
-    return render(request, "Master/form_builder.html", {"dropdown_options": json.dumps(dropdown_options),"common_options": json.dumps(common_options),"sub_control": json.dumps(sub_control)})
+    if form_id:
+        return render(request, "Master/form_builder.html", {'form': form,
+            'form_fields_json': form_fields_json,
+            "dropdown_options": json.dumps(dropdown_options),
+            "common_options": json.dumps(common_options),
+            "sub_control": json.dumps(sub_control)
+        })
+    else:
+        return render(request, "Master/form_builder.html", {"dropdown_options": json.dumps(dropdown_options),"common_options": json.dumps(common_options),"sub_control": json.dumps(sub_control)})
 
 def format_label(label):
     """Format label to have proper capitalization."""
     words = re.split(r'[_ ]+', label.strip())
     return ' '.join(word.capitalize() for word in words)
 
-# @csrf_exempt
-# def save_form(request):
-#     if request.method == "POST":
-#         form_name = request.POST.get("form_name")
-#         form_description = request.POST.get("form_description")
-#         form_data_json = request.POST.get("form_data")  # JSON string
-
-#         if not form_data_json:
-#             return JsonResponse({"error": "No form data received"}, status=400)
-
-#         try:
-#             form_data = json.loads(form_data_json)  # Convert JSON string to Python list
-#         except json.JSONDecodeError:
-#             return JsonResponse({"error": "Invalid JSON data"}, status=400)
-
-#         # Save the form
-#         form = Form.objects.create(name=form_name, description=form_description)
-
-#         # Save fields
-#         for index, field in enumerate(form_data):
-#             common_type = field.get("commonType", [])
-
-#             FormField.objects.create(
-#                 form=form,
-#                 label=field.get("label", ""),
-#                 field_type=field.get("type", ""),
-
-#                 values=",".join(option.strip() for option in field.get("options", [])),  
-#                 required="Required" in common_type,  # Check if "Required" is present
-#                 searchable="Searchable" in common_type,  # Check if "Searchable" is present
-#                 disable="Disable" in common_type,  # Check if "Disable" is present
-#                 order=index + 1,  
-#             )
-
-#         return JsonResponse({"message": "Form saved successfully!"})
-#     else:
-#         return JsonResponse({"error": "Invalid request method"}, status=405)
 
 @csrf_exempt
 def save_form(request):
@@ -661,19 +669,26 @@ def save_form(request):
                     form=form,
                     label=field.get("label", ""),
                     field_type=field.get("type", ""),
+                    attributes = field.get("attributes",""),
                     values=",".join(option.strip() for option in field.get("options", [])),
                 )
                 field_id = form_field.id
 
-                # Save sub-control values into FieldValidation table
                 if "subValues" in field and isinstance(field["subValues"], list):
                     for sub_value in field["subValues"]:
-                        if sub_value["control_value"] != "required":  # Exclude 'required'
-                            FieldValidation.objects.create(
-                                field=get_object_or_404(FormField,id = field_id),
-                                rule=sub_value["control_value"],
-                                value=sub_value["fvalue"]
-                            )
+                        sub_master_id = sub_value.get("id")  
+
+                        if not sub_master_id:
+                            print(f"Skipping subValue without sub_master_id: {sub_value}")
+                            continue
+
+                        # 🟢 Insert FieldValidation entry
+                        FieldValidation.objects.create(
+                            field=get_object_or_404(FormField,id=field_id),
+                            form=get_object_or_404(Form, id = form.id),  
+                            sub_master_id=sub_master_id,  
+                            value=sub_value.get("value", "")  # 🟢 Store the actual selected value
+                        )
 
             messages.success(request, "Form and fields saved successfully!!")
             new_url = f'/masters?entity=form&type=i'
@@ -687,52 +702,72 @@ def save_form(request):
     finally:
         Db.closeConnection()
 
-def edit_form(request):
-    form_id = request.GET.get('form_id')
-    form_id = dec(form_id)
-    form = Form.objects.filter(id = form_id)
-    fields = FormField.objects.filter(form_id=form_id)
-
-    # Convert fields to a JSON format for JavaScript use
-    form_fields_json = json.dumps([
-        {
-            "id": field.id,
-            "label": field.label,
-            "type": field.field_type,
-            "options": field.values.split(",") if field.values else []
-        }
-        for field in fields
-    ])
-
-    return render(request, 'Master/edit_form.html', {
-        'form': form,
-        'form_fields_json': form_fields_json
-    })
-
 
 @csrf_exempt
-def get_form(request, form_id):
+def update_form(request, form_id):
     try:
-        form = Form.objects.prefetch_related('fields').get(id=form_id)
-        form_data = {
-            "name": form.name,
-            "description": form.description,
-            "fields": []
-        }
-        
-        for field in form.fields.all():
-            field_data = {
-                "id": field.id,
-                "label": field.label,
-                "type": field.field_type,
-                "required": field.required,
-                "order": field.order,
-                "row": field.row_position,
-                "validations": [{"rule": v.rule, "value": v.value} for v in field.validations.all()],
-                "dependencies": [{"field_id": d.dependent_on.id, "condition": json.loads(d.condition)} for d in field.dependencies.all()]
-            }
-            form_data['fields'].append(field_data)
+        if request.method == "POST":
+            form_name = request.POST.get("form_name")
+            form_description = request.POST.get("form_description")
+            form_data_json = request.POST.get("form_data")
 
-        return JsonResponse(form_data)
-    except Form.DoesNotExist:
-        return JsonResponse({"error": "Form not found"}, status=404)
+            if not form_data_json:
+                return JsonResponse({"error": "No form data received"}, status=400)
+
+            try:
+                form_data = json.loads(form_data_json)
+            except json.JSONDecodeError:
+                return JsonResponse({"error": "Invalid JSON data"}, status=400)
+
+            # Update form details
+            form = get_object_or_404(Form, id=form_id)
+            form.name = form_name
+            form.description = form_description
+            form.save()
+
+            # Delete existing form fields and validations
+            FormField.objects.filter(form=form).delete()
+            FieldValidation.objects.filter(form=form).delete()
+
+            for field in form_data:
+                # ✅ Ensure attributes are stored correctly
+                attributes_value = field.get("attributes", "")
+
+                form_field = FormField.objects.create(
+                    form=form,
+                    label=field.get("label", ""),
+                    field_type=field.get("type", ""),
+                    attributes=attributes_value,  # ✅ Fixed attribute storage
+                    values=",".join(option.strip() for option in field.get("options", [])),
+                )
+
+                field_id = form_field.id
+
+                # ✅ Ensure 'subValues' exists
+                sub_values = field.get("subValues", [])
+                if not isinstance(sub_values, list):
+                    continue
+
+                for sub_value in sub_values:
+                    sub_master_id = sub_value.get("id")
+
+                    if not sub_master_id:
+                        continue
+
+                    FieldValidation.objects.create(
+                        field=form_field,
+                        form=form,
+                        sub_master_id=sub_master_id,
+                        value=sub_value.get("value", "")
+                    )
+
+            messages.success(request, "Form updated successfully!!")
+            return redirect('/masters?entity=form&type=i')
+    except Exception as e:
+        tb = traceback.extract_tb(e.__traceback__)
+        fun = tb[0].name
+        callproc("stp_error_log", [fun, str(e), request.user])
+        messages.error(request, "Oops...! Something went wrong!")
+        return JsonResponse({"error": "Something went wrong!"}, status=500)
+    finally:
+        Db.closeConnection()

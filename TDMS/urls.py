@@ -32,8 +32,8 @@ urlpatterns = [
      # Form builder
     path('form_builder/', form_builder, name='form_builder'),  # Render HTML
     path('save_form/', save_form, name='save_form'), 
-    path('edit_form/', edit_form, name='edit_form'),  # API to create forms
-    path('get-form/<int:form_id>/', get_form, name='get_form'),
+    # path('edit_form/', edit_form, name='edit_form'),  # API to create forms
+    path('update_form/<int:form_id>/', update_form, name='update_form'),
 
     # Account
     path("", Login,name='Account'),

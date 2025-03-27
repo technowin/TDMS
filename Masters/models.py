@@ -225,16 +225,15 @@ class FormField(models.Model):
     label = models.CharField(max_length=255)
     field_type =  models.CharField(max_length=255,null=True, blank=True)
     values = models.TextField(null=True,blank=True)
-    required = models.BooleanField(default=False)
-    searchable = models.BooleanField(default=False)
-    disable = models.BooleanField(default=False)
+    attributes = models.TextField(null=True,blank=True)
     order = models.IntegerField(default=0)  
     class Meta:
         db_table = 'form_field'
 
 class FieldValidation(models.Model):
     field = models.ForeignKey('Masters.FormField',null=True, blank=True, on_delete=models.CASCADE, related_name='validations')
-    rule = models.TextField(null=True,blank=True)
+    form = models.ForeignKey('Masters.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_validations')
+    sub_master =  models.ForeignKey('Masters.ValidationMaster',null=True, blank=True, on_delete=models.CASCADE, related_name='field_validations')
     value = models.CharField(max_length=255)
     class Meta:
         db_table = 'field_validation'
@@ -246,7 +245,7 @@ class FieldDependency(models.Model):
     class Meta:
         db_table = 'field_dependency'
 
-class ControlMasters(models.Model):
+class CommonMaster(models.Model):
     id = models.AutoField(primary_key=True)
     control_type = models.TextField(null=True, blank=True)
     control_value = models.TextField(null=True, blank=True)
@@ -258,10 +257,10 @@ class ControlMasters(models.Model):
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     updated_by =  models.TextField(null=True, blank=True)
     class Meta:
-        db_table = 'control_masters'
+        db_table = 'common_master'
 
 
-class SubControlMaster(models.Model):
+class ValidationMaster(models.Model):
     field_type = models.TextField(null=True, blank=True)
     control_name = models.TextField(null=True, blank=True)
     control_value = models.TextField(null=True, blank=True)
@@ -270,5 +269,5 @@ class SubControlMaster(models.Model):
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     updated_by =  models.TextField(null=True, blank=True)
     class Meta:
-        db_table = 'sub_control_master'
+        db_table = 'validation_master'
 
