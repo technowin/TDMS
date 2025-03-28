@@ -145,19 +145,29 @@
             let subControlData = subControls.filter(sub => sub.field_type === field.type);
     
             if (subControlData.length > 0) {
-                if (field.type === "file") {
-                    subControlHtml = `<select class="form-control sub-control-dropdown" 
-                        onchange="updatefileField(${fieldId}, 'validation', this.value)">
-                        <option value="">Select File type</option>`; // Added default option
+              if (field.type === "file") {
+                subControlHtml = `<select class="form-control sub-control-dropdown" 
+                    onchange="updatefileField(${fieldId}, 'validation', this.value, this.options[this.selectedIndex].dataset.id)">
+                    <option value="">Select File type</option>`; // Default option
+            
+                // Extract selected validation value and ID (handles array format)
+                let selectedValidation = Array.isArray(field.validation) && field.validation.length > 0 
+                    ? field.validation[0] 
+                    : { validation_value: "", id: "" };
+            
+                subControlData.forEach(sub => {
+                    let isSelected = selectedValidation.validation_value === sub.control_value ? "selected" : "";
+                    
+                    // Add `data-id` attribute to store the sub-control ID
+                    subControlHtml += `<option value="${sub.control_value}" data-id="${sub.id}" ${isSelected}>
+                        ${sub.control_name}
+                    </option>`;
+                });
+            
+                subControlHtml += `</select>`;
+            }
+            
                 
-                    subControlData.forEach(sub => {
-                        let selectedValue = field.validation || "";
-                        let isSelected = selectedValue === sub.control_value ? "selected" : "";
-                        subControlHtml += `<option value="${sub.control_value}" ${isSelected}>${sub.control_name}</option>`;
-                    });
-                
-                    subControlHtml += `</select>`;
-                }
                 
             
                 else if (field.type === "text" ) {
@@ -304,15 +314,28 @@
                     </label>
                 `;
             } 
-            else if (field.type === "file") {
-                debugger;
-                // Get validation value (file format) from field object
-                let acceptedFormats = field.validation ? field.validation : (Array.isArray(field.options) ? field.options.join(",") : field.options);
-                let placeholderText = `Only ${acceptedFormats} files are allowed.`;
-    
-                inputHtml = `<input type="file" accept="${acceptedFormats}" class="form-control w-100 file-input" name="${fieldName}" placeholder="${placeholderText}">`;
-            } 
+           
+           else if (field.type === "file") {
+            debugger;
 
+            // Extract the correct validation value
+            let acceptedFormats = (Array.isArray(field.validation) && field.validation.length > 0) 
+                ? field.validation[0].validation_value 
+                : (Array.isArray(field.options) ? field.options.join(",") : field.options);
+
+            // Set placeholder text dynamically
+            let placeholderText = acceptedFormats 
+                ? `Only ${acceptedFormats} files are allowed.` 
+                : "Select a valid file type.";
+
+            // Generate file input HTML
+            inputHtml = `<input type="file" accept="${acceptedFormats || '*'}" 
+                        class="form-control w-100 file-input" 
+                        name="${fieldName}" 
+                        placeholder="${placeholderText}">`;
+            }
+
+            
             else if (field.type === "text" || field.type === "number" ){
                 debugger;
                 let minAttr = "";
@@ -346,16 +369,36 @@
             `;
             preview.appendChild(fieldContainer);
         });
+        document.querySelectorAll(".select-multiple").forEach(select => {
+            $(select).selectize({
+                plugins: ["remove_button"],
+                delimiter: ",",
+                placeholder: "Enter options",
+                persist: false,
+                create: true
+               // onChange: function(value) {
+               //     let fieldId = select.id.split("-").pop();
+               //     updateField(parseInt(fieldId), 'options', value);
+               // }
+            });
+        });
     }
     
-    
-    function updatefileField(fieldId, key, value) {
+
+    function updatefileField(fieldId, key, value, id) {
         let fieldIndex = formFields.findIndex(f => f.id === fieldId);
+        
         if (fieldIndex !== -1) {
-            formFields[fieldIndex][key] = value; // Update validation with selected sub-control value
-            renderFormPreview(); // Re-render preview with updated file type
+            // Store selected ID and value properly
+            formFields[fieldIndex][key] = [{ id: id, validation_value: value }];
+    
+            renderFormBuilder();  // Re-render UI with updated selection
+            renderFormPreview();  // Update preview
         }
     }
+    
+    
+    
     
     function updateField(id, key, value) {
         formFields = formFields.map(f => f.id === id ? { ...f, [key]: value } : f);

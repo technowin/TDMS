@@ -653,6 +653,7 @@ def format_label(label):
     return ' '.join(word.capitalize() for word in words)
 
 
+
 @csrf_exempt
 def save_form(request):
     try:
@@ -669,7 +670,7 @@ def save_form(request):
             except json.JSONDecodeError:
                 return JsonResponse({"error": "Invalid JSON data"}, status=400)
 
-            # Create the form
+            
             form = Form.objects.create(name=form_name, description=form_description)
 
             for field in form_data:
@@ -678,38 +679,60 @@ def save_form(request):
                     form=form,
                     label=field.get("label", ""),
                     field_type=field.get("type", ""),
-                    attributes = field.get("attributes",""),
+                    attributes=field.get("attributes", ""),
                     values=",".join(option.strip() for option in field.get("options", [])),
                 )
                 field_id = form_field.id
 
+                # ✅ Save `subValues` (Existing Logic)
                 if "subValues" in field and isinstance(field["subValues"], list):
                     for sub_value in field["subValues"]:
-                        sub_master_id = sub_value.get("id")  
+                        sub_master_id = sub_value.get("id")
 
                         if not sub_master_id:
                             print(f"Skipping subValue without sub_master_id: {sub_value}")
                             continue
 
-                        # 🟢 Insert FieldValidation entry
                         FieldValidation.objects.create(
-                            field=get_object_or_404(FormField,id=field_id),
-                            form=get_object_or_404(Form, id = form.id),  
-                            sub_master_id=sub_master_id,  
-                            value=sub_value.get("value", "")  # 🟢 Store the actual selected value
+                            field=get_object_or_404(FormField, id=field_id),
+                            form=get_object_or_404(Form, id=form.id),
+                            sub_master_id=sub_master_id,
+                            value=sub_value.get("value", ""),
                         )
+
+                # ✅ Save `file` validation (New Logic)
+                if field.get("type") == "file" and "validation" in field:
+                    file_validation_list = field["validation"]  # This is a list
+
+                    if file_validation_list and isinstance(file_validation_list, list):
+                        file_validation = file_validation_list[0]  # Get first item (dictionary)
+
+                        file_validation_value = file_validation.get("validation_value", "")  # Extract ".jpg, .jpeg, .png"
+                        sub_master_id = file_validation.get("id", None)  # Extract "2"
+
+                        # Create FieldValidation record
+                        FieldValidation.objects.create(
+                            field=get_object_or_404(FormField, id=field_id),
+                            form=get_object_or_404(Form, id=form.id),
+                            sub_master_id=sub_master_id,  # Save only the ID
+                            value=file_validation_value,  # Save only ".jpg, .jpeg, .png"
+                        )
+
 
             messages.success(request, "Form and fields saved successfully!!")
             new_url = f'/masters?entity=form&type=i'
             return redirect(new_url) 
+
     except Exception as e:
-                tb = traceback.extract_tb(e.__traceback__)
-                fun = tb[0].name
-                callproc("stp_error_log", [fun, str(e), user])
-                messages.error(request, 'Oops...! Something went wrong!')
-                return JsonResponse({"error": "Something went wrong!"}, status=500)
+        tb = traceback.extract_tb(e.__traceback__)
+        fun = tb[0].name
+        callproc("stp_error_log", [fun, str(e), user])
+        messages.error(request, 'Oops...! Something went wrong!')
+        return JsonResponse({"error": "Something went wrong!"}, status=500)
+
     finally:
         Db.closeConnection()
+
 
 
 @csrf_exempt
@@ -769,6 +792,22 @@ def update_form(request, form_id):
                         sub_master_id=sub_master_id,
                         value=sub_value.get("value", "")
                     )
+                if field.get("type") == "file" and "validation" in field:
+                    file_validation_list = field["validation"]  # This is a list
+
+                    if file_validation_list and isinstance(file_validation_list, list):
+                        file_validation = file_validation_list[0]  # Get first item (dictionary)
+
+                        file_validation_value = file_validation.get("validation_value", "")  # Extract ".jpg, .jpeg, .png"
+                        sub_master_id = file_validation.get("id", None)  # Extract "2"
+
+                        # Create FieldValidation record
+                        FieldValidation.objects.create(
+                            field=get_object_or_404(FormField, id=field_id),
+                            form=get_object_or_404(Form, id=form.id),
+                            sub_master_id=sub_master_id,  # Save only the ID
+                            value=file_validation_value,  # Save only ".jpg, .jpeg, .png"
+                        )
 
             messages.success(request, "Form updated successfully!!")
             return redirect('/masters?entity=form&type=i')
