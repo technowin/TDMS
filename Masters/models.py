@@ -226,7 +226,11 @@ class FormField(models.Model):
     field_type =  models.CharField(max_length=255,null=True, blank=True)
     values = models.TextField(null=True,blank=True)
     attributes = models.TextField(null=True,blank=True)
-    order = models.IntegerField(default=0)  
+    order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)  
     class Meta:
         db_table = 'form_field'
 
@@ -235,6 +239,10 @@ class FieldValidation(models.Model):
     form = models.ForeignKey('Masters.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_validations')
     sub_master =  models.ForeignKey('Masters.ValidationMaster',null=True, blank=True, on_delete=models.CASCADE, related_name='field_validations')
     value = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
     class Meta:
         db_table = 'field_validation'
 
@@ -242,6 +250,10 @@ class FieldDependency(models.Model):
     field = models.ForeignKey(FormField,null=True, blank=True, on_delete=models.CASCADE, related_name='dependencies')
     dependent_on = models.ForeignKey(FormField,null=True, blank=True, on_delete=models.CASCADE, related_name='dependent_fields')
     condition = models.CharField(max_length=255)  
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
     class Meta:
         db_table = 'field_dependency'
 
@@ -268,6 +280,7 @@ class ValidationMaster(models.Model):
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     updated_by =  models.TextField(null=True, blank=True)
+    
     class Meta:
         db_table = 'validation_master'
 

@@ -24,24 +24,11 @@
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <!-- Selectize.js JS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js"></script>
-
 <style>
-
-    .file-input {
-        display: block; 
-        max-width: 100%; 
-        padding: 0.375rem 0.75rem; 
-        font-size: 1rem; 
-        line-height: 1.5; 
-        color: #495057; 
-        background-color: #fff; 
-        border: 1px solid #ced4da; 
-        border-radius: 0.375rem; 
-        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075); 
-        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-    }
+   
+    
+    
 </style>
-
 
 <div class="mt-4">
     <form method="POST" action="{% if form %}{% url 'update_form' form.id %}{% else %}{% url 'save_form' %}{% endif %}" class="row col-md-12" id="main-form"
@@ -62,6 +49,8 @@
         <div class="col-md-4 mt-3">
             <button type="submit" class="btn btn-primary mt-3">{% if form %}Update {% else %}Save {% endif %}Form</button>
         </div>
+
+
     </form>
 
     <br> 
@@ -127,7 +116,6 @@
   
 
     function renderFormBuilder() {
-        debugger
         let builder = document.getElementById("form-builder");
         builder.innerHTML = "";
     
@@ -157,17 +145,23 @@
             let subControlData = subControls.filter(sub => sub.field_type === field.type);
     
             if (subControlData.length > 0) {
-                debugger;
-               //  if (field.type === "file") {
-               //      subControlHtml = `<select class="form-control">`;
-               //      subControlData.forEach(sub => {
-               //          let selectedValue = field.validation && field.validation[sub.id] ? field.validation[sub.id][sub.control_value] || "" : "";
-               //          let isSelected = selectedValue ? "selected" : "";
-               //          subControlHtml += `<option value="${sub.control_value}" ${isSelected}>${sub.control_name}</option>`;
-               //      });
-               //      subControlHtml += `</select>`;
+                if (field.type === "file") {
+                    subControlHtml = `<select class="form-control sub-control-dropdown" 
+                        onchange="updatefileField(${fieldId}, 'validation', this.value)">
+                        <option value="">Select File type</option>`; // Added default option
+                
+                    subControlData.forEach(sub => {
+                        let selectedValue = field.validation || "";
+                        let isSelected = selectedValue === sub.control_value ? "selected" : "";
+                        subControlHtml += `<option value="${sub.control_value}" ${isSelected}>${sub.control_name}</option>`;
+                    });
+                
+                    subControlHtml += `</select>`;
+                }
+                
             
-                if (field.type === "text" || field.type === "number") {
+                else if (field.type === "text" ) {
+                    debugger;
                     let inputWidth = 100 / subControlData.length;
                     subControlHtml = `<div style="display: flex; gap: 10px; width: 100%;">`;
             
@@ -258,13 +252,15 @@
     }
     
 
+    
+
     function renderFormPreview() {
         let preview = document.getElementById("dynamic-form");
         preview.innerHTML = "";
     
         formFields.forEach(field => {
-            let inputHtml = "";
             let fieldName = `field_${field.id}`;
+            let inputHtml = "";
     
             if (field.type === "select") {
                 inputHtml = `<select class="form-control select w-100" name="${fieldName}">`;
@@ -298,16 +294,7 @@
             }
             else if (field.type === "textarea") {
                 inputHtml = `<textarea class="form-control" name="${fieldName}"></textarea>`;
-                
             }
-           // else if (field.type === "textarea") {
-           //     inputHtml = `<select class="form-control select-multiple w-100" name="${fieldName}" multiple>`;
-           //     (field.options || []).forEach(option => {
-           //         let isSelected = (field.value || []).includes(option) ? "selected" : "";
-           //         inputHtml += `<option value="${option}" ${isSelected}>${option}</option>`;
-           //     });
-           //     inputHtml += `</select>`;
-           // }
             else if (field.type === "checkbox") {
                 let isChecked = field.value == "1" ? "checked" : "";
                 inputHtml = `
@@ -317,48 +304,39 @@
                     </label>
                 `;
             } 
-           //  else if (field.type === "file") {
-           //      let acceptedFormats = Array.isArray(field.options) ? field.options.join(",") : field.options;
-           //      let placeholderText = `Only ${acceptedFormats} files are allowed.`;
-           //      inputHtml = `<input type="file" accept="${acceptedFormats}" class="form-control w-100 file-input" name="${fieldName}" placeholder="${placeholderText}">`;
-           //  } 
-            else {
+            else if (field.type === "file") {
                 debugger;
-                let maxLengthAttr = "";
-                let minLengthAttr = "";
+                // Get validation value (file format) from field object
+                let acceptedFormats = field.validation ? field.validation : (Array.isArray(field.options) ? field.options.join(",") : field.options);
+                let placeholderText = `Only ${acceptedFormats} files are allowed.`;
+    
+                inputHtml = `<input type="file" accept="${acceptedFormats}" class="form-control w-100 file-input" name="${fieldName}" placeholder="${placeholderText}">`;
+            } 
+
+            else if (field.type === "text" || field.type === "number" ){
+                debugger;
                 let minAttr = "";
                 let maxAttr = "";
-                
-                // Loop through validations to extract values
+                let minValue = "N/A";
+                let maxValue = "N/A";
                 field.validation?.forEach((rule) => {
-                    if (rule.validation_type === "max_length") {
-                        maxLengthAttr = `maxlength="${rule.validation_value}"`;
-                    }
-                    if (rule.validation_type === "min_length") {
-                        minLengthAttr = `minlength="${rule.validation_value}"`;
-                    }
-                    if (rule.validation_type === "min_value") {
-                        minAttr = `min="${rule.validation_value}"`;
-                    }
-                    if (rule.validation_type === "max_value") {
-                        maxAttr = `max="${rule.validation_value}"`;
+                    if (rule.validation_type == "max_length"){
+                        maxAttr = `${rule.validation_value}`;
                     }
                 });
-                
-                let placeholderText = field.type === "text" || field.type === "number"
-                    ? `Max ${maxLengthAttr ? field.validation.find(v => v.validation_type === "max_length")?.validation_value : "N/A"} characters allowed.`
-                    : "";
-                
-                inputHtml = `<input type="${field.type}" class="form-control w-100" 
-                                name="${fieldName}" 
-                                value="${field.value || ""}" 
-                                ${minAttr} 
-                                ${maxAttr} 
-                                ${minLengthAttr} 
-                                ${maxLengthAttr} 
-                                placeholder="${placeholderText}">`;
+
+                if (field.type === "number") {
+                    inputHtml = `<input type="number" class="form-control w-100"  name="${fieldName}" placeholder="Enter any Number">`;
                 }
-    
+                else if (field.type === "text") {
+                    inputHtml = `<input type="${field.type}" class="form-control w-100"  name="${fieldName}" maxlength="${maxAttr}"value="${field.value || ""}" placeholder="Enter upto ${maxAttr} Characters"}"">`;
+                }
+            }
+            else {
+                debugger;
+                inputHtml = `<input type="${field.type}" class="form-control w-100" name="${fieldName}" >`;
+            }
+            
             let fieldContainer = document.createElement("div");
             fieldContainer.classList.add("col-md-6", "mb-3", "d-flex", "flex-column");
             fieldContainer.innerHTML = `
@@ -367,19 +345,17 @@
                 <input type="hidden" name="${fieldName}_type" value="${field.type}">
             `;
             preview.appendChild(fieldContainer);
-    
-            // Initialize Selectize for Multiple Selection
-            if (field.type === "select multiple") {
-                $(fieldContainer).find('.select-multiple').selectize({
-                    plugins: ['remove_button'],
-                    delimiter: ',',
-                    persist: false,
-                    create: true
-                });
-            }
         });
     }
     
+    
+    function updatefileField(fieldId, key, value) {
+        let fieldIndex = formFields.findIndex(f => f.id === fieldId);
+        if (fieldIndex !== -1) {
+            formFields[fieldIndex][key] = value; // Update validation with selected sub-control value
+            renderFormPreview(); // Re-render preview with updated file type
+        }
+    }
     
     function updateField(id, key, value) {
         formFields = formFields.map(f => f.id === id ? { ...f, [key]: value } : f);
