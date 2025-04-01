@@ -31,34 +31,39 @@
 </style>
 
 <div class="mt-4">
-    <form method="POST" action="{% if form %}{% url 'update_form' form.id %}{% else %}{% url 'save_form' %}{% endif %}" class="row col-md-12" id="main-form"
-            tyle="padding: 20px; border: 2px solid #b3b3b3; border-radius: 15px; text-align:center">
+    <form method="POST" action="{% if form %}{% url 'update_action_form' form.id %}{% else %}{% url 'save_form_action' %}{% endif %}" class="row col-md-12" id="main-form"
+            style="padding: 20px; border: 2px solid #b3b3b3; border-radius: 15px;display: flex; justify-content: center; align-items: center;">
         {% csrf_token %}
         <div class="col-md-3">
             <label>Form Action Name:</label>
-            <input type="text" class="form-control" name="form_name" value="{{ form.name }}" required>
+            <input type="text" class="form-control" name="action_name" value="{{ form.name }}" required>
         </div>
 
         <div class="col-md-3">
             <label>Master Actions</label>
-                <select name="action_master" id="dropdown" class="action_master" >
+                <select name="action_master" id="dropdown" class="form-control" >
                     <option value="" Selected>Select</option>
                     {% for item in master_values %}
-                        <option value="{{ item.0 }}">{{ item.1 }}</option>
+                        <option value="{{ item.name }}">{{ item.name }}</option>
                     {% endfor %}
                 </select>
         </div>
 
-        <div class="col-md-3">
-            <input type="checkbox" id="add_into_master" name="add_into_master">
-            <label for="add_into_master">Add to Master</label>
+        <div class="col-md-2">
+            <label for="add_into_master">Add to Master</label><br>
+            <label class="switch">
+                <input type="checkbox" name="is_master" id="add_into_master" 
+                    ${form.is_master === "True" ? 'checked' : ''}>
+                <span class="slider"></span>
+            </label>
         </div>
+        
 
 
 
         <input type="hidden" name="form_data" id="form-data-input">
 
-        <div class="col-md-3 mt-3">
+        <div class="col-md-2 mt-3">
             <button type="submit" class="btn btn-primary mt-3">{% if form %}Update {% else %}Save {% endif %}Form</button>
         </div>
 
@@ -73,17 +78,16 @@
                     {% if form %} Edit {% else %}Create {% endif %}Form Footer &nbsp;&nbsp;&nbsp;
                     <button class="btn btn-primary" onclick="addField(event)">Add Field</button>
                 </h2>
-                <div id="form-builder" class="row col-md-12 mt-3" ></div>
+                <br>
+                <div id="form-builder" class="col-md-12" ></div>
             </div>
         </div>
     </div>
-        <br>
-        <br>
         <div class="row" style="padding: 20px; border: 2px solid #b3b3b3; border-radius: 15px;">
         <div class="col-md-12">
             <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px;">
                 <h2 style="text-align:center; font-weight:600; color:black">Live Preview</h2>
-                <div id="dynamic-form" class="row col-md-12"></div>
+                <div id="dynamic-form" class="row col-md-12" style="display: flex; justify-content: center; align-items: center;">
             </div>
         </div>
     </div>
@@ -95,18 +99,42 @@
 let dropdownOptions = JSON.parse('{{ dropdown_options|escapejs|safe }}');
 let buttontype = JSON.parse('{{ button_type|escapejs|safe }}');
 
-let formFields = [];
 
+{% if form %}
+    let formFields = JSON.parse('{{ form_fields_json|escapejs|safe }}');
+
+    function addField() {
+        let newField = {
+            id: formFields.length + 1,
+            label: "Label Name",
+            type: "text",
+            value: "Submit",
+            status:"",
+            bg_color: "#4e73df",
+            text_color: "#ffffff",
+            buttonType: "",
+            options: [],
+            status: []
+        };
+        formFields.push(newField);
+        renderFormBuilder(); 
+        renderFormPreview(); 
+    }
+
+{% else %}
+
+let formFields = [];
 function addField() {
     let newField = {
         id: formFields.length + 1,
         label: "Label Name",
         type: "text",
-        commonType: [],
-        value: "",
-        bgColor: "#007bff",
-        textColor: "#ffffff",
+        value: "Submit",
+        status:"",
+        bg_color: "#4e73df",
+        text_color: "#ffffff",
         buttonType: "",
+        options: [],
         status: []
     };
     formFields.push(newField);
@@ -114,42 +142,60 @@ function addField() {
     renderFormPreview(); 
 }
 
+{% endif %}
+
 function renderFormBuilder() {
     let builder = document.getElementById("form-builder");
-    builder.innerHTML = "";
+    builder.innerHTML = "";  // Clear the builder before rendering
 
     formFields.forEach(field => {
         let fieldId = field.id;
         let dropdownHtml = `<select class="form-control select" onchange="updateField(${fieldId}, 'type', this.value)">`;
+
+        // Render the dropdown options for field type selection
         dropdownOptions.forEach(option => {
             dropdownHtml += `<option value="${option.control_value}" ${field.type === option.control_value ? "selected" : ""}>${option.control_name}</option>`;
         });
         dropdownHtml += `</select>`;
 
-        let fieldHtml = "";
-        
+        let fieldHtml = ""; // Declare this only once
+
         if (field.type === "button") {
+            debugger;
             fieldHtml = `
-                <div class="col-md-2 mb-3">
+                <div class="col-md-1 mb-3">
+                    <label>Type</label>
                     ${dropdownHtml}
                 </div>
                 <div class="col-md-2 mb-3">
+                    <label>Button text</label>
                     <input class="form-control" type="text" value="${field.value}" placeholder="Button Text" onchange="updateField(${fieldId}, 'value', this.value)">
                 </div>
                 <div class="col-md-2 mb-3">
-                    <input class="form-control" type="color" value="${field.bgColor}" onchange="updateField(${fieldId}, 'bgColor', this.value)">
+                    <label>Background Color</label>
+                    <input class="form-control" type="color" value="${field.bg_color || '#4e73df'}" onchange="updateField(${fieldId}, 'bg_color', this.value)">
                 </div>
                 <div class="col-md-2 mb-3">
-                    <input class="form-control" type="color" value="${field.textColor}" onchange="updateField(${fieldId}, 'textColor', this.value)">
+                    <label>Text Color</label>
+                    <input class="form-control" type="color" value="${field.text_color || '#fffff'}" onchange="updateField(${fieldId}, 'text_color', this.value)">
                 </div>
                 <div class="col-md-2 mb-3">
-                    <select class="form-control" onchange="updateField(${fieldId}, 'buttonType', this.value)">`;
-            buttontype.forEach(option => {
-                fieldHtml += `<option value="${option}" ${field.buttonType === option ? "selected" : ""}>${option}</option>`;
-            });
-            fieldHtml += `</select></div>
+                    <label>Button Type</label>
+                    <select class="form-control" onchange="updateField(${fieldId}, 'buttonType', this.value)">
+                        <option value="" disabled ${!field.buttonType ? "selected" : ""}>Select button type</option> 
+                        ${buttontype
+                            .map(option => 
+                                `<option value="${option.control_value}" 
+                                    ${String(field.buttonType) === String(option.control_value) ? "selected" : ""}>
+                                    ${option.control_value}
+                                </option>`
+                            ).join('')}
+                    </select>
+                </div>
+
                 <div class="col-md-2 mb-3">
-                    <select id="status-dropdown-${fieldId}" class="form-control status-select" multiple></select>
+                    <label>Select Status</label>
+                    <input class="form-control" type="text" value="${field.status || ''}" placeholder="Enter Status" onchange="updateField(${fieldId}, 'status', this.value)">
                 </div>
             `;
         } else {
@@ -158,28 +204,58 @@ function renderFormBuilder() {
                     ${dropdownHtml}
                 </div>
                 <div class="col-md-2 mb-3">
-                    <input class="form-control" type="text" value="${field.label}" onchange="updateField(${fieldId}, 'label', this.value)">
+                    <input class="form-control" type="text" value="${field.label || ''}" onchange="updateField(${fieldId}, 'label', this.value)">
                 </div>
             `;
+
+            if (field.type === "select") {
+                // If the field type is "select", add an option dropdown
+                let optionDropdownHtml = `<select id="option-dropdown-${fieldId}" class="form-control option-select" multiple>`;
+                
+                // Loop through options and create <option> elements
+                (field.options || []).forEach(option => {
+                    optionDropdownHtml += `<option value="${option}" ${field.options.includes(option) ? "selected" : ""}>${option}</option>`;
+                });
+                
+                optionDropdownHtml += `</select>`;
+
+                fieldHtml += `
+                    <div class="col-md-4 mb-3">
+                        ${optionDropdownHtml}
+                    </div>
+                `;
+            }
         }
 
-        builder.innerHTML += `<div class="row">${fieldHtml}<div class="col-md-1 mt-2"><span onclick="removeField(${fieldId})" style="cursor: pointer;"><i class="fa-solid fa-trash" style="color: #dc3545; font-size: 1.5rem;"></i></span></div></div>`;
+        builder.innerHTML += `
+            <div class="row">
+                ${fieldHtml}
+                <div class="col-md-1 mt-2">
+                    <span onclick="removeField(${fieldId})" style="cursor: pointer;">
+                        <i class="fa-solid fa-trash" style="color: #dc3545; font-size: 1.5rem;"></i>
+                    </span>
+                </div>
+            </div>
+        `;
     });
 
-    document.querySelectorAll(".status-select").forEach(select => {
+    // Initialize selectize for all option dropdowns
+    document.querySelectorAll(".option-select").forEach(select => {
         $(select).selectize({
             plugins: ["remove_button"],
             delimiter: ",",
-            placeholder: "Enter status values",
+            placeholder: "Enter options",
             persist: false,
             create: true,
             onChange: function(value) {
                 let fieldId = select.id.split("-").pop();
-                updateField(parseInt(fieldId), 'status', value);
+                updateField(parseInt(fieldId), 'options', value);
             }
         });
     });
 }
+
+
 
 function renderFormPreview() {
     let preview = document.getElementById("dynamic-form");
@@ -189,23 +265,34 @@ function renderFormPreview() {
         let inputHtml = "";
         
         if (field.type === "button") {
-            inputHtml = `<button type="button" class="btn w-100" style="background-color:${field.bgColor}; color:${field.textColor};">${field.value}</button>`;
+            inputHtml = `<button type="button" class="btn w-100 mt-4" style="border-radius:15px;background-color:${field.bg_color}; color:${field.text_color};">${field.value}</button>`;
         } else if (field.type === "select") {
-            inputHtml = `<select class="form-control w-100" name="field_${field.id}">`;
+            // For select, add the label along with the select dropdown
+            inputHtml = `<label class="fw-bold">${field.label}</label>` + 
+                        `<select class="form-control w-100" name="field_${field.id}">`;
             (field.options || []).forEach(option => {
                 inputHtml += `<option value="${option}" ${field.value === option ? "selected" : ""}>${option}</option>`;
             });
             inputHtml += `</select>`;
-        } else {
-            inputHtml = `<input type="${field.type}" class="form-control w-100" name="field_${field.id}" >`;
+        } else if(field.type === "textarea") {
+            inputHtml = `<label class="fw-bold">${field.label}</label>` + `<textarea type="text" class="btn w-100 mt-4"></textarea>`
+        
+        }else {
+            inputHtml = `<label class="fw-bold">${field.label}</label>` + 
+                        `<input type="${field.type}" class="form-control w-100" name="field_${field.id}" >`;
         }
         
         let fieldContainer = document.createElement("div");
-        fieldContainer.classList.add("col-md-6", "mb-3", "d-flex", "flex-column");
-        fieldContainer.innerHTML = `<label class="fw-bold">${field.label}</label>${inputHtml}`;
+        fieldContainer.classList.add("col-md-2", "mb-3", "d-flex", "flex-column");
+        fieldContainer.innerHTML = inputHtml;
         preview.appendChild(fieldContainer);
     });
 }
+
+document.getElementById("main-form").addEventListener("submit", function() {
+    document.getElementById("form-data-input").value = JSON.stringify(formFields);
+});
+
 
 function updateField(id, key, value) {
     formFields = formFields.map(f => f.id === id ? { ...f, [key]: value } : f);
@@ -218,6 +305,11 @@ function removeField(id) {
     renderFormBuilder();
     renderFormPreview();
 }
+
+document.addEventListener("DOMContentLoaded", function() {
+    renderFormBuilder();
+    renderFormPreview();
+});
 </script>
 
 
@@ -229,7 +321,7 @@ function removeField(id) {
     text: "{{ message }}",
     icon: "{{ message.tags }}",
     confirmButtonText: "OK",
-  });
+  });=
 </script>
 {% endfor %}
 {% endif %}

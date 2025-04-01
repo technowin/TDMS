@@ -421,42 +421,193 @@ def update_form(request, form_id):
         Db.closeConnection()
 
 def form_action_builder(request):
-    form_id = request.GET.get('form_id')
+    action_id = request.GET.get('action_id')
     master_values = FormAction.objects.filter(is_master = 1).all()
     button_type = list(CommonMaster.objects.filter(type='button').values("id", "control_value"))
     dropdown_options = list(ControlParameterMaster.objects.filter(is_action=1).values("control_name", "control_value"))
 
-    if not form_id:  
+    if not action_id:  
         return render(request,  "Master/form_action_builder.html", {
             "master_values":master_values,
             "button_type":json.dumps(button_type),
             "dropdown_options": json.dumps(dropdown_options),
         })
 
-    # try:
-    #     form_id = dec(form_id)  # Decrypt form_id
-    #     form = get_object_or_404(Form, id=form_id)  # Get form or return 404
-    #     fields = FormField.objects.filter(form_id=form_id)
-    # except Exception as e:
-    #     print(f"Error fetching form data: {e}")  # Debugging
-    #     return render(request, "Master/form_action_builder.html", {\
-    #         "dropdown_options": json.dumps(dropdown_options),
-    #         "error": "Invalid form ID"
-    #     })
+    try:
+        action_id = dec(action_id)  # Decrypt form_id
+        form = get_object_or_404(FormAction, id=action_id)  # Get form or return 404
+        fields = FormActionField.objects.filter(action_id=action_id)
+    except Exception as e:
+        print(f"Error fetching form data: {e}")  # Debugging
+        return render(request, "Master/form_action_builder.html", {\
+            "dropdown_options": json.dumps(dropdown_options),
+            "error": "Invalid form ID"
+        })
 
-    # form_fields_json = json.dumps([
-    #     {
-    #         "id": field.id,
-    #         "label": field.label,
-    #         "type": field.field_type,
-    #         "options": field.values.split(",") if field.values else [],
-    #         "attributes": field.attributes,# Attach validation rules
-    #     }
-    #     for field in fields
-    # ])
+    form_fields_json = json.dumps([
+        {
+            "id": field.id,
+            "label": field.label_name,
+            "bg_color":field.bg_color,
+            "text_color":field.text_color,
+            "type": field.type,
+            "options": field.dropdown_values.split(",") if field.dropdown_values else [],
+            "button_type":field.button_type,
+            "status":field.status,
+            "value":field.button_name
+        }
+        for field in fields
+    ])
 
-    # return render(request, "Master/form_action_builder.html", {
-    #     "form": form,
-    #     "form_fields_json": form_fields_json,
-    #     "dropdown_options": json.dumps(dropdown_options),
-    # })
+    return render(request, "Master/form_action_builder.html", {
+        "form": form,
+        "master_values":master_values,
+        "button_type":json.dumps(button_type),
+        "form_fields_json": form_fields_json,
+        "dropdown_options": json.dumps(dropdown_options),
+    })
+
+
+
+@csrf_exempt
+def save_form_action(request):
+    try:
+
+        if request.method == "POST":
+            form_name = request.POST.get("action_name")
+            form_master = 1 if request.POST.get("is_master") == "on" else 0
+            form_data_json = request.POST.get("form_data")
+
+            if not form_data_json:
+                return JsonResponse({"error": "No form data received"}, status=400)
+
+            try:
+                form_data = json.loads(form_data_json)
+            except json.JSONDecodeError:
+                return JsonResponse({"error": "Invalid JSON data"}, status=400)
+
+            
+            form_action = FormAction.objects.create(name=form_name,is_master= form_master)
+
+
+            for field in form_data:
+                field_type = field.get("type", "").strip()
+                
+                if field_type == "button":
+                    label_name = None
+                    dropdown_values = None
+                    bg_color = field.get("bg_color", "")
+                    text_color = field.get("text_color", "")
+                    status = field.get("status",None).strip()
+                    button_name = field.get("value", "").strip()
+                else:
+                    label_name = field.get("label", "").strip()
+                    button_name= None
+                    bg_color = None
+                    text_color = None
+                    status = None
+                    
+
+                # Create the form field entry
+                FormActionField.objects.create(
+                    action=form_action,
+                    type=field_type,
+                    label_name=label_name,
+                    button_name= button_name,
+                    bg_color=bg_color,
+                    text_color=text_color,
+                    button_type=field.get("buttonType", ""),
+                    status=status,
+                    dropdown_values=",".join(option.strip() for option in field.get("options", []))
+                )
+
+            messages.success(request, "Form Action and fields saved successfully!!")
+            new_url = f'/masters?entity=action&type=i'
+            return redirect(new_url) 
+
+    except Exception as e:
+        tb = traceback.extract_tb(e.__traceback__)
+        fun = tb[0].name
+        callproc("stp_error_log", [fun, str(e), user])
+        messages.error(request, 'Oops...! Something went wrong!')
+        return JsonResponse({"error": "Something went wrong!"}, status=500)
+
+    finally:
+        Db.closeConnection()
+
+@csrf_exempt
+def update_action_form(request, form_id):
+    try:  # Decoding action_id if necessary
+
+        if request.method == "POST":
+            # Getting form data from POST request
+            form_name = request.POST.get("action_name")
+            form_master = 1 if request.POST.get("is_master") == "on" else 0
+            form_data_json = request.POST.get("form_data")
+
+            if not form_data_json:
+                return JsonResponse({"error": "No form data received"}, status=400)
+
+            try:
+                form_data = json.loads(form_data_json)
+            except json.JSONDecodeError:
+                return JsonResponse({"error": "Invalid JSON data"}, status=400)
+
+            # Update the FormAction instance
+            form_action = FormAction.objects.filter(id=form_id).first() if form_id else None
+            if not form_action:
+                return JsonResponse({"error": "Form action not found"}, status=404)
+
+            form_action.name = form_name
+            form_action.is_master = form_master
+            form_action.save()
+
+            # Delete existing form fields for this action
+            FormActionField.objects.filter(action_id=form_id).delete()
+
+            # Insert the new form fields
+            for field in form_data:
+                field_type = field.get("type", "").strip()
+
+                if field_type == "button":
+                    label_name = None
+                    bg_color = field.get("bg_color", "")
+                    text_color = field.get("text_color", "")
+                    status = field.get("status", None).strip() if field.get("status") else None
+                    button_name = field.get("value", "").strip()
+                else:
+                    label_name = field.get("label", "").strip()
+                    button_name = None
+                    bg_color = None
+                    text_color = None
+                    status = None
+
+                # Create the form field entry
+                FormActionField.objects.create(
+                    action=form_action,
+                    type=field_type,
+                    label_name=label_name,
+                    button_name=button_name,
+                    bg_color=bg_color,
+                    text_color=text_color,
+                    button_type=field.get("buttonType", ""),
+                    status=status,
+                    dropdown_values=",".join(option.strip() for option in field.get("options", []))
+                )
+
+            messages.success(request, "Form Action and fields Updated successfully!!")
+            new_url = f'/masters?entity=action&type=i'
+            return redirect(new_url)
+
+    except Exception as e:
+        tb = traceback.extract_tb(e.__traceback__)
+        fun = tb[0].name
+        # Log error in the database
+        callproc("stp_error_log", [fun, str(e), user])
+        messages.error(request, 'Oops...! Something went wrong!')
+        return JsonResponse({"error": "Something went wrong!"}, status=500)
+
+    finally:
+        Db.closeConnection()
+
+

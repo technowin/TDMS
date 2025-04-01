@@ -313,17 +313,19 @@ class FormAction(models.Model):
 
 class FormActionField(models.Model):
     type = models.TextField(null=True, blank=True)
-    lable_name = models.TextField(null=True, blank=True)
+    label_name = models.TextField(null=True, blank=True)
+    button_name = models.TextField(null=True, blank=True)
     type = models.TextField(null=True, blank=True)
     bg_color = models.TextField(null=True, blank=True)
     text_color = models.TextField(null=True, blank=True)
     button_type = models.TextField(null=True, blank=True)
+    dropdown_values = models.TextField(null=True, blank=True)
     status = models.TextField(null=True, blank=True)
-    action_id = models.ForeignKey(FormAction,null=True, blank=True, on_delete=models.CASCADE, related_name='form_action')
+    action = models.ForeignKey(FormAction,null=True, blank=True, on_delete=models.CASCADE, related_name='form_action')
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     updated_by =  models.TextField(null=True, blank=True)
     class Meta:
-        db_table = 'form_action_feild'
+        db_table = 'form_action_field'
 
