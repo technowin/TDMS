@@ -30,7 +30,8 @@ urlpatterns = [
     # APP URLS
 
      # Form builder
-    path('form_builder/', form_builder, name='form_builder'),  # Render HTML
+    path('form_builder/', form_builder, name='form_builder'),
+    path('form_action_builder/', form_action_builder, name='form_action_builder'),  # Render HTML
     path('save_form/', save_form, name='save_form'), 
     # path('edit_form/', edit_form, name='edit_form'),  # API to create forms
     path('update_form/<int:form_id>/', update_form, name='update_form'),
@@ -57,13 +58,8 @@ urlpatterns = [
 
     # Masters
     path('masters/', masters, name='masters'),
-    path("form/", form, name="form"),
 
-    path("get_control_values/", get_control_values, name="get_control_values"),
-    path("get_sub_item/", get_sub_item, name="get_sub_item"),
     path("update_form/", update_form, name="update_form"),
-    path("delete_form/", delete_form, name="delete_form"),
-    path("get_control_values_data/", get_control_values_data, name="get_control_values_data"),
 
     #Reports 
     path('common_html', common_html, name='common_html'),

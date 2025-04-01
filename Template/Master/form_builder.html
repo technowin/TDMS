@@ -78,6 +78,7 @@
     let commonOptions = JSON.parse('{{ common_options|escapejs|safe }}');
     let dropdownOptions = JSON.parse('{{ dropdown_options|escapejs|safe }}');
     let subControls = JSON.parse('{{ sub_control|escapejs|safe }}');
+    let regex = JSON.parse('{{ regex|escapejs|safe }}');
     {% comment %} let formFields = JSON.parse('{{ form_fields_json|escapejs|safe }}'); {% endcomment %}
   
 
@@ -144,52 +145,28 @@
             let subControlHtml = "";
             let subControlData = subControls.filter(sub => sub.field_type === field.type);
     
-          //  if (subControlData.length > 0) {
-          //    if (field.type === "file") {
-          //      subControlHtml = `<select class="form-control sub-control-dropdown" 
-          //          onchange="updatefileField(${fieldId}, 'validation', this.value, this.options[this.selectedIndex].dataset.id)">
-          //          <option value="">Select File type</option>`; // Default option
-          //  
-          //      // Extract selected validation value and ID (handles array format)
-          //      let selectedValidation = Array.isArray(field.validation) && field.validation.length > 0 
-          //          ? field.validation[0] 
-          //          : { validation_value: "", id: "" };
-          //  
-          //      subControlData.forEach(sub => {
-          //          let isSelected = selectedValidation.validation_value === sub.control_value ? "selected" : "";
-          //          
-          //          // Add `data-id` attribute to store the sub-control ID
-          //          subControlHtml += `<option value="${sub.control_value}" data-id="${sub.id}" ${isSelected}>
-          //              ${sub.control_name}
-          //          </option>`;
-          //      });
-          //  
-          //      subControlHtml += `</select>`;
-          //  }
-
-          if (subControlData.length > 0) {
-            if (field.type === "file") {
+            if (subControlData.length > 0) {
+              if (field.type === "file") {
                 subControlHtml = `<select class="form-control sub-control-dropdown" 
                     onchange="updatefileField(${fieldId}, 'validation', this.value, this.options[this.selectedIndex].dataset.id)">
                     <option value="">Select File type</option>`; // Default option
-        
-                // ✅ Find the correct validation object (matching file validation type)
-                let selectedValidation = (Array.isArray(field.validation) && field.validation.length > 0)
-                    ? field.validation.find(v => subControlData.some(sub => sub.control_value === v.validation_value))
+            
+                // Extract selected validation value and ID (handles array format)
+                let selectedValidation = Array.isArray(field.validation) && field.validation.length > 0 
+                    ? field.validation[0] 
                     : { validation_value: "", id: "" };
-        
+            
                 subControlData.forEach(sub => {
-                    let isSelected = selectedValidation && selectedValidation.validation_value === sub.control_value ? "selected" : "";
+                    let isSelected = selectedValidation.validation_value === sub.control_value ? "selected" : "";
                     
-                    // ✅ Ensure ID is properly set and passed to updatefileField
+                    // Add `data-id` attribute to store the sub-control ID
                     subControlHtml += `<option value="${sub.control_value}" data-id="${sub.id}" ${isSelected}>
                         ${sub.control_name}
                     </option>`;
                 });
-        
+            
                 subControlHtml += `</select>`;
             }
-                
             
             
             else if (field.type === "text") {

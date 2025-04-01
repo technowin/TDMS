@@ -1,0 +1,238 @@
+{% extends "Shared/Layout.html" %} {% block username %}{{username}}{% endblock %}
+{% block content %}
+{% load static %}
+{% csrf_token %}
+
+ <!-- Custom styles for this html-->
+ <link href="{% static 'css/masters.css' %}" rel="stylesheet" type="text/css" >
+ <link href="{% static 'css/table.css' %}" rel="stylesheet" type="text/css" >
+ <link href="{% static 'css/activebtn.css' %}" rel="stylesheet" type="text/css" >
+
+ <link rel="stylesheet" type="text/css" href="{% static 'css/tooltips.css' %}" />
+
+ <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+ <!-- Include DataTables CSS -->
+ <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.min.css">
+ <!-- Include DataTables JS -->
+ <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+ <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+ <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+ <!-- Selectize.js CSS -->
+{% comment %} <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/css/selectize.bootstrap3.min.css"> {% endcomment %}
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<!-- Selectize.js JS -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js"></script>
+<style>
+
+
+
+</style>
+
+<div class="mt-4">
+    <form method="POST" action="{% if form %}{% url 'update_form' form.id %}{% else %}{% url 'save_form' %}{% endif %}" class="row col-md-12" id="main-form"
+            tyle="padding: 20px; border: 2px solid #b3b3b3; border-radius: 15px; text-align:center">
+        {% csrf_token %}
+        <div class="col-md-3">
+            <label>Form Action Name:</label>
+            <input type="text" class="form-control" name="form_name" value="{{ form.name }}" required>
+        </div>
+
+        <div class="col-md-3">
+            <label>Master Actions</label>
+                <select name="action_master" id="dropdown" class="action_master" >
+                    <option value="" Selected>Select</option>
+                    {% for item in master_values %}
+                        <option value="{{ item.0 }}">{{ item.1 }}</option>
+                    {% endfor %}
+                </select>
+        </div>
+
+        <div class="col-md-3">
+            <input type="checkbox" id="add_into_master" name="add_into_master">
+            <label for="add_into_master">Add to Master</label>
+        </div>
+
+
+
+        <input type="hidden" name="form_data" id="form-data-input">
+
+        <div class="col-md-3 mt-3">
+            <button type="submit" class="btn btn-primary mt-3">{% if form %}Update {% else %}Save {% endif %}Form</button>
+        </div>
+
+
+    </form>
+
+    <br>
+    <div class="row" style="padding: 20px; border: 2px solid #b3b3b3; border-radius: 15px;">
+        <div class="col-md-12">
+            <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px;">
+                <h2 style="text-align:center; font-weight:600; color:black">
+                    {% if form %} Edit {% else %}Create {% endif %}Form Footer &nbsp;&nbsp;&nbsp;
+                    <button class="btn btn-primary" onclick="addField(event)">Add Field</button>
+                </h2>
+                <div id="form-builder" class="row col-md-12 mt-3" ></div>
+            </div>
+        </div>
+    </div>
+        <br>
+        <br>
+        <div class="row" style="padding: 20px; border: 2px solid #b3b3b3; border-radius: 15px;">
+        <div class="col-md-12">
+            <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px;">
+                <h2 style="text-align:center; font-weight:600; color:black">Live Preview</h2>
+                <div id="dynamic-form" class="row col-md-12"></div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+
+
+let dropdownOptions = JSON.parse('{{ dropdown_options|escapejs|safe }}');
+let buttontype = JSON.parse('{{ button_type|escapejs|safe }}');
+
+let formFields = [];
+
+function addField() {
+    let newField = {
+        id: formFields.length + 1,
+        label: "Label Name",
+        type: "text",
+        commonType: [],
+        value: "",
+        bgColor: "#007bff",
+        textColor: "#ffffff",
+        buttonType: "",
+        status: []
+    };
+    formFields.push(newField);
+    renderFormBuilder(); 
+    renderFormPreview(); 
+}
+
+function renderFormBuilder() {
+    let builder = document.getElementById("form-builder");
+    builder.innerHTML = "";
+
+    formFields.forEach(field => {
+        let fieldId = field.id;
+        let dropdownHtml = `<select class="form-control select" onchange="updateField(${fieldId}, 'type', this.value)">`;
+        dropdownOptions.forEach(option => {
+            dropdownHtml += `<option value="${option.control_value}" ${field.type === option.control_value ? "selected" : ""}>${option.control_name}</option>`;
+        });
+        dropdownHtml += `</select>`;
+
+        let fieldHtml = "";
+        
+        if (field.type === "button") {
+            fieldHtml = `
+                <div class="col-md-2 mb-3">
+                    ${dropdownHtml}
+                </div>
+                <div class="col-md-2 mb-3">
+                    <input class="form-control" type="text" value="${field.value}" placeholder="Button Text" onchange="updateField(${fieldId}, 'value', this.value)">
+                </div>
+                <div class="col-md-2 mb-3">
+                    <input class="form-control" type="color" value="${field.bgColor}" onchange="updateField(${fieldId}, 'bgColor', this.value)">
+                </div>
+                <div class="col-md-2 mb-3">
+                    <input class="form-control" type="color" value="${field.textColor}" onchange="updateField(${fieldId}, 'textColor', this.value)">
+                </div>
+                <div class="col-md-2 mb-3">
+                    <select class="form-control" onchange="updateField(${fieldId}, 'buttonType', this.value)">`;
+            buttontype.forEach(option => {
+                fieldHtml += `<option value="${option}" ${field.buttonType === option ? "selected" : ""}>${option}</option>`;
+            });
+            fieldHtml += `</select></div>
+                <div class="col-md-2 mb-3">
+                    <select id="status-dropdown-${fieldId}" class="form-control status-select" multiple></select>
+                </div>
+            `;
+        } else {
+            fieldHtml = `
+                <div class="col-md-2 mb-3">
+                    ${dropdownHtml}
+                </div>
+                <div class="col-md-2 mb-3">
+                    <input class="form-control" type="text" value="${field.label}" onchange="updateField(${fieldId}, 'label', this.value)">
+                </div>
+            `;
+        }
+
+        builder.innerHTML += `<div class="row">${fieldHtml}<div class="col-md-1 mt-2"><span onclick="removeField(${fieldId})" style="cursor: pointer;"><i class="fa-solid fa-trash" style="color: #dc3545; font-size: 1.5rem;"></i></span></div></div>`;
+    });
+
+    document.querySelectorAll(".status-select").forEach(select => {
+        $(select).selectize({
+            plugins: ["remove_button"],
+            delimiter: ",",
+            placeholder: "Enter status values",
+            persist: false,
+            create: true,
+            onChange: function(value) {
+                let fieldId = select.id.split("-").pop();
+                updateField(parseInt(fieldId), 'status', value);
+            }
+        });
+    });
+}
+
+function renderFormPreview() {
+    let preview = document.getElementById("dynamic-form");
+    preview.innerHTML = "";
+    
+    formFields.forEach(field => {
+        let inputHtml = "";
+        
+        if (field.type === "button") {
+            inputHtml = `<button type="button" class="btn w-100" style="background-color:${field.bgColor}; color:${field.textColor};">${field.value}</button>`;
+        } else if (field.type === "select") {
+            inputHtml = `<select class="form-control w-100" name="field_${field.id}">`;
+            (field.options || []).forEach(option => {
+                inputHtml += `<option value="${option}" ${field.value === option ? "selected" : ""}>${option}</option>`;
+            });
+            inputHtml += `</select>`;
+        } else {
+            inputHtml = `<input type="${field.type}" class="form-control w-100" name="field_${field.id}" >`;
+        }
+        
+        let fieldContainer = document.createElement("div");
+        fieldContainer.classList.add("col-md-6", "mb-3", "d-flex", "flex-column");
+        fieldContainer.innerHTML = `<label class="fw-bold">${field.label}</label>${inputHtml}`;
+        preview.appendChild(fieldContainer);
+    });
+}
+
+function updateField(id, key, value) {
+    formFields = formFields.map(f => f.id === id ? { ...f, [key]: value } : f);
+    renderFormBuilder();
+    renderFormPreview();
+}
+    
+function removeField(id) {
+    formFields = formFields.filter(f => f.id !== id);
+    renderFormBuilder();
+    renderFormPreview();
+}
+</script>
+
+
+{% if messages %}
+{% for message in messages %}
+  <script>
+  Swal.fire({
+    title: "{{ message.tags }}",
+    text: "{{ message }}",
+    icon: "{{ message.tags }}",
+    confirmButtonText: "OK",
+  });
+</script>
+{% endfor %}
+{% endif %}
+
+
+  {% endblock %}
