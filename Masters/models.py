@@ -274,6 +274,7 @@ class CommonMaster(models.Model):
         db_table = 'common_master'
 
 
+
 class ValidationMaster(models.Model):
     field_type = models.TextField(null=True, blank=True)
     control_name = models.TextField(null=True, blank=True)
@@ -328,4 +329,40 @@ class FormActionField(models.Model):
     updated_by =  models.TextField(null=True, blank=True)
     class Meta:
         db_table = 'form_action_field'
+
+class FormFieldValues(models.Model):
+    form_data = models.ForeignKey('Masters.FormData',null=True, blank=True, on_delete=models.CASCADE, related_name='form_value_id')
+    field = models.ForeignKey('Masters.FormField',null=True, blank=True, on_delete=models.CASCADE, related_name='field_value_id')
+    value = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'form_field_values'
+
+class FormFile(models.Model):
+    file_name = models.TextField(null=True, blank=True)
+    uploaded_name = models.TextField(null=True, blank=True)
+    file_path = models.TextField(null=True, blank=True)
+    file = models.ForeignKey('Masters.FormFieldValues',null=True, blank=True, on_delete=models.CASCADE, related_name='file_id')
+    form = models.ForeignKey('Masters.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_filr_id')
+    field = models.ForeignKey('Masters.FormField',null=True, blank=True, on_delete=models.CASCADE, related_name='field_file_id')
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'form_file'
+
+class FormData(models.Model):
+    form = models.ForeignKey('Masters.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_data_id')
+    req_no = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'form_data'
+
 

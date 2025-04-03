@@ -79,7 +79,6 @@
     let dropdownOptions = JSON.parse('{{ dropdown_options|escapejs|safe }}');
     let subControls = JSON.parse('{{ sub_control|escapejs|safe }}');
     let regex = JSON.parse('{{ regex|escapejs|safe }}');
-    {% comment %} let formFields = JSON.parse('{{ form_fields_json|escapejs|safe }}'); {% endcomment %}
   
 
     {% if form %}
@@ -98,18 +97,21 @@
         renderFormPreview();
     }
     {% else %}
-    let formFields = [];
-    
-    function addField() {// Save previous selections
+     let formFields = [];
+
+    function addField() {
         let newField = {
             id: formFields.length + 1,
             label: "Label Name",
             type: "text",
-            commonType: []
+            commonType: [],
+            selectedValue: "",  // Stores selected sub-control dropdown value
+            subFieldValue: ""   // Stores value for max_length or regex pattern
         };
+    
         formFields.push(newField);
-        renderFormBuilder(); 
-        renderFormPreview(); 
+        renderFormBuilder();
+        renderFormPreview();
     }
 
     {% endif %}
@@ -123,6 +125,7 @@
         formFields.forEach(field => {
             let fieldId = field.id;
     
+            // Main Field Type Dropdown
             let dropdownHtml = `<select class="form-control select" onchange="updateField(${fieldId}, 'type', this.value)">`;
             dropdownOptions.forEach(option => {
                 dropdownHtml += `<option value="${option.control_value}" ${field.type === option.control_value ? "selected" : ""}>${option.control_name}</option>`;
@@ -132,67 +135,57 @@
             // Convert attributes1 from comma-separated string to an array of IDs
             let selectedIds = field.attributes ? field.attributes.split(",").map(id => id.trim()) : [];
     
+            // Common Dropdown (Multiple Selection)
             let commonDropdownHtml = `<select id="common-dropdown-${field.id}" class="form-control common-select" multiple>`;
-    
             commonOptions.forEach(option => {
-                // Check if the option's ID exists in selectedIds
                 let isSelected = selectedIds.includes(option.id.toString()) ? "selected" : "";
                 commonDropdownHtml += `<option value="${option.id}" ${isSelected}>${option.control_value}</option>`;
             });
-    
             commonDropdownHtml += `</select>`;
     
+            // Sub-Control Handling
             let subControlHtml = "";
             let subControlData = subControls.filter(sub => sub.field_type === field.type);
     
             if (subControlData.length > 0) {
-              if (field.type === "file") {
-                subControlHtml = `<select class="form-control sub-control-dropdown" 
-                    onchange="updatefileField(${fieldId}, 'validation', this.value, this.options[this.selectedIndex].dataset.id)">
-                    <option value="">Select File type</option>`; // Default option
-            
-                // Extract selected validation value and ID (handles array format)
-                let selectedValidation = Array.isArray(field.validation) && field.validation.length > 0 
-                    ? field.validation[0] 
-                    : { validation_value: "", id: "" };
-            
-                subControlData.forEach(sub => {
-                    let isSelected = selectedValidation.validation_value === sub.control_value ? "selected" : "";
-                    
-                    // Add `data-id` attribute to store the sub-control ID
-                    subControlHtml += `<option value="${sub.control_value}" data-id="${sub.id}" ${isSelected}>
-                        ${sub.control_name}
-                    </option>`;
-                });
-            
-                subControlHtml += `</select>`;
-            }
-            
-            
-            else if (field.type === "text") {
-                debugger;
-                let inputWidth = 100 / subControlData.length;
-                subControlHtml = `<div style="display: flex; gap: 10px; width: 100%;">`;
-            
-                subControlData.forEach((sub, index) => {
-                    // Find matching validation object
-                    let validationObj = field.validation?.find(v => v.validation_type === sub.control_value);
-                    let value = validationObj ? validationObj.validation_value : ""; // ✅ Load saved value
-            
-                    subControlHtml += `
-                        <input type="text" class="form-control" placeholder="${sub.control_name}" 
-                        style="flex: 1; width: ${inputWidth}%;" value="${value}" 
-                        oninput="updateSubField(${fieldId}, ${index}, this.value)">
-                    `;
-                });
-            
-                subControlHtml += `</div>`;
-            }
-            
-            }
-            
-            
+                if (field.type === "file") {
+                    subControlHtml = `<select class="form-control sub-control-dropdown" 
+                        onchange="updatefileField(${fieldId}, 'validation', this.value, this.options[this.selectedIndex].dataset.id)">
+                        <option value="">Select File type</option>`; // Default option
     
+                    let selectedValidation = Array.isArray(field.validation) && field.validation.length > 0 
+                        ? field.validation[0] 
+                        : { validation_value: "", id: "" };
+    
+                    subControlData.forEach(sub => {
+                        let isSelected = selectedValidation.validation_value === sub.control_value ? "selected" : "";
+                        
+                        subControlHtml += `<option value="${sub.control_value}" data-id="${sub.id}" ${isSelected}>
+                            ${sub.control_name}
+                        </option>`;
+                    });
+    
+                    subControlHtml += `</select>`;
+                } else if (field.type === "text") {
+                    subControlHtml += `<div style="display: flex; gap: 10px;">
+                        <select class="form-control" onchange="updateSubFieldAndGenerateElement(${fieldId}, this.value)">
+                            <option value="">Select</option>
+                            ${subControls.filter(control => control.field_type === "text")
+                                .map(control => 
+                                    `<option value="${control.control_value}" ${control.control_value === field.selectedValue ? "selected" : ""}>
+                                        ${control.control_name}
+                                    </option>`
+                                ).join("")}
+                        </select>
+                        <div id="dynamic-element-${fieldId}"></div>
+                    </div>`;
+        
+                }
+                
+                
+            }
+    
+            // Option Dropdown for Select, Radio, Multi-Select Fields
             let optionDropdownHtml = "";
             if (["select", "radio", "select multiple"].includes(field.type)) {
                 optionDropdownHtml = `<select id="option-dropdown-${fieldId}" class="form-control option-select" multiple>`;
@@ -209,10 +202,10 @@
                 <div class="col-md-2 mb-3">
                     ${dropdownHtml}
                 </div>
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3">
                     ${commonDropdownHtml}
                 </div>
-                <div class="col-md-3 mb-3">
+                <div class="col-md-4 mb-3">
                     ${subControlHtml || optionDropdownHtml}
                 </div>
                 <div class="col-md-1 mt-2">
@@ -235,7 +228,7 @@
                 placeholder: "Select attributes",
                 persist: false,
                 create: false,
-                items: selectedIds,  // ✅ Load selected values
+                items: selectedIds, 
                 onChange: function (value) {
                     let fieldIndex = formFields.findIndex(f => f.id == fieldId);
                     if (fieldIndex !== -1) {
@@ -244,11 +237,11 @@
                 }
             });
     
-            // ✅ Ensure values are loaded into Selectize instance
             let selectizeControl = selectInstance[0].selectize;
             selectizeControl.setValue(selectedIds);
         });
     
+        // Initialize Selectize for Option Dropdowns
         document.querySelectorAll(".option-select").forEach(select => {
             $(select).selectize({
                 plugins: ["remove_button"],
@@ -264,7 +257,39 @@
         });
     }
     
+   
 
+    function updateSubFieldAndGenerateElement(fieldId, selectedValue, savedValue = "") {
+        let dynamicElement = document.getElementById(`dynamic-element-${fieldId}`);
+        dynamicElement.innerHTML = "";
+    
+        let field = formFields.find(f => f.id === fieldId);
+        if (field) {
+            field.selectedValue = selectedValue;
+        }
+    
+        if (selectedValue === "max_length") {
+            dynamicElement.innerHTML = `
+                <input type="number" class="form-control" placeholder="Max Characters"
+                    value="${savedValue}" 
+                    oninput="updateSubField(${fieldId}, 'max_length', this.value)">
+            `;
+        } else if (selectedValue === "regex") {
+            let regexOptions = `<option value="">Select Pattern</option>` +
+                regex.map(option => 
+                    `<option value="${option.regex_pattern}" ${option.regex_pattern === savedValue ? "selected" : ""}>
+                        ${option.input_type}
+                    </option>`
+                ).join("");
+    
+            dynamicElement.innerHTML = `
+                <select class="form-control" onchange="updateSubField(${fieldId}, 'regex', this.value)">
+                    ${regexOptions}
+                </select>
+            `;
+        }
+    }
+    
     
 
     function renderFormPreview() {
@@ -319,7 +344,7 @@
             } 
            
            else if (field.type === "file") {
-            debugger;
+            
 
             // Extract the correct validation value
             let acceptedFormats = (Array.isArray(field.validation) && field.validation.length > 0) 
@@ -339,27 +364,39 @@
             }
 
             
-            else if (field.type === "text" || field.type === "number" ){
-                debugger;
-                let minAttr = "";
+            else if (field.type === "text") {
                 let maxAttr = "";
-                let minValue = "N/A";
-                let maxValue = "N/A";
-                field.validation?.forEach((rule) => {
-                    if (rule.validation_type == "max_length"){
-                        maxAttr = `${rule.validation_value}`;
+                let patternAttr = "";
+                let maxLengthValue = "";
+                let pattern ="";
+            
+                field.validation?.forEach(rule => {
+                    if (rule.validation_type === "max_length") {
+                        maxAttr = `maxlength="${rule.validation_value}"`;
+                        maxLengthValue = rule.validation_value;
+                    } else if (rule.validation_type === "regex") {
+                        
+                        patternAttr = `pattern="${rule.validation_value}"`;
+                        pattern = rule.validation_value;
                     }
                 });
-
-                if (field.type === "number") {
-                    inputHtml = `<input type="number" class="form-control w-100"  name="${fieldName}" placeholder="Enter any Number">`;
+            
+                if (field.selectedValue === "max_length") {
+                    inputHtml = `<input type="text" class="form-control w-100" name="${fieldName}" 
+                                 ${maxAttr} ${patternAttr} value="${field.value || ""}" 
+                                 placeholder="Enter up to ${maxLengthValue} characters only">`;
+                } 
+                // else if (field.selectedValue === "regex") {
+                //     inputHtml = `<input type="text" class="form-control w-100" name="${fieldName}"  id="regex"
+                //                  data-regex="${pattern}" value="${field.value || ""}" `
+                // }
+                 else {
+                    inputHtml = `<input type="text" class="form-control w-100" name="${fieldName}" value="${field.value || ""}">`;
                 }
-                else if (field.type === "text") {
-                    inputHtml = `<input type="${field.type}" class="form-control w-100"  name="${fieldName}" maxlength="${maxAttr}"value="${field.value || ""}" placeholder="Enter upto ${maxAttr} Characters"}"">`;
-                }
-            }
+            } 
+            
             else {
-                debugger;
+                
                 inputHtml = `<input type="${field.type}" class="form-control w-100" name="${fieldName}" >`;
             }
             
@@ -405,27 +442,40 @@
         renderFormPreview();
     }
     
-    function updateSubField(fieldId, index, value) {
-        let fieldIndex = formFields.findIndex(f => f.id == fieldId);
+    function updateSubField(fieldId, type, value) {
+        let fieldIndex = formFields.findIndex(f => f.id === fieldId);
         if (fieldIndex !== -1) {
-            if (!formFields[fieldIndex].subValues) {
-                formFields[fieldIndex].subValues = [];
+            if (!formFields[fieldIndex].validation) {
+                formFields[fieldIndex].validation = [];
             }
     
-            let subControl = subControls.find(sub => sub.field_type === formFields[fieldIndex].type);
-            if (!subControl) return;
+            let existingValidation = formFields[fieldIndex].validation.find(v => v.validation_type === type);
     
-            formFields[fieldIndex].subValues[index] = {
-                id: subControl.id,  
-                control_name: subControl.control_name,  
-                control_value: subControl.control_value,  
-                field_type: subControl.field_type,  
-                value: value  
-            };
+            if (existingValidation) {
+                existingValidation.validation_value = value;
+            } else {
+                formFields[fieldIndex].validation.push({ validation_type: type, validation_value: value });
+            }
     
-            console.log(`Updated subValues for field ${fieldId}:`, formFields[fieldIndex].subValues);  // ✅ Debug log
+            renderFormPreview();  // Update preview when validation changes
         }
     }
+    
+
+        document.addEventListener("input", function (event) {
+            
+            let input = event.target;
+            let regexPattern = input.getAttribute("data-regex");
+            
+            if (regexPattern) {
+                let regex = new RegExp(regexPattern);
+                let inputValue = input.value;
+                
+                if (!regex.test(inputValue)) {
+                    input.value = inputValue.match(regex)?.join("") || "";
+                }
+            }
+        });
     
     
     document.querySelectorAll(".common-select").forEach(select => {

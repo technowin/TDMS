@@ -44,7 +44,7 @@
                 <select name="action_master" id="dropdown" class="form-control" >
                     <option value="" Selected>Select</option>
                     {% for item in master_values %}
-                        <option value="{{ item.name }}">{{ item.name }}</option>
+                        <option value="{{ item.id }}">{{ item.name }}</option>
                     {% endfor %}
                 </select>
         </div>
@@ -92,6 +92,35 @@
         </div>
     </div>
 </div>
+{% comment %} 
+<script>
+
+    $('#dropdown').change(function() {
+        debugger;
+        var selectedValue = $(this).val(); 
+    
+        if (selectedValue) {
+            $.ajax({
+                url: "{% url 'form_action_builder' %}",   
+                type: 'GET', 
+                data: {
+                    action_id: selectedValue,
+                    csrfmiddlewaretoken: '{{ csrf_token }}' 
+                },
+                success: function(response) {
+                    debugger;
+                    formFields = response.formFields;
+                    renderFormBuilder();
+                    renderFormPreview();
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX Error:', status, error);
+                }
+            });
+        }
+    });
+    
+</script> {% endcomment %}
 
 <script>
 
@@ -100,7 +129,7 @@ let dropdownOptions = JSON.parse('{{ dropdown_options|escapejs|safe }}');
 let buttontype = JSON.parse('{{ button_type|escapejs|safe }}');
 
 
-{% if form %}
+{% if form %}  
     let formFields = JSON.parse('{{ form_fields_json|escapejs|safe }}');
 
     function addField() {
