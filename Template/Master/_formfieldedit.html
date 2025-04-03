@@ -29,6 +29,14 @@
 
 <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;" >
     <form method="POST" action="{% url 'common_form_edit' %}" enctype="multipart/form-data">
+        <div class="card-header">
+            <h2 id="form-title">
+                Edit Form - {% if fields %}{{ fields.0.form_id__name }}{% else %}Unknown{% endif %}
+            </h2>
+        </div>
+        
+        
+        <br>
     {% csrf_token %}
 <div class="row">
 

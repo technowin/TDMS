@@ -25,6 +25,10 @@
 
 
 <div class="mt-4">
+    <div class="card shadow d-flex justify-content-center" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;" >
+        <div class="card-header">
+            <h2 id="form-title">Create Form</h2>
+        </div>
     <form method="POST" id="main-form"  style="border: px solid #b3b3b3; border-radius: 15px; ">
         {% csrf_token %}
 
@@ -38,18 +42,17 @@
                     {% endfor %}
                 </select>
             </div>
-        </div>
         
     </form>
 </div>
 <br>
-<form method="POST" action="{% url 'common_form_post' %}" enctype="multipart/form-data">
+<form method="POST" action="{% url 'common_form_post' %}" enctype="multipart/form-data" >
     {% csrf_token %}
-    <div class="card shadow d-flex justify-content-center" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;" >
+    
         <div id="dynamic_form" class="col-md-12"></div>
 
         <div class="d-flex justify-content-center mt-3">
-            <button type="submit" class="btn btn-primary">Submit</button>
+            <button id="btnSubmit" type="submit" class="btn btn-primary" hidden>Submit</button>
         </div>
     </div>
 </form>
@@ -57,7 +60,14 @@
 
 <script>
     document.getElementById("dropdown").addEventListener("change", function () {
-        let formId = document.getElementById("dropdown").value;
+        let formId = this.value;
+        let btnSubmit = document.getElementById("btnSubmit");
+        let dynamicForm = document.getElementById("dynamic_form");
+        let formTitle = document.getElementById("form-title"); // Get the header element
+
+        // Hide the button initially
+        btnSubmit.hidden = true;
+
         if (formId) {
             fetch("{% url 'form_master' %}", {
                 method: "POST",
@@ -66,12 +76,27 @@
             })
             .then(response => response.text())
             .then(data => {
-                document.getElementById("dynamic_form").innerHTML = data;
+                dynamicForm.innerHTML = data;
+
+                // Update form title dynamically
+                let selectedOption = document.querySelector("#dropdown option:checked");
+                formTitle.textContent = selectedOption ? `Create Form - ${selectedOption.textContent}` : "Create Form";
+
+                // Show button only if form is loaded
+                btnSubmit.hidden = data.trim() === "";
             })
-            .catch(error => console.error("Error:", error));
+            .catch(error => {
+                console.error("Error:", error);
+                btnSubmit.hidden = true; // Keep hidden on error
+            });
+        } else {
+            dynamicForm.innerHTML = ""; // Clear form if no selection
+            formTitle.textContent = "Create Form"; // Reset title
+            btnSubmit.hidden = true;
         }
     });
 </script>
+
 
 
 
