@@ -652,7 +652,7 @@ def form_master(request):
 
             if form_data_id:
                 form_data_id = dec(form_data_id)
-                form_instance = FormData.objects.filter(id=form_data_id).values("form_id").first()
+                form_instance = FormData.objects.filter(id=form_data_id).values("id","form_id").first()
                 if form_instance:
                     form_id = form_instance["form_id"]
                     fields = FormField.objects.filter(form_id=form_id).values(
@@ -687,7 +687,7 @@ def form_master(request):
                     # Set existing values if available
                     field["value"] = values_dict.get(field["id"], "")
 
-                return render(request, "Master/_formfieldedit.html", {"fields": fields,"type":"edit"})
+                return render(request, "Master/_formfieldedit.html", {"fields": fields,"type":"edit","form_data_id":form_data_id})
             else:
                 type = request.GET.get("type")
                 form = Form.objects.all()
@@ -735,6 +735,103 @@ def common_form_post(request):
 
                 # Insert into FormFieldValues first
                 form_field_value = FormFieldValues.objects.create(
+                    form_data=form_data,form=form, field=field, value=input_value, created_by=created_by
+                )
+                field_value_map[field_id] = form_field_value
+
+        # Handle file uploads
+        for field_key, uploaded_file in request.FILES.items():
+            if field_key.startswith("field_"):
+                field_id = field_key.split("_")[-1].strip()
+                field = get_object_or_404(FormField, id=field_id)
+
+                # Retrieve the corresponding FormFieldValues instance
+                form_field_value = field_value_map.get(field_id)
+                if not form_field_value:
+                    continue
+
+                # Define file directory
+                file_dir = os.path.join(settings.MEDIA_ROOT, form_name, created_by, form_data.req_no)
+                os.makedirs(file_dir, exist_ok=True)
+
+                # Generate filename
+                original_file_name, file_extension = os.path.splitext(uploaded_file.name.strip())
+                timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
+                saved_file_name = f"{original_file_name}_{timestamp}{file_extension}"
+
+                # Save file
+                fs = FileSystemStorage(location=file_dir)
+                saved_path = fs.save(saved_file_name, uploaded_file)
+
+                # Generate file path
+                file_path = os.path.join(form_name, created_by, form_data.req_no, saved_file_name)
+
+                # Insert into FormFile
+                form_file = FormFile.objects.create(
+                    file_name=saved_file_name,
+                    uploaded_name=uploaded_file.name.strip(),
+                    file_id=form_field_value.id,  # Link with FormFieldValues
+                    file_path=file_path,
+                    form_data=form_data,
+                    form=form,
+                    field=field
+                )
+
+                # Update FormFieldValues with FormFile ID
+                form_field_value.value = str(form_file.id)
+                form_field_value.save()
+
+        messages.success(request, "Form data saved successfully!")
+
+    except Exception as e:
+        traceback.print_exc()
+        messages.error(request, 'Oops...! Something went wrong!')
+
+    finally:
+        return redirect('/masters?entity=form_master&type=i')
+
+
+def common_form_edit(request):
+    try:
+        if request.method != "POST":
+            return JsonResponse({"error": "Invalid request method"}, status=400)
+
+        form_data_id = request.POST.get("form_data_id")
+
+        if not form_data_id:
+            return JsonResponse({"error": "form_data_id is required"}, status=400)
+
+        form_data = get_object_or_404(FormData, id=form_data_id)
+
+        # Update form_id if provided
+        form_id_key = next((key for key in request.POST if key.startswith("form_id_")), None)
+        if form_id_key:
+            form_id = request.POST.get(form_id_key, "").strip()
+            form_data.form_id = form_id
+            form_data.save()
+
+        # Delete existing records in related tables
+        FormFile.objects.filter(form_data_id=form_data_id).delete()
+        FormFieldValues.objects.filter(form_data_id=form_data_id).delete()
+
+        created_by = request.session.get("user_id", "").strip()
+        form_name = request.POST.get("form_name", "").strip()
+
+        saved_values = []
+        file_records = []
+        field_value_map = {}
+
+        # Process each field
+        for key, value in request.POST.items():
+            if key.startswith("field_id_"):
+                field_id = value.strip()
+                field = get_object_or_404(FormField, id=field_id)
+
+                # Get actual input value
+                input_value = request.POST.get(f"field_{field_id}", "").strip()
+
+                # Insert into FormFieldValues
+                form_field_value = FormFieldValues.objects.create(
                     form_data=form_data, field=field, value=input_value, created_by=created_by
                 )
                 field_value_map[field_id] = form_field_value
@@ -772,7 +869,8 @@ def common_form_post(request):
                     uploaded_name=uploaded_file.name.strip(),
                     file_id=form_field_value.id,  # Link with FormFieldValues
                     file_path=file_path,
-                    form=form,
+                    form_data=form_data,
+                    form=form_data.form,
                     field=field
                 )
 
@@ -780,134 +878,11 @@ def common_form_post(request):
                 form_field_value.value = str(form_file.id)
                 form_field_value.save()
 
-        messages.success(request, "Form data saved successfully!")
+        messages.success(request, "Form data updated successfully!")
 
     except Exception as e:
         traceback.print_exc()
-        messages.error(request, 'Oops...! Something went wrong!')
+        messages.error(request, "Oops...! Something went wrong!")
 
     finally:
-        return redirect('/masters?entity=form_master&type=i')
-
-
-# def common_form_post(request):
-#     try:
-#         if request.method != "POST":
-#             return JsonResponse({"error": "Invalid request method"}, status=400)
-
-#         created_by = request.session.get('user_id', '').strip()
-#         form_name = request.POST.get('form_name', '').strip()
-
-        
-#         form_id_key = next((key for key in request.POST if key.startswith("form_id_")), None)
-#         if not form_id_key:
-#             return JsonResponse({"error": "Form ID not found"}, status=400)
-        
-#         form_id = request.POST.get(form_id_key, '').strip()
-#         form = get_object_or_404(Form, id=form_id)
-
-#         form_data = FormData.objects.create(form=form)
-
-#         form_data.req_no = f"REQNO-00{form_data.id}"
-
-#         form_data.save()
-
-#         request_no = form_data.id
-
-#         form_data = get_object_or_404(FormData,id = request_no)
-        
-#         saved_values = []
-#         file_records = []
-
-#         # Process each field
-#         for key, value in request.POST.items():
-#             if key.startswith("field_id_"):
-#                 field_id = value.strip()  # Extract field ID from hidden input
-#                 field = get_object_or_404(FormField, id=field_id)
-                
-#                 # Get actual input value
-#                 input_value = request.POST.get(f"field_{field_id}", "").strip()
-                
-#                 # Handle multiple values (checkboxes, multi-select)
-#                 if isinstance(input_value, list):
-#                     for val in input_value:
-#                         saved_values.append(FormFieldValues(
-#                             form_data=form_data, field=field, value=val.strip(), created_by=created_by
-#                         ))
-#                 else:
-#                     saved_values.append(FormFieldValues(
-#                         form_data=form_data, field=field, value=input_value, created_by=created_by
-#                     ))
-
-#         form_field_values = FormFieldValues.objects.bulk_create(saved_values)
-
-#         # Handle file uploads
-#         for field_key, uploaded_file in request.FILES.items():
-#             if field_key.startswith("field_"):
-#                 field_id = field_key.split("_")[-1].strip()  # Extract the field ID
-#                 field = get_object_or_404(FormField, id=field_id)
-                
-#                 form_field_value = next((fv for fv in form_field_values if str(fv.field.id) == field_id), None)
-#                 if not form_field_value:
-#                     continue  # Skip if corresponding form field value is not found
-                
-#                 file_dir = os.path.join(settings.MEDIA_ROOT, form_name, created_by, form_data.req_no)
-#                 try:
-#                     if not os.path.exists(file_dir):
-#                         os.makedirs(file_dir, exist_ok=True)
-#                         print(f"Directory created: {file_dir}")  # Debugging log
-#                 except Exception as e:
-#                     print(f"Error creating directory: {e}")
-#                     traceback.print_exc()
-
-#                 # Extract filename and extension
-#                 original_file_name, file_extension = os.path.splitext(uploaded_file.name.strip())
-#                 timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-#                 saved_file_name = f"{original_file_name}_{timestamp}{file_extension}"
-
-#                 # Save file in the correct directory
-#                 fs = FileSystemStorage(location=file_dir)
-#                 try:
-#                     saved_path = fs.save(saved_file_name, uploaded_file)
-#                     print(f"File saved: {saved_path}")  # Debugging log
-#                 except Exception as e:
-#                     print(f"Error saving file: {e}")
-#                     traceback.print_exc()
-
-#                 # Generate file path (relative to MEDIA_ROOT)
-#                 file_path = os.path.join(form_name, created_by, form_data.req_no, saved_file_name)
-
-#                 # Create file record
-#                 file_records.append(FormFile(
-#                     file_name=saved_file_name,
-#                     uploaded_name=uploaded_file.name.strip(),
-#                     file_id = form_field_values,
-#                     file_path=file_path,
-#                     form=form,
-#                     field=field
-#                 ))
-
-#         # Bulk insert file records
-#         if file_records:
-#             FormFile.objects.bulk_create(file_records)
-
-#         messages.success(request, "Form data saved successfully.!!")
-    
-#     except Exception as e:
-#         traceback.print_exc()
-#         messages.error(request, 'Oops...! Something went wrong!')
-
-#     finally:
-#         new_url = f'/masters?entity=form_master&type=i'
-#         return redirect(new_url)
-
-
-
-
-
-
-        
-
-
-
-
+        return redirect("/masters?entity=form_master&type=i")

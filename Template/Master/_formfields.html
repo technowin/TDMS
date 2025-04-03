@@ -75,7 +75,7 @@
         <br>
         <label class="switch">
             <input type="checkbox" name="field_{{ field.id }}"
-                {% if field.value == "1" %} checked {% endif %}
+                {% if field.value == "on" %} checked {% endif %}
                 {% if "1" in field.attributes %} required {% endif %}
                 {% if "3" in field.attributes %} disabled {% endif %}>
             <span class="slider"></span>

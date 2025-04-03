@@ -27,9 +27,9 @@
 <!-- Selectize.js JS -->
 <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js"></script>
 
-
-<form method="POST" action="{% url 'common_form_post' %}" enctype="multipart/form-data">
 <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;" >
+    <form method="POST" action="{% url 'common_form_edit' %}" enctype="multipart/form-data">
+    {% csrf_token %}
 <div class="row">
 
     {% for field in fields %}
@@ -39,6 +39,7 @@
 
         <div class="col-md-3 mb-3">
             <input type="hidden" name="form_name" value="{{ field.form_id__name }}">
+            <input type="hidden" name="form_data_id" value="{{form_data_id}}">
             <input type="hidden" name="form_id_{{ field.id }}" value="{{ field.form_id }}">
             <input type="hidden" name="field_id_{{ field.id }}" value="{{ field.id }}">
             <label class="fw-bold">{{ field.label }}</label>
@@ -77,7 +78,7 @@
             <br>
             <label class="switch">
                 <input type="checkbox" name="field_{{ field.id }}"
-                    {% if field.value == "1" %} checked {% endif %}
+                    {% if field.value == "on" %} checked {% endif %}
                     {% if "1" in field.attributes %} required {% endif %}
                     {% if "3" in field.attributes %} disabled {% endif %}>
                 <span class="slider"></span>

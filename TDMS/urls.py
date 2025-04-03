@@ -37,6 +37,7 @@ urlpatterns = [
     path('update-action-form/<int:form_id>/',update_action_form, name='update_action_form'),
     path('form_master/',form_master, name='form_master'),
     path('common_form_post/',common_form_post, name='common_form_post'),
+    path('common_form_edit/',common_form_edit, name='common_form_edit'),
 
 
     # path('edit_form/', edit_form, name='edit_form'),  # API to create forms
