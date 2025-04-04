@@ -20,6 +20,7 @@ from django.conf.urls.static import static
 from Account.views import *
 from Dashboard.views import *
 from Masters.views import *
+from Form.views import *
 from Reports.views import *
 from MenuManager.views import *
 from Workflow.views import *
