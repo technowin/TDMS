@@ -101,6 +101,11 @@ urlpatterns = [
     path("charts",charts,name='charts'),  
     path("tables",tables,name='tables'),
 
+# Workflow mapping
+    path('workflow_mapping/', workflow_mapping, name='workflow_mapping'),
+    path('get_actions_by_button_type/', get_actions_by_button_type, name='get_actions_by_button_type'),
+    path('submit_workflow/', submit_workflow, name='submit_workflow'),
+    path('workflow_Editmap/', workflow_Editmap, name='workflow_Editmap'),
 
 ]
 

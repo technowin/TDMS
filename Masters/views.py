@@ -48,6 +48,7 @@ import logging
 from django.http import FileResponse, Http404
 import mimetypes
 logger = logging.getLogger(__name__)
+from Workflow.models import workflow_action_master
 
 @login_required
 def masters(request):
@@ -886,3 +887,176 @@ def common_form_edit(request):
 
     finally:
         return redirect("/masters?entity=form_master&type=i")
+        
+
+def workflow_mapping(request):
+    Db.closeConnection()
+    m = Db.get_connection()
+    cursor=m.cursor()
+    if request.user.is_authenticated ==True:                
+                global user,role_id
+                user = request.user.id    
+                role_id = request.user.role_id
+    try:
+        if request.method == "GET":
+            cursor.callproc("stp_getFormForMapping")
+            for result in cursor.stored_results():
+                form_dropdown = list(result.fetchall())
+            cursor.callproc("stp_getButTypeForMapping")
+            for result in cursor.stored_results():
+                ButType_dropdown = list(result.fetchall())
+            cursor.callproc("stp_getFormActForMapping")
+            for result in cursor.stored_results():
+                ButAct_dropdown = list(result.fetchall())
+            cursor.callproc("stp_getworkflowD")
+            for result in cursor.stored_results():
+                workflow_dropdown = list(result.fetchall())
+            # cursor.callproc("stp_getEditCrtForMapping")
+            # for result in cursor.stored_results():
+            #     EditCrt_dropdown = list(result.fetchall())
+            getformdata = {'form_dropdown':form_dropdown,'ButType_dropdown':ButType_dropdown,
+                           'ButAct_dropdown':ButAct_dropdown,'workflow_dropdown':workflow_dropdown,}
+            return render(request, "Master/workflow_mapping.html",getformdata)
+        
+    except Exception as e:
+        print("error-"+e)
+        response_data = "fail"
+        messages.error(request,"Some Error Occured !!")
+    
+    finally:
+        cursor.close()
+        m.commit()
+        m.close()
+        Db.closeConnection()
+        
+def get_actions_by_button_type(request):
+    button_type_id = request.GET.get("button_type_id")
+    
+    # Fetch actions based on the button type ID using stored procedure or query
+    actions = workflow_action_master.objects.filter(action_id=button_type_id).values("id", "action_details")
+
+    return JsonResponse(list(actions), safe=False)
+
+def decrypt_parameter(encoded_cipher_text):
+    # Decode the base64-encoded string before decrypting
+    cipher_text = base64.urlsafe_b64decode(encoded_cipher_text.encode())
+    cipher_suite = Fernet(get_encryption_key())
+    plain_text = cipher_suite.decrypt(cipher_text).decode()
+    return plain_text
+
+def submit_workflow(request):
+    Db.closeConnection()
+    m = Db.get_connection()
+    cursor=m.cursor()
+    if request.user.is_authenticated ==True:                
+                global user,role_id
+                user = request.user.id    
+                role_id = request.user.role_id
+    try:
+        workflow_name = request.POST.get("workflowDropdown")
+        step_name = request.POST.get("stepName")
+        form_name = request.POST.get("formDropdown")
+        button_type = request.POST.get("buttonTypeDropdown")
+        action = request.POST.get("actionDropdown")
+        param=(workflow_name,step_name,form_name,button_type,action,user)
+        cursor.callproc("stp_insertIntoWorkflow_matrix",param)   
+        m.commit()  
+        # return JsonResponse({"message": "Workflow submitted successfully!"}, status=200)
+        return JsonResponse({"message": "Workflow submitted successfully!","redirect_url": "/masters/?entity=wfseq&type=i"}, status=200)
+
+    except Exception as e:
+            print("error-"+e)
+            response_data = "fail"
+            messages.error(request,"Some Error Occured !!")
+        
+    finally:
+        cursor.close()        
+        m.close()
+        Db.closeConnection()
+        
+def workflow_Editmap(request):
+    Db.closeConnection()
+    m = Db.get_connection()
+    cursor = m.cursor()
+
+    if request.user.is_authenticated:
+        global user, role_id
+        user = request.user.id
+        role_id = request.user.role_id
+
+    try:
+        if request.method == "GET":
+            workflow_idIncrypt = request.GET.get("wfseq_id")
+
+            if workflow_idIncrypt:
+                workflow_id = decrypt_parameter(workflow_idIncrypt) 
+            
+            param = [workflow_id] 
+
+            
+            cursor.callproc("stp_getFormForMapping")
+            for result in cursor.stored_results():
+                form_dropdown = list(result.fetchall())
+            cursor.callproc("stp_getButTypeForMapping")
+            for result in cursor.stored_results():
+                ButType_dropdown = list(result.fetchall())
+            cursor.callproc("stp_getFormActForMapping")
+            for result in cursor.stored_results():
+                ButAct_dropdown = list(result.fetchall())
+            cursor.callproc("stp_getworkflowD")
+            for result in cursor.stored_results():
+                workflow_dropdown = list(result.fetchall())
+                
+            cursor.callproc("stp_getworkflowEdit", param)
+            workflow_data = []
+            for result in cursor.stored_results():
+                workflow_data = result.fetchall()  
+            
+           
+            workflow_details = {}
+            if workflow_data:
+                workflow_details = {
+                    "workflow_name": workflow_data[0][0], 
+                    "form_id": workflow_data[0][1],
+                    "step_name": workflow_data[0][2],
+                    "button_type_id": workflow_data[0][3],
+                    "button_act_details": workflow_data[0][4],
+                    "workflow_idD": workflow_data[0][5],
+                }
+
+            getformdata = {
+                    "form_dropdown": form_dropdown,
+                    "ButType_dropdown": ButType_dropdown,
+                    "ButAct_dropdown": ButAct_dropdown,
+                    "workflow_dropdown": workflow_dropdown,
+                    "workflow_details": workflow_details,
+                    "workflow_id":workflow_idIncrypt,
+                }
+
+            return render(request, "Master/workflow_Editmap.html", getformdata)
+
+        if request.method == "POST":
+            workflow_idEncrypt = request.POST.get("workflow_idEncrypt")
+            workflow_idDecryp = decrypt_parameter(workflow_idEncrypt)
+            workflow_name = request.POST.get("workflowDropdown")
+            step_name = request.POST.get("stepName")
+            form_name = request.POST.get("formDropdown")
+            button_type = request.POST.get("buttonTypeDropdown")
+            action = request.POST.get("actionDropdown")
+
+            param = (workflow_name, step_name, form_name, button_type, action, workflow_idDecryp,user)
+            cursor.callproc("stp_updateWorkflow_matrix", param)
+            m.commit()
+            
+            return JsonResponse({"message": "Workflow submitted successfully!","redirect_url": "/masters/?entity=wfseq&type=i"}, status=200)
+
+    except Exception as e:
+        print("Error:", e)
+        messages.error(request, "Some Error Occurred !!")
+        return JsonResponse({"message": "Error Occurred!"}, status=500)
+
+    finally:
+        cursor.close()
+        m.commit()
+        m.close()
+        Db.closeConnection()
