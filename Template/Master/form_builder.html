@@ -176,11 +176,11 @@
                 else if (field.type === "text") {
                     subControlHtml += `
                         <div style="display: flex; gap: 10px;">
-                            <select class="form-control" onchange="updateSubFieldAndGenerateElement(${fieldId}, this.value, '${field.subFieldValue || ""}')">
+                            <select class="form-control" onchange="updateSubFieldAndGenerateElement(${fieldId}, this.value, '${field.subFieldValue || ""}', this.options[this.selectedIndex].dataset.id)">
                                 <option value="">Select</option>
                                 ${subControls.filter(control => control.field_type === "text")
                                     .map(control => 
-                                        `<option value="${control.control_value}" ${control.control_value === field.selectedValue ? "selected" : ""}>
+                                        `<option value="${control.control_value}" data-id="${control.id}" ${control.control_value === field.selectedValue ? "selected" : ""}>
                                             ${control.control_name}
                                         </option>`
                                     ).join("")}
@@ -270,22 +270,21 @@
     
    
 
-    function updateSubFieldAndGenerateElement(fieldId, selectedValue, savedValue = "") {
-    
+    function updateSubFieldAndGenerateElement(fieldId, selectedValue, savedValue = "", subControlId) {
         let dynamicElement = document.getElementById(`dynamic-element-${fieldId}`);
         dynamicElement.innerHTML = "";
     
         let field = formFields.find(f => f.id === fieldId);
         if (field) {
-            field.selectedValue = selectedValue;  // Preserve dropdown selection
-            field.subFieldValue = savedValue; 
+            field.selectedValue = selectedValue;
+            field.subFieldValue = savedValue;
         }
     
         if (selectedValue === "max_length") {
             dynamicElement.innerHTML = `
                 <input type="number" class="form-control" id="max-length-${fieldId}" placeholder="Max Characters"
                     value="${savedValue}" 
-                    oninput="updateSubField(${fieldId}, 'max_length', this.value)">
+                    oninput="updateSubField(${fieldId}, 'max_length', this.value, ${subControlId})">
             `;
         } else if (selectedValue === "regex") {
             let regexOptions = `<option value="">Select Pattern</option>` +
@@ -296,14 +295,14 @@
                 ).join("");
     
             dynamicElement.innerHTML = `
-                <select class="form-control" id="regex-${fieldId}" onchange="updateSubField(${fieldId}, 'regex', this.value)">
+                <select class="form-control" id="regex-${fieldId}" onchange="updateSubField(${fieldId}, 'regex', this.value, ${subControlId})">
                     ${regexOptions}
                 </select>
             `;
         }
     }
-
-    function updateSubField(fieldId, type, value, id) {
+    
+    function updateSubField(fieldId, type, value, subControlId) {
         debugger;
         let fieldIndex = formFields.findIndex(f => f.id === fieldId);
         if (fieldIndex !== -1) {
@@ -311,19 +310,20 @@
                 formFields[fieldIndex].validation = [];
             }
     
-            // Find existing validation based on type & id
-            let existingValidation = formFields[fieldIndex].validation.find(v => v.validation_type === type && v.id === id);
+            let existingValidation = formFields[fieldIndex].validation.find(v => v.validation_type === type && v.id === subControlId);
     
             if (existingValidation) {
-                existingValidation.validation_value = value; 
-                existingValidation.id = id;
+                existingValidation.validation_value = value;
+                existingValidation.id = subControlId;
             } else {
-                formFields[fieldIndex].validation.push({ id: id, validation_type: type, validation_value: value }); // Add new validation
+                formFields[fieldIndex].validation.push({ id: subControlId, validation_type: type, validation_value: value });
             }
     
-            renderFormPreview();  // Update preview when validation changes
+            renderFormPreview();
         }
     }
+    
+    
     
     
     
