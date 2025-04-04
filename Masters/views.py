@@ -47,8 +47,9 @@ from TDMS.settings import *
 import logging
 from django.http import FileResponse, Http404
 import mimetypes
-logger = logging.getLogger(__name__)
+
 from Workflow.models import workflow_action_master
+logger = logging.getLogger(__name__)
 
 @login_required
 def masters(request):
@@ -887,8 +888,7 @@ def common_form_edit(request):
 
     finally:
         return redirect("/masters?entity=form_master&type=i")
-        
-
+    
 def workflow_mapping(request):
     Db.closeConnection()
     m = Db.get_connection()

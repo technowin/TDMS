@@ -173,21 +173,72 @@
     
                     subControlHtml += `</select>`;
                 } 
+                //else if (field.type === "text") {
+                //    subControlHtml += `
+                //        <div style="display: flex; gap: 10px;">
+                //            <select class="form-control" onchange="updateSubFieldAndGenerateElement(${fieldId}, this.value, '${field.subFieldValue || ""}', this.options[this.selectedIndex].dataset.id)">
+                //                <option value="">Select</option>
+                //                ${subControls.filter(control => control.field_type === "text")
+                //                    .map(control => 
+                //                        `<option value="${control.control_value}" data-id="${control.id}" ${control.control_value === field.selectedValue ? "selected" : ""}>
+                //                            ${control.control_name}
+                //                        </option>`
+                //                    ).join("")}
+                //            </select>
+                //            <div id="dynamic-element-${fieldId}"></div>
+                //        </div>`;
+                //}
+                //else if (field.type === "text") {
+                //    let selectedValidation = field.validation && field.validation.length > 0 ? field.validation[0] : {};
+                //    let selectedSubControl = subControls.find(control => control.control_value === selectedValidation.validation_type);
+                //    
+                //    subControlHtml += `
+                //        <div style="display: flex; gap: 10px;">
+                //            <select class="form-control" onchange="updateSubFieldAndGenerateElement(${fieldId}, this.value, '${selectedValidation.validation_value || ""}', this.options[this.selectedIndex].dataset.id)">
+                //                <option value="">Select</option>
+                //                ${subControls.filter(control => control.field_type === "text")
+                //                    .map(control => 
+                //                        `<option value="${control.control_value}" data-id="${control.id}" ${control.id === selectedSubControl?.id ? "selected" : ""}>
+                //                            ${control.control_name}
+                //                        </option>`
+                //                    ).join("")}
+                //            </select>
+                //            <div id="dynamic-element-${fieldId}"></div>
+                //        </div>`;
+                //}
                 else if (field.type === "text") {
+                    let selectedValidation = field.validation && field.validation.length > 0 ? field.validation[0] : {};
+                    let selectedSubControl = subControls.find(control => control.control_value === selectedValidation.validation_type);
+                
                     subControlHtml += `
                         <div style="display: flex; gap: 10px;">
-                            <select class="form-control" onchange="updateSubFieldAndGenerateElement(${fieldId}, this.value, '${field.subFieldValue || ""}', this.options[this.selectedIndex].dataset.id)">
+                            <select class="form-control" id="text-dropdown-${fieldId}"
+                                onchange="updateSubFieldAndGenerateElement(${fieldId}, this.value, '${selectedValidation.validation_value || ""}', this.options[this.selectedIndex].dataset.id)">
                                 <option value="">Select</option>
                                 ${subControls.filter(control => control.field_type === "text")
                                     .map(control => 
-                                        `<option value="${control.control_value}" data-id="${control.id}" ${control.control_value === field.selectedValue ? "selected" : ""}>
+                                        `<option value="${control.control_value}" data-id="${control.id}" ${control.id === selectedSubControl?.id ? "selected" : ""}>
                                             ${control.control_name}
                                         </option>`
                                     ).join("")}
                             </select>
                             <div id="dynamic-element-${fieldId}"></div>
                         </div>`;
+                
+                    // **Trigger the function manually after the dropdown is set**
+                    setTimeout(() => {
+                        let textDropdown = document.getElementById(`text-dropdown-${fieldId}`);
+                        if (textDropdown) {
+                            let selectedOption = textDropdown.options[textDropdown.selectedIndex];
+                            if (selectedOption) {
+                                let selectedValue = selectedOption.value;
+                                let subControlId = selectedOption.dataset.id;
+                                updateSubFieldAndGenerateElement(fieldId, selectedValue, selectedValidation.validation_value || "", subControlId);
+                            }
+                        }
+                    }, 100);
                 }
+                
             }
     
             // Option Dropdown for Select, Radio, Multi-Select Fields
@@ -268,7 +319,6 @@
     }
     
     
-   
 
     function updateSubFieldAndGenerateElement(fieldId, selectedValue, savedValue = "", subControlId) {
         let dynamicElement = document.getElementById(`dynamic-element-${fieldId}`);
@@ -303,7 +353,6 @@
     }
     
     function updateSubField(fieldId, type, value, subControlId) {
-        debugger;
         let fieldIndex = formFields.findIndex(f => f.id === fieldId);
         if (fieldIndex !== -1) {
             if (!formFields[fieldIndex].validation) {
@@ -420,17 +469,17 @@
                     }
                 });
             
-                if (field.selectedValue === "max_length") {
-                    inputHtml = `<input type="text" class="form-control w-100" name="${fieldName}" 
-                                 ${maxAttr} ${patternAttr} value="${field.value || ""}" 
-                                 placeholder="Enter up to ${maxLengthValue} characters only">`;
-                } 
-                 else if (field.selectedValue === "regex") {
-                    inputHtml = `<input type="text" class="form-control w-100" name="${fieldName}"  id="regex"
-                                  data-regex="${pattern}" value="${field.value || ""}" `
-                
-                 }else {
-                    inputHtml = `<input type="text" class="form-control w-100" name="${fieldName}" value="${field.value || ""}">`;
+                if (field.type === "text") {
+                    if (field.selectedValue === "max_length") {
+                        inputHtml = `<input type="text" class="form-control w-100" name="${field.label}" 
+                                     ${maxAttr} value="${field.value || ""}" 
+                                     placeholder="Enter up to ${maxLengthValue} characters only">`;
+                    } else if (field.selectedValue === "regex") {
+                        inputHtml = `<input type="text" class="form-control w-100" name="${field.label}" 
+                                     id="regex-${field.id}" data-regex="${pattern}" value="${field.value || ""}">`;
+                    } else {
+                        inputHtml = `<input type="text" class="form-control w-100" name="${field.label}" value="${field.value || ""}">`;
+                    }
                 }
             } 
             
