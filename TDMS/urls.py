@@ -30,8 +30,16 @@ urlpatterns = [
     # APP URLS
 
      # Form builder
-    path('form_builder/', form_builder, name='form_builder'),  # Render HTML
+    path('form_builder/', form_builder, name='form_builder'),
+    path('form_action_builder/', form_action_builder, name='form_action_builder'),  # Render HTML
     path('save_form/', save_form, name='save_form'), 
+    path('save_form_action/', save_form_action, name='save_form_action'), 
+    path('update-action-form/<int:form_id>/',update_action_form, name='update_action_form'),
+    path('form_master/',form_master, name='form_master'),
+    path('common_form_post/',common_form_post, name='common_form_post'),
+    path('common_form_edit/',common_form_edit, name='common_form_edit'),
+
+
     # path('edit_form/', edit_form, name='edit_form'),  # API to create forms
     path('update_form/<int:form_id>/', update_form, name='update_form'),
 
@@ -57,13 +65,8 @@ urlpatterns = [
 
     # Masters
     path('masters/', masters, name='masters'),
-    path("form/", form, name="form"),
 
-    path("get_control_values/", get_control_values, name="get_control_values"),
-    path("get_sub_item/", get_sub_item, name="get_sub_item"),
     path("update_form/", update_form, name="update_form"),
-    path("delete_form/", delete_form, name="delete_form"),
-    path("get_control_values_data/", get_control_values_data, name="get_control_values_data"),
 
     #Reports 
     path('common_html', common_html, name='common_html'),

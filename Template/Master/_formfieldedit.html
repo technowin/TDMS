@@ -1,0 +1,154 @@
+
+
+{% extends "Shared/Layout.html" %} {% block username %}{{username}}{% endblock %}
+{% block content %}
+{% load static %}
+{% csrf_token %}
+
+ <!-- Custom styles for this html-->
+ <link href="{% static 'css/masters.css' %}" rel="stylesheet" type="text/css" >
+ <link href="{% static 'css/table.css' %}" rel="stylesheet" type="text/css" >
+ <link href="{% static 'css/activebtn.css' %}" rel="stylesheet" type="text/css" >
+
+ <link rel="stylesheet" type="text/css" href="{% static 'css/tooltips.css' %}" />
+
+ <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+ <!-- Include DataTables CSS -->
+ <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.min.css">
+ <!-- Include DataTables JS -->
+ <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+ <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+ <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<!-- Selectize.js CSS -->
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+
+<div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;" >
+    <form method="POST" action="{% url 'common_form_edit' %}" enctype="multipart/form-data">
+        <div class="col-md-4">
+            <h3 class="mb-0"><strong style="color: #4e73df;"><u id="form-title"> Edit Form - {% if fields %}{{ fields.0.form_id__name }}{% else %}Unknown{% endif %}</u></strong></h3>
+        </div>
+        
+        
+        <br>
+    {% csrf_token %}
+<div class="row">
+
+    {% for field in fields %}
+        {% if forloop.first or forloop.counter0|divisibleby:4 %}
+            <div class="w-100"></div> {# Ensures a new row every 4 fields #}
+        {% endif %}
+
+        <div class="col-md-3 mb-3">
+            <input type="hidden" name="form_name" value="{{ field.form_id__name }}">
+            <input type="hidden" name="form_data_id" value="{{form_data_id}}">
+            <input type="hidden" name="form_id_{{ field.id }}" value="{{ field.form_id }}">
+            <input type="hidden" name="field_id_{{ field.id }}" value="{{ field.id }}">
+            <label class="fw-bold">{{ field.label }}</label>
+
+            {% if field.field_type == "select" %}
+            <select class="form-control select" name="field_{{ field.id }}"
+                {% if "1" in field.attributes %} required {% endif %}
+                {% if "3" in field.attributes %} disabled {% endif %}>
+                <option value="" selected disabled>Select</option> <!-- Default option -->
+                {% for option in field.values %}
+                    <option value="{{ option }}" {% if option == field.value %} selected {% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+
+            {% elif field.field_type == "select multiple" %}
+                <select class="form-control select select_multiple" id="multiple" name="field_{{ field.id }}" multiple {{ field.required }} {{ field.disabled }} {{ field.readonly }}>
+                    {% for option in field.values %}
+                        <option value="{{ option }}">{{ option }}</option>
+                    {% endfor %}
+                </select>
+
+            {% elif field.field_type == "radio" %}
+                <div class="d-flex flex-wrap">
+                    {% for option in field.values %}
+                    <div style="font-size:18px;" class="form-check me-2">
+                            <input class="form-check-input" type="radio" name="field_{{ field.id }}" value="{{ option }}" id="radio_{{ field.id }}_{{ forloop.counter }}"
+                            {% if option == field.value %} checked {% endif %}
+                                {% if "1" in field.attributes %} required {% endif %}
+                                {% if "3" in field.attributes %} disabled {% endif %}>
+                            <label class="form-check-label" for="radio_{{ field.id }}_{{ forloop.counter }}">{{ option }}&nbsp;&nbsp;</label>
+                        </div>
+                    {% endfor %}
+                </div>
+
+            {% elif field.field_type == "checkbox" %}
+            <br>
+            <label class="switch">
+                <input type="checkbox" name="field_{{ field.id }}"
+                    {% if field.value == "on" %} checked {% endif %}
+                    {% if "1" in field.attributes %} required {% endif %}
+                    {% if "3" in field.attributes %} disabled {% endif %}>
+                <span class="slider"></span>
+            </label>
+
+            {% elif field.field_type == "file" %}
+                <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control"
+                    {% if "1" in field.attributes %} required {% endif %}
+                    {% if "3" in field.attributes %} disabled {% endif %}
+                    {% if "4" in field.attributes %} readonly {% endif %}>
+            
+
+            {% elif field.field_type == "textarea" %}
+            <textarea class="form-control" name="field_{{ field.id }}"
+                {% if "1" in field.attributes %} required {% endif %}
+                {% if "3" in field.attributes %} disabled {% endif %}
+                {% if "4" in field.attributes %} readonly {% endif %}>{{ field.value }}</textarea>
+
+            {% else %}
+                <input type="{{ field.field_type }}" class="form-control" name="field_{{ field.id }}" value="{{ field.value }}"
+                    {% if "1" in field.attributes %} required {% endif %}
+                    {% if "3" in field.attributes %} disabled {% endif %}
+                    {% if "4" in field.attributes %} readonly {% endif %}>
+            {% endif %}
+        </div>
+    {% endfor %}
+</div>
+
+<div class="d-flex justify-content-center mt-3">
+    <button type="submit" class="btn btn-primary">Update</button>
+</div>
+</form>
+
+</div>
+
+
+<script>
+        $(document).ready(function() {
+            $('.select_multiple').selectize({
+                plugins: ['remove_button'],
+                delimiter: ',',
+                persist: false,
+                create: false,
+                selectOnTab: false, 
+                maxItems: null,
+                onInitialize: function() {
+                    var control = this;
+                    control.clear();
+                }
+            });
+        });
+    
+</script>
+
+{% if messages %}
+{% for message in messages %}
+  <script>
+  Swal.fire({
+    title: "{{ message.tags }}",
+    text: "{{ message }}",
+    icon: "{{ message.tags }}",
+    confirmButtonText: "OK",
+  });
+</script>
+{% endfor %}
+{% endif %}
+
+{% endblock %}

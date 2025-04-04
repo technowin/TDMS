@@ -128,10 +128,12 @@ class ControlParameterMaster(models.Model):
     id = models.AutoField(primary_key=True)
     control_name = models.TextField(null=True, blank=True)
     control_value = models.TextField(null=True, blank=True)
+    is_action = models.BooleanField(null=True,blank=True,default=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     updated_by =  models.TextField(null=True, blank=True)
+
 
     class Meta:
         db_table = 'control_parameter_master'
@@ -226,7 +228,11 @@ class FormField(models.Model):
     field_type =  models.CharField(max_length=255,null=True, blank=True)
     values = models.TextField(null=True,blank=True)
     attributes = models.TextField(null=True,blank=True)
-    order = models.IntegerField(default=0)  
+    order = models.IntegerField(default=0)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)  
     class Meta:
         db_table = 'form_field'
 
@@ -234,7 +240,12 @@ class FieldValidation(models.Model):
     field = models.ForeignKey('Masters.FormField',null=True, blank=True, on_delete=models.CASCADE, related_name='validations')
     form = models.ForeignKey('Masters.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_validations')
     sub_master =  models.ForeignKey('Masters.ValidationMaster',null=True, blank=True, on_delete=models.CASCADE, related_name='field_validations')
+    datatype = models.TextField(null=True, blank=True)
     value = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
     class Meta:
         db_table = 'field_validation'
 
@@ -242,14 +253,17 @@ class FieldDependency(models.Model):
     field = models.ForeignKey(FormField,null=True, blank=True, on_delete=models.CASCADE, related_name='dependencies')
     dependent_on = models.ForeignKey(FormField,null=True, blank=True, on_delete=models.CASCADE, related_name='dependent_fields')
     condition = models.CharField(max_length=255)  
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
     class Meta:
         db_table = 'field_dependency'
 
 class CommonMaster(models.Model):
     id = models.AutoField(primary_key=True)
-    control_type = models.TextField(null=True, blank=True)
     control_value = models.TextField(null=True, blank=True)
-    datatype = models.TextField(null=True, blank=True)
+    type = models.TextField(null=True, blank=True)
     sub_master1 = models.IntegerField(null=True, blank=True)
     sub_master2 = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
@@ -260,14 +274,97 @@ class CommonMaster(models.Model):
         db_table = 'common_master'
 
 
+
 class ValidationMaster(models.Model):
     field_type = models.TextField(null=True, blank=True)
     control_name = models.TextField(null=True, blank=True)
+    datatype = models.TextField(null=True, blank=True)
     control_value = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     updated_by =  models.TextField(null=True, blank=True)
+    
     class Meta:
         db_table = 'validation_master'
+
+class RegexPattern(models.Model):
+    input_type = models.CharField(max_length=50)
+    regex_pattern = models.CharField(max_length=255)
+    description = models.CharField(max_length=255)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    
+    class Meta:
+        db_table = 'regex_pattern'
+
+class FormAction(models.Model):
+    name = models.TextField(null=True, blank=True)
+    is_master =models.BooleanField(null=True,blank=True,default=True)
+    is_active =models.BooleanField(null=True,blank=True,default=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+
+    class Meta:
+        db_table = 'form_action'
+
+class FormActionField(models.Model):
+    type = models.TextField(null=True, blank=True)
+    label_name = models.TextField(null=True, blank=True)
+    button_name = models.TextField(null=True, blank=True)
+    type = models.TextField(null=True, blank=True)
+    bg_color = models.TextField(null=True, blank=True)
+    text_color = models.TextField(null=True, blank=True)
+    button_type = models.TextField(null=True, blank=True)
+    dropdown_values = models.TextField(null=True, blank=True)
+    status = models.TextField(null=True, blank=True)
+    action = models.ForeignKey(FormAction,null=True, blank=True, on_delete=models.CASCADE, related_name='form_action')
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'form_action_field'
+
+class FormFieldValues(models.Model):
+    form = models.ForeignKey('Masters.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_data')
+    form_data = models.ForeignKey('Masters.FormData',null=True, blank=True, on_delete=models.CASCADE, related_name='form_value_id')
+    field = models.ForeignKey('Masters.FormField',null=True, blank=True, on_delete=models.CASCADE, related_name='field_value_id')
+    value = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'form_field_values'
+
+class FormFile(models.Model):
+    file_name = models.TextField(null=True, blank=True)
+    uploaded_name = models.TextField(null=True, blank=True)
+    file_path = models.TextField(null=True, blank=True)
+    file = models.ForeignKey('Masters.FormFieldValues',null=True, blank=True, on_delete=models.CASCADE, related_name='file_id')
+    form = models.ForeignKey('Masters.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_filr_id')
+    field = models.ForeignKey('Masters.FormField',null=True, blank=True, on_delete=models.CASCADE, related_name='field_file_id')
+    form_data = models.ForeignKey('Masters.FormData',null=True, blank=True, on_delete=models.CASCADE, related_name='form_data_id')
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'form_file'
+
+class FormData(models.Model):
+    form = models.ForeignKey('Masters.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_data_id')
+    req_no = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'form_data'
+
 

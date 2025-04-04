@@ -20,28 +20,14 @@
  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
  <!-- Selectize.js CSS -->
-{% comment %} <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/css/selectize.bootstrap3.min.css"> {% endcomment %}
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <!-- Selectize.js JS -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js"></script>
-
+<script src="{% static 'js/selectize.min.js' %}"></script>
 <style>
-
-    .file-input {
-        display: block; 
-        max-width: 100%; 
-        padding: 0.375rem 0.75rem; 
-        font-size: 1rem; 
-        line-height: 1.5; 
-        color: #495057; 
-        background-color: #fff; 
-        border: 1px solid #ced4da; 
-        border-radius: 0.375rem; 
-        box-shadow: inset 0 1px 2px rgba(0, 0, 0, 0.075); 
-        transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
-    }
+   
+    
+    
 </style>
-
 
 <div class="mt-4">
     <form method="POST" action="{% if form %}{% url 'update_form' form.id %}{% else %}{% url 'save_form' %}{% endif %}" class="row col-md-12" id="main-form"
@@ -62,6 +48,8 @@
         <div class="col-md-4 mt-3">
             <button type="submit" class="btn btn-primary mt-3">{% if form %}Update {% else %}Save {% endif %}Form</button>
         </div>
+
+
     </form>
 
     <br> 
@@ -89,7 +77,7 @@
     let commonOptions = JSON.parse('{{ common_options|escapejs|safe }}');
     let dropdownOptions = JSON.parse('{{ dropdown_options|escapejs|safe }}');
     let subControls = JSON.parse('{{ sub_control|escapejs|safe }}');
-    {% comment %} let formFields = JSON.parse('{{ form_fields_json|escapejs|safe }}'); {% endcomment %}
+    let regex = JSON.parse('{{ regex|escapejs|safe }}');
   
 
     {% if form %}
@@ -109,31 +97,34 @@
     }
     {% else %}
     let formFields = [];
-    
-    function addField() {// Save previous selections
+
+    function addField() {
         let newField = {
             id: formFields.length + 1,
             label: "Label Name",
             type: "text",
-            commonType: []
+            commonType: [],
+            selectedValue: "",  // Stores selected sub-control dropdown value
+            subFieldValue: ""   // Stores value for max_length or regex pattern
         };
+    
         formFields.push(newField);
-        renderFormBuilder(); 
-        renderFormPreview(); 
+        renderFormBuilder();
+        renderFormPreview();
     }
 
     {% endif %}
 
   
 
-    function renderFormBuilder() {
-        debugger
+    {% comment %} function renderFormBuilder() {
         let builder = document.getElementById("form-builder");
         builder.innerHTML = "";
     
         formFields.forEach(field => {
             let fieldId = field.id;
     
+            // Main Field Type Dropdown
             let dropdownHtml = `<select class="form-control select" onchange="updateField(${fieldId}, 'type', this.value)">`;
             dropdownOptions.forEach(option => {
                 dropdownHtml += `<option value="${option.control_value}" ${field.type === option.control_value ? "selected" : ""}>${option.control_name}</option>`;
@@ -143,49 +134,59 @@
             // Convert attributes1 from comma-separated string to an array of IDs
             let selectedIds = field.attributes ? field.attributes.split(",").map(id => id.trim()) : [];
     
+            // Common Dropdown (Multiple Selection)
             let commonDropdownHtml = `<select id="common-dropdown-${field.id}" class="form-control common-select" multiple>`;
-    
             commonOptions.forEach(option => {
-                // Check if the option's ID exists in selectedIds
                 let isSelected = selectedIds.includes(option.id.toString()) ? "selected" : "";
                 commonDropdownHtml += `<option value="${option.id}" ${isSelected}>${option.control_value}</option>`;
             });
-    
             commonDropdownHtml += `</select>`;
     
+            // Sub-Control Handling
             let subControlHtml = "";
             let subControlData = subControls.filter(sub => sub.field_type === field.type);
     
             if (subControlData.length > 0) {
-                debugger;
-               //  if (field.type === "file") {
-               //      subControlHtml = `<select class="form-control">`;
-               //      subControlData.forEach(sub => {
-               //          let selectedValue = field.validation && field.validation[sub.id] ? field.validation[sub.id][sub.control_value] || "" : "";
-               //          let isSelected = selectedValue ? "selected" : "";
-               //          subControlHtml += `<option value="${sub.control_value}" ${isSelected}>${sub.control_name}</option>`;
-               //      });
-               //      subControlHtml += `</select>`;
-            
-                if (field.type === "text" || field.type === "number") {
-                    let inputWidth = 100 / subControlData.length;
-                    subControlHtml = `<div style="display: flex; gap: 10px; width: 100%;">`;
-            
-                    subControlData.forEach((sub, index) => {
-                        let value = field.validation && field.validation[sub.id] ? field.validation[sub.id][sub.control_value] || "" : ""; // ✅ Load saved value
-                        subControlHtml += `
-                            <input type="${field.type}" class="form-control" placeholder="${sub.control_name}" 
-                            style="flex: 1; width: ${inputWidth}%;" value="${value}" 
-                            oninput="updateSubField(${fieldId}, ${index}, this.value)">
-                        `;
-                    });
-            
-                    subControlHtml += `</div>`;
-                }
-            }
-            
-            
+                if (field.type === "file") {
+                    subControlHtml = `<select class="form-control sub-control-dropdown" 
+                        onchange="updatefileField(${fieldId}, 'validation', this.value, this.options[this.selectedIndex].dataset.id)">
+                        <option value="">Select File type</option>`; // Default option
     
+                    let selectedValidation = Array.isArray(field.validation) && field.validation.length > 0 
+                        ? field.validation[0] 
+                        : { validation_value: "", id: "" };
+    
+                    subControlData.forEach(sub => {
+                        let isSelected = selectedValidation.validation_value === sub.control_value ? "selected" : "";
+                        
+                        subControlHtml += `<option value="${sub.control_value}" data-id="${sub.id}" ${isSelected}>
+                            ${sub.control_name}
+                        </option>`;
+                    });
+    
+                    subControlHtml += `</select>`;
+                } 
+                else if (field.type === "text") {
+                    subControlHtml += `
+                        <div style="display: flex; gap: 10px;">
+                            <select class="form-control" onchange="updateSubFieldAndGenerateElement(${fieldId}, this.value, '${field.subFieldValue || ""}')">
+                                <option value="">Select</option>
+                                ${subControls.filter(control => control.field_type === "text")
+                                    .map(control => 
+                                        `<option value="${control.control_value}" ${control.control_value === field.selectedValue ? "selected" : ""}>
+                                            ${control.control_name}
+                                        </option>`
+                                    ).join("")}
+                            </select>
+                            <div id="dynamic-element-${fieldId}"></div>
+                        </div>`;
+                }
+                
+                
+                
+            }
+    
+            // Option Dropdown for Select, Radio, Multi-Select Fields
             let optionDropdownHtml = "";
             if (["select", "radio", "select multiple"].includes(field.type)) {
                 optionDropdownHtml = `<select id="option-dropdown-${fieldId}" class="form-control option-select" multiple>`;
@@ -202,10 +203,10 @@
                 <div class="col-md-2 mb-3">
                     ${dropdownHtml}
                 </div>
-                <div class="col-md-4 mb-3">
+                <div class="col-md-3 mb-3">
                     ${commonDropdownHtml}
                 </div>
-                <div class="col-md-3 mb-3">
+                <div class="col-md-4 mb-3">
                     ${subControlHtml || optionDropdownHtml}
                 </div>
                 <div class="col-md-1 mt-2">
@@ -214,6 +215,9 @@
                     </span>
                 </div>
             `;
+            if (field.selectedValue) {
+                updateSubFieldAndGenerateElement(fieldId, field.selectedValue, field.subFieldValue);
+            }
         });
     
         // Initialize Selectize for Multiple Options
@@ -228,7 +232,7 @@
                 placeholder: "Select attributes",
                 persist: false,
                 create: false,
-                items: selectedIds,  // ✅ Load selected values
+                items: selectedIds, 
                 onChange: function (value) {
                     let fieldIndex = formFields.findIndex(f => f.id == fieldId);
                     if (fieldIndex !== -1) {
@@ -237,11 +241,161 @@
                 }
             });
     
-            // ✅ Ensure values are loaded into Selectize instance
             let selectizeControl = selectInstance[0].selectize;
             selectizeControl.setValue(selectedIds);
         });
     
+        // Initialize Selectize for Option Dropdowns
+        document.querySelectorAll(".option-select").forEach(select => {
+            $(select).selectize({
+                plugins: ["remove_button"],
+                delimiter: ",",
+                placeholder: "Enter options",
+                persist: false,
+                create: true,
+                onChange: function(value) {
+                    let fieldId = select.id.split("-").pop();
+                    updateField(parseInt(fieldId), 'options', value);
+                }
+            });
+        });
+    } {% endcomment %}
+
+    function renderFormBuilder() {
+        let builder = document.getElementById("form-builder");
+    
+        // Step 1: Save existing values before re-rendering
+        formFields.forEach(field => {
+            let existingElement = document.getElementById(`dynamic-element-${field.id}`);
+            if (existingElement) {
+                let inputElement = existingElement.querySelector("input, select");
+                if (inputElement) {
+                    field.subFieldValue = inputElement.value;  // Save current input/dropdown value
+                }
+            }
+        });
+    
+        builder.innerHTML = ""; // Clear and re-render
+    
+        formFields.forEach(field => {
+            let fieldId = field.id;
+    
+            // Main Field Type Dropdown
+            let dropdownHtml = `<select class="form-control select" onchange="updateField(${fieldId}, 'type', this.value)">`;
+            dropdownOptions.forEach(option => {
+                dropdownHtml += `<option value="${option.control_value}" ${field.type === option.control_value ? "selected" : ""}>${option.control_name}</option>`;
+            });
+            dropdownHtml += `</select>`;
+    
+            // Common Dropdown (Multiple Selection)
+            let selectedIds = field.attributes ? field.attributes.split(",").map(id => id.trim()) : [];
+            let commonDropdownHtml = `<select id="common-dropdown-${field.id}" class="form-control common-select" multiple>`;
+            commonOptions.forEach(option => {
+                let isSelected = selectedIds.includes(option.id.toString()) ? "selected" : "";
+                commonDropdownHtml += `<option value="${option.id}" ${isSelected}>${option.control_value}</option>`;
+            });
+            commonDropdownHtml += `</select>`;
+    
+            // Sub-Control Handling (max_length / regex)
+            let subControlHtml = "";
+            let subControlData = subControls.filter(sub => sub.field_type === field.type);
+    
+            if (subControlData.length > 0) {
+                if (field.type === "file") {
+                    subControlHtml = `<select class="form-control sub-control-dropdown" 
+                        onchange="updatefileField(${fieldId}, 'validation', this.value, this.options[this.selectedIndex].dataset.id)">
+                        <option value="">Select File type</option>`;
+    
+                    let selectedValidation = Array.isArray(field.validation) && field.validation.length > 0 
+                        ? field.validation[0] 
+                        : { validation_value: "", id: "" };
+    
+                    subControlData.forEach(sub => {
+                        let isSelected = selectedValidation.validation_value === sub.control_value ? "selected" : "";
+                        subControlHtml += `<option value="${sub.control_value}" data-id="${sub.id}" ${isSelected}>${sub.control_name}</option>`;
+                    });
+    
+                    subControlHtml += `</select>`;
+                } 
+                else if (field.type === "text") {
+                    subControlHtml += `
+                        <div style="display: flex; gap: 10px;">
+                            <select class="form-control" onchange="updateSubFieldAndGenerateElement(${fieldId}, this.value, '${field.subFieldValue || ""}')">
+                                <option value="">Select</option>
+                                ${subControls.filter(control => control.field_type === "text")
+                                    .map(control => 
+                                        `<option value="${control.control_value}" ${control.control_value === field.selectedValue ? "selected" : ""}>
+                                            ${control.control_name}
+                                        </option>`
+                                    ).join("")}
+                            </select>
+                            <div id="dynamic-element-${fieldId}"></div>
+                        </div>`;
+                }
+            }
+    
+            // Option Dropdown for Select, Radio, Multi-Select Fields
+            let optionDropdownHtml = "";
+            if (["select", "radio", "select multiple"].includes(field.type)) {
+                optionDropdownHtml = `<select id="option-dropdown-${fieldId}" class="form-control option-select" multiple>`;
+                (field.options || []).forEach(option => {
+                    optionDropdownHtml += `<option value="${option}" selected>${option}</option>`;
+                });
+                optionDropdownHtml += `</select>`;
+            }
+    
+            builder.innerHTML += `
+                <div class="col-md-2 mb-3">
+                    <input class="form-control" type="text" value="${field.label}" onchange="updateField(${fieldId}, 'label', this.value)">
+                </div>
+                <div class="col-md-2 mb-3">
+                    ${dropdownHtml}
+                </div>
+                <div class="col-md-3 mb-3">
+                    ${commonDropdownHtml}
+                </div>
+                <div class="col-md-4 mb-3">
+                    ${subControlHtml || optionDropdownHtml}
+                </div>
+                <div class="col-md-1 mt-2">
+                    <span onclick="removeField(${fieldId})" style="cursor: pointer;">
+                        <i class="fa-solid fa-trash" style="color: #dc3545; font-size: 1.5rem;"></i>
+                    </span>
+                </div>
+            `;
+    
+            // Step 3: Restore selected sub-controls
+            if (field.selectedValue) {
+                updateSubFieldAndGenerateElement(fieldId, field.selectedValue, field.subFieldValue);
+            }
+        });
+    
+        // Initialize Selectize for Multiple Options
+        $(".common-select").each(function () {
+            let fieldId = $(this).attr("id").split("-").pop();
+            let field = formFields.find(f => f.id == fieldId);
+            let selectedIds = field.attributes ? field.attributes.split(",").map(id => id.trim()) : [];
+    
+            let selectInstance = $(this).selectize({
+                plugins: ["remove_button"],
+                delimiter: ",",
+                placeholder: "Select attributes",
+                persist: false,
+                create: false,
+                items: selectedIds, 
+                onChange: function (value) {
+                    let fieldIndex = formFields.findIndex(f => f.id == fieldId);
+                    if (fieldIndex !== -1) {
+                        formFields[fieldIndex].attributes = value.join(",");
+                    }
+                }
+            });
+    
+            let selectizeControl = selectInstance[0].selectize;
+            selectizeControl.setValue(selectedIds);
+        });
+    
+        // Initialize Selectize for Option Dropdowns
         document.querySelectorAll(".option-select").forEach(select => {
             $(select).selectize({
                 plugins: ["remove_button"],
@@ -257,14 +411,72 @@
         });
     }
     
+    
+   
+
+    function updateSubFieldAndGenerateElement(fieldId, selectedValue, savedValue = "") {
+        let dynamicElement = document.getElementById(`dynamic-element-${fieldId}`);
+        dynamicElement.innerHTML = "";
+    
+        let field = formFields.find(f => f.id === fieldId);
+        if (field) {
+            field.selectedValue = selectedValue;  // Preserve dropdown selection
+            field.subFieldValue = savedValue;  // Preserve input/dropdown value
+        }
+    
+        if (selectedValue === "max_length") {
+            dynamicElement.innerHTML = `
+                <input type="number" class="form-control" id="max-length-${fieldId}" placeholder="Max Characters"
+                    value="${savedValue}" 
+                    oninput="updateSubField(${fieldId}, 'max_length', this.value)">
+            `;
+        } else if (selectedValue === "regex") {
+            let regexOptions = `<option value="">Select Pattern</option>` +
+                regex.map(option => 
+                    `<option value="${option.regex_pattern}" ${option.regex_pattern === savedValue ? "selected" : ""}>
+                        ${option.input_type}
+                    </option>`
+                ).join("");
+    
+            dynamicElement.innerHTML = `
+                <select class="form-control" id="regex-${fieldId}" onchange="updateSubField(${fieldId}, 'regex', this.value)">
+                    ${regexOptions}
+                </select>
+            `;
+        }
+    }
+
+    function updateSubField(fieldId, type, value) {
+        debugger;
+        let fieldIndex = formFields.findIndex(f => f.id === fieldId);
+        if (fieldIndex !== -1) {
+            if (!formFields[fieldIndex].validation) {
+                formFields[fieldIndex].validation = [];
+            }
+    
+            let existingValidation = formFields[fieldIndex].validation.find(v => v.validation_type === type);
+    
+            if (existingValidation) {
+                existingValidation.validation_value = value;
+            } else {
+                formFields[fieldIndex].validation.push({ validation_type: type, validation_value: value });
+            }
+    
+            renderFormPreview();  // Update preview when validation changes
+        }
+    }
+    
+    
+    
+    
 
     function renderFormPreview() {
         let preview = document.getElementById("dynamic-form");
         preview.innerHTML = "";
     
         formFields.forEach(field => {
-            let inputHtml = "";
             let fieldName = `field_${field.id}`;
+            let inputHtml = "";
     
             if (field.type === "select") {
                 inputHtml = `<select class="form-control select w-100" name="${fieldName}">`;
@@ -298,16 +510,7 @@
             }
             else if (field.type === "textarea") {
                 inputHtml = `<textarea class="form-control" name="${fieldName}"></textarea>`;
-                
             }
-           // else if (field.type === "textarea") {
-           //     inputHtml = `<select class="form-control select-multiple w-100" name="${fieldName}" multiple>`;
-           //     (field.options || []).forEach(option => {
-           //         let isSelected = (field.value || []).includes(option) ? "selected" : "";
-           //         inputHtml += `<option value="${option}" ${isSelected}>${option}</option>`;
-           //     });
-           //     inputHtml += `</select>`;
-           // }
             else if (field.type === "checkbox") {
                 let isChecked = field.value == "1" ? "checked" : "";
                 inputHtml = `
@@ -317,48 +520,64 @@
                     </label>
                 `;
             } 
-           //  else if (field.type === "file") {
-           //      let acceptedFormats = Array.isArray(field.options) ? field.options.join(",") : field.options;
-           //      let placeholderText = `Only ${acceptedFormats} files are allowed.`;
-           //      inputHtml = `<input type="file" accept="${acceptedFormats}" class="form-control w-100 file-input" name="${fieldName}" placeholder="${placeholderText}">`;
-           //  } 
-            else {
-                debugger;
-                let maxLengthAttr = "";
-                let minLengthAttr = "";
-                let minAttr = "";
+           
+           else if (field.type === "file") {
+            
+
+            // Extract the correct validation value
+            let acceptedFormats = (Array.isArray(field.validation) && field.validation.length > 0) 
+                ? field.validation[0].validation_value 
+                : (Array.isArray(field.options) ? field.options.join(",") : field.options);
+
+            // Set placeholder text dynamically
+            let placeholderText = acceptedFormats 
+                ? `Only ${acceptedFormats} files are allowed.` 
+                : "Select a valid file type.";
+
+            // Generate file input HTML
+            inputHtml = `<input type="file" accept="${acceptedFormats || '*'}" 
+                        class="form-control w-100 file-input" 
+                        name="${fieldName}" 
+                        placeholder="${placeholderText}">`;
+            }
+
+            
+            else if (field.type === "text") {
                 let maxAttr = "";
-                
-                // Loop through validations to extract values
-                field.validation?.forEach((rule) => {
+                let patternAttr = "";
+                let maxLengthValue = "";
+                let pattern ="";
+            
+                field.validation?.forEach(rule => {
                     if (rule.validation_type === "max_length") {
-                        maxLengthAttr = `maxlength="${rule.validation_value}"`;
-                    }
-                    if (rule.validation_type === "min_length") {
-                        minLengthAttr = `minlength="${rule.validation_value}"`;
-                    }
-                    if (rule.validation_type === "min_value") {
-                        minAttr = `min="${rule.validation_value}"`;
-                    }
-                    if (rule.validation_type === "max_value") {
-                        maxAttr = `max="${rule.validation_value}"`;
+                        maxAttr = `maxlength="${rule.validation_value}"`;
+                        maxLengthValue = rule.validation_value;
+                    } else if (rule.validation_type === "regex") {
+                        
+                        patternAttr = `pattern="${rule.validation_value}"`;
+                        pattern = rule.validation_value;
                     }
                 });
+            
+                if (field.selectedValue === "max_length") {
+                    inputHtml = `<input type="text" class="form-control w-100" name="${fieldName}" 
+                                 ${maxAttr} ${patternAttr} value="${field.value || ""}" 
+                                 placeholder="Enter up to ${maxLengthValue} characters only">`;
+                } 
+                 else if (field.selectedValue === "regex") {
+                    inputHtml = `<input type="text" class="form-control w-100" name="${fieldName}"  id="regex"
+                                  data-regex="${pattern}" value="${field.value || ""}" `
                 
-                let placeholderText = field.type === "text" || field.type === "number"
-                    ? `Max ${maxLengthAttr ? field.validation.find(v => v.validation_type === "max_length")?.validation_value : "N/A"} characters allowed.`
-                    : "";
-                
-                inputHtml = `<input type="${field.type}" class="form-control w-100" 
-                                name="${fieldName}" 
-                                value="${field.value || ""}" 
-                                ${minAttr} 
-                                ${maxAttr} 
-                                ${minLengthAttr} 
-                                ${maxLengthAttr} 
-                                placeholder="${placeholderText}">`;
+                 }else {
+                    inputHtml = `<input type="text" class="form-control w-100" name="${fieldName}" value="${field.value || ""}">`;
                 }
-    
+            } 
+            
+            else {
+                
+                inputHtml = `<input type="${field.type}" class="form-control w-100" name="${fieldName}" >`;
+            }
+            
             let fieldContainer = document.createElement("div");
             fieldContainer.classList.add("col-md-6", "mb-3", "d-flex", "flex-column");
             fieldContainer.innerHTML = `
@@ -367,18 +586,32 @@
                 <input type="hidden" name="${fieldName}_type" value="${field.type}">
             `;
             preview.appendChild(fieldContainer);
-    
-            // Initialize Selectize for Multiple Selection
-            if (field.type === "select multiple") {
-                $(fieldContainer).find('.select-multiple').selectize({
-                    plugins: ['remove_button'],
-                    delimiter: ',',
-                    persist: false,
-                    create: true
-                });
-            }
+        });
+        document.querySelectorAll(".select-multiple").forEach(select => {
+            $(select).selectize({
+                plugins: ["remove_button"],
+                delimiter: ",",
+                placeholder: "Enter options",
+                persist: false,
+                create: true
+            });
         });
     }
+    
+
+    function updatefileField(fieldId, key, value, id) {
+        let fieldIndex = formFields.findIndex(f => f.id === fieldId);
+        
+        if (fieldIndex !== -1) {
+            // Store selected ID and value properly
+            formFields[fieldIndex][key] = [{ id: id, validation_value: value }];
+    
+            renderFormBuilder();  // Re-render UI with updated selection
+            renderFormPreview();  // Update preview
+        }
+    }
+    
+    
     
     
     function updateField(id, key, value) {
@@ -387,33 +620,30 @@
         renderFormPreview();
     }
     
-    function updateSubField(fieldId, index, value) {
-        let fieldIndex = formFields.findIndex(f => f.id == fieldId);
-        if (fieldIndex !== -1) {
-            if (!formFields[fieldIndex].subValues) {
-                formFields[fieldIndex].subValues = [];
+    
+    
+
+        document.addEventListener("input", function (event) {
+            
+            let input = event.target;
+            let regexPattern = input.getAttribute("data-regex");
+            
+            if (regexPattern) {
+                let regex = new RegExp(regexPattern);
+                let inputValue = input.value;
+                
+                if (!regex.test(inputValue)) {
+                    input.value = inputValue.match(regex)?.join("") || "";
+                }
             }
-    
-            let subControl = subControls.find(sub => sub.field_type === formFields[fieldIndex].type);
-            if (!subControl) return;
-    
-            formFields[fieldIndex].subValues[index] = {
-                id: subControl.id,  
-                control_name: subControl.control_name,  
-                control_value: subControl.control_value,  
-                field_type: subControl.field_type,  
-                value: value  
-            };
-    
-            console.log(`Updated subValues for field ${fieldId}:`, formFields[fieldIndex].subValues);  // ✅ Debug log
-        }
-    }
+        });
     
     
     document.querySelectorAll(".common-select").forEach(select => {
         let selectedOptions = $(select).val() || [];
         $(select).data("existing-values", selectedOptions); // Store initial values
     });
+
     
 
     function removeField(id) {

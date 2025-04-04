@@ -1,0 +1,118 @@
+{% extends "Shared/Layout.html" %} {% block username %}{{username}}{% endblock %}
+{% block content %}
+{% load static %}
+{% csrf_token %}
+
+ <!-- Custom styles for this html-->
+ <link href="{% static 'css/masters.css' %}" rel="stylesheet" type="text/css" >
+ <link href="{% static 'css/table.css' %}" rel="stylesheet" type="text/css" >
+ <link href="{% static 'css/activebtn.css' %}" rel="stylesheet" type="text/css" >
+
+ <link rel="stylesheet" type="text/css" href="{% static 'css/tooltips.css' %}" />
+
+ <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+ <!-- Include DataTables CSS -->
+ <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.min.css">
+ <!-- Include DataTables JS -->
+ <script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+ <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+ <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+ <!-- Selectize.js CSS -->
+{% comment %} <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/css/selectize.bootstrap3.min.css"> {% endcomment %}
+
+
+
+    <div class="card shadow d-flex justify-content-center" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;">
+        
+        <!-- Header and Dropdown in One Row -->
+        <div class="row d-flex align-items-center">
+            <div class="col-md-4">
+                <h3 class="mb-0"><strong style="color: #4e73df;"><u id="form-title">Create Form</u></strong></h3>
+            </div>
+            <div class="col-md-3">
+                <form method="POST" id="main-form">
+                    {% csrf_token %}
+                    <div class="text-center">
+                        <label class="fw-bold d-block">Form Name</label>
+                        <select name="form" id="dropdown" class="form-control">
+                            <option value="" selected>Select</option>
+                            {% for item in form %}
+                                <option value="{{ item.id }}">{{ item.name }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+        <!-- Dynamic Form Inside the Same Card -->
+        <form method="POST" action="{% url 'common_form_post' %}" enctype="multipart/form-data">
+            {% csrf_token %}
+            <div id="dynamic_form" class="col-md-12 mt-3"></div>
+
+            <div class="d-flex justify-content-center mt-3">
+                <button id="btnSubmit" type="submit" class="btn btn-primary" hidden>Submit</button>
+            </div>
+        </form>
+
+    </div>
+
+<script>
+    document.getElementById("dropdown").addEventListener("change", function () {
+        let formId = this.value;
+        let btnSubmit = document.getElementById("btnSubmit");
+        let dynamicForm = document.getElementById("dynamic_form");
+        let formTitle = document.getElementById("form-title"); // Get the header element
+
+        // Hide the button initially
+        btnSubmit.hidden = true;
+
+        if (formId) {
+            fetch("{% url 'form_master' %}", {
+                method: "POST",
+                headers: { "X-CSRFToken": "{{ csrf_token }}" },
+                body: new URLSearchParams({ form: formId })
+            })
+            .then(response => response.text())
+            .then(data => {
+                dynamicForm.innerHTML = data;
+
+                // Update form title dynamically
+                let selectedOption = document.querySelector("#dropdown option:checked");
+                formTitle.textContent = selectedOption ? `Create Form - ${selectedOption.textContent}` : "Create Form";
+
+                // Show button only if form is loaded
+                btnSubmit.hidden = data.trim() === "";
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                btnSubmit.hidden = true; // Keep hidden on error
+            });
+        } else {
+            dynamicForm.innerHTML = ""; // Clear form if no selection
+            formTitle.textContent = "Create Form"; // Reset title
+            btnSubmit.hidden = true;
+        }
+    });
+</script>
+
+
+
+
+{% if messages %}
+{% for message in messages %}
+  <script>
+  Swal.fire({
+    title: "{{ message.tags }}",
+    text: "{{ message }}",
+    icon: "{{ message.tags }}",
+    confirmButtonText: "OK",
+  });=
+</script>
+{% endfor %}
+{% endif %}
+
+
+  {% endblock %}
