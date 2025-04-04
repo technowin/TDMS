@@ -257,7 +257,6 @@ def update_form(request, form_id):
                 field_id = form_field.id
 
                 # ✅ Ensure 'subValues' exists
-                  # Handle regex & max_length validation separately
                 if "validation" in field and isinstance(field["validation"], list):
                     for validation_item in field["validation"]:
                         validation_type = validation_item.get("validation_type")
