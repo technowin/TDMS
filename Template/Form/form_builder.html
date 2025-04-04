@@ -173,39 +173,6 @@
     
                     subControlHtml += `</select>`;
                 } 
-                //else if (field.type === "text") {
-                //    subControlHtml += `
-                //        <div style="display: flex; gap: 10px;">
-                //            <select class="form-control" onchange="updateSubFieldAndGenerateElement(${fieldId}, this.value, '${field.subFieldValue || ""}', this.options[this.selectedIndex].dataset.id)">
-                //                <option value="">Select</option>
-                //                ${subControls.filter(control => control.field_type === "text")
-                //                    .map(control => 
-                //                        `<option value="${control.control_value}" data-id="${control.id}" ${control.control_value === field.selectedValue ? "selected" : ""}>
-                //                            ${control.control_name}
-                //                        </option>`
-                //                    ).join("")}
-                //            </select>
-                //            <div id="dynamic-element-${fieldId}"></div>
-                //        </div>`;
-                //}
-                //else if (field.type === "text") {
-                //    let selectedValidation = field.validation && field.validation.length > 0 ? field.validation[0] : {};
-                //    let selectedSubControl = subControls.find(control => control.control_value === selectedValidation.validation_type);
-                //    
-                //    subControlHtml += `
-                //        <div style="display: flex; gap: 10px;">
-                //            <select class="form-control" onchange="updateSubFieldAndGenerateElement(${fieldId}, this.value, '${selectedValidation.validation_value || ""}', this.options[this.selectedIndex].dataset.id)">
-                //                <option value="">Select</option>
-                //                ${subControls.filter(control => control.field_type === "text")
-                //                    .map(control => 
-                //                        `<option value="${control.control_value}" data-id="${control.id}" ${control.id === selectedSubControl?.id ? "selected" : ""}>
-                //                            ${control.control_name}
-                //                        </option>`
-                //                    ).join("")}
-                //            </select>
-                //            <div id="dynamic-element-${fieldId}"></div>
-                //        </div>`;
-                //}
                 else if (field.type === "text") {
                     let selectedValidation = field.validation && field.validation.length > 0 ? field.validation[0] : {};
                     let selectedSubControl = subControls.find(control => control.control_value === selectedValidation.validation_type);
@@ -353,6 +320,7 @@
     }
     
     function updateSubField(fieldId, type, value, subControlId) {
+        debugger;
         let fieldIndex = formFields.findIndex(f => f.id === fieldId);
         if (fieldIndex !== -1) {
             if (!formFields[fieldIndex].validation) {
@@ -371,12 +339,6 @@
             renderFormPreview();
         }
     }
-    
-    
-    
-    
-    
-    
     
     
 

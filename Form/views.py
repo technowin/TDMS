@@ -53,6 +53,7 @@ import mimetypes
 
 from Workflow.models import workflow_action_master
 
+
 # Create your views here.
 def format_label_name(parameter_name):
     """Convert parameter name to a proper label format."""
@@ -163,21 +164,22 @@ def save_form(request):
                 )
                 field_id = form_field.id
 
-                # ✅ Save `subValues` (Existing Logic)
-                if "subValues" in field and isinstance(field["subValues"], list):
-                    for sub_value in field["subValues"]:
-                        sub_master_id = sub_value.get("id")
+               
+                # Handle regex & max_length validation separately
+                if "validation" in field and isinstance(field["validation"], list):
+                    for validation_item in field["validation"]:
+                        validation_type = validation_item.get("validation_type")
+                        validation_value = validation_item.get("validation_value", "")
+                        sub_master_id = validation_item.get("id")  # Get sub_master_id for regex
 
-                        if not sub_master_id:
-                            print(f"Skipping subValue without sub_master_id: {sub_value}")
-                            continue
+                        if validation_type and validation_value and sub_master_id:
+                            FieldValidation.objects.create(
+                                field=get_object_or_404(FormField, id=field_id),
+                                form=get_object_or_404(Form, id=form.id),
+                                sub_master_id=sub_master_id,  # Save regex/max_length master ID
+                                value=validation_value,  # Save regex pattern or max_length
+                            )
 
-                        FieldValidation.objects.create(
-                            field=get_object_or_404(FormField, id=field_id),
-                            form=get_object_or_404(Form, id=form.id),
-                            sub_master_id=sub_master_id,
-                            value=sub_value.get("value", ""),
-                        )
 
                 # ✅ Save `file` validation (New Logic)
                 if field.get("type") == "file" and "validation" in field:
@@ -255,22 +257,20 @@ def update_form(request, form_id):
                 field_id = form_field.id
 
                 # ✅ Ensure 'subValues' exists
-                sub_values = field.get("subValues", [])
-                if not isinstance(sub_values, list):
-                    continue
+                  # Handle regex & max_length validation separately
+                if "validation" in field and isinstance(field["validation"], list):
+                    for validation_item in field["validation"]:
+                        validation_type = validation_item.get("validation_type")
+                        validation_value = validation_item.get("validation_value", "")
+                        sub_master_id = validation_item.get("id")  # Get sub_master_id for regex
 
-                for sub_value in sub_values:
-                    sub_master_id = sub_value.get("id")
-
-                    if not sub_master_id:
-                        continue
-
-                    FieldValidation.objects.create(
-                        field=form_field,
-                        form=form,
-                        sub_master_id=sub_master_id,
-                        value=sub_value.get("value", "")
-                    )
+                        if validation_type and validation_value and sub_master_id:
+                            FieldValidation.objects.create(
+                                field=get_object_or_404(FormField, id=field_id),
+                                form=get_object_or_404(Form, id=form.id),
+                                sub_master_id=sub_master_id,  # Save regex/max_length master ID
+                                value=validation_value,  # Save regex pattern or max_length
+                            )
                 if field.get("type") == "file" and "validation" in field:
                     file_validation_list = field["validation"]  # This is a list
 
