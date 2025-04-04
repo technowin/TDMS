@@ -97,6 +97,7 @@ INSTALLED_APPS = [
     'Reports',
     'Dashboard',
     'Workflow',
+    'Form'
 ]
 
 # SESSION_ENGINE ="django.contrib.sessions.backends.signed_cookies"
