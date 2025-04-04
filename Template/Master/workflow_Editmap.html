@@ -160,18 +160,12 @@
         <div class="form-group">
             
                     <label for="workflowDropdown" class="form-label">Workflow Name:</label>
-                    <select  id="workflowDropdown" name="workflowDropdown"  style="border-color: black; border-radius: 10px; " >
-                        <option value="" selected  disabled>Select</option>
-                        {% comment %} {% for item in workflow_dropdown %}
-                            <option value="{{ item.1 }}" >{{ item.1 }}</option>
-                        {% endfor %} {% endcomment %}
+                    <select id="workflowDropdown" name="workflowDropdown" style="border-color: black; border-radius: 10px;">
+                        <option value="" disabled>Select</option>
                         {% for item in workflow_dropdown %}
-                            <option value="{{ item.1 }}"
-                                {% if workflow_details.workflow_name == item.1 %}selected{% endif %}>
-                                {{ item.1 }}
-                            </option>
+                            <option value="{{ item.1 }}">{{ item.1 }}</option>
                         {% endfor %}
-                    </select>     
+                    </select> 
                 
         </div>
     
@@ -230,16 +224,23 @@
 {% comment %} <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script> {% endcomment %}
 <script>
     $(document).ready(function () {
-        $('#workflowDropdown').selectize({
+        const selectElement = $('#workflowDropdown');
+
+        const selectedValue = "{{ workflow_details.workflow_name|escapejs }}";
+
+        const selectizeControl = selectElement.selectize({
             plugins: ['remove_button'],
             delimiter: ',',
             persist: false,
             create: true,
             selectOnTab: false, 
             maxItems: 1 
-            
-            
-        });
+        })[0].selectize;
+
+        // ✅ Set value after init
+        if (selectedValue) {
+            selectizeControl.setValue(selectedValue);
+        }
     });
 </script>
 
