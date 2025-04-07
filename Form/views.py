@@ -313,7 +313,7 @@ def form_action_builder(request):
 
     try:
         action_id = dec(action_id)  # Decrypt form_id
-        form = get_object_or_404(FormAction, id=action_id)  # Get form or return 404
+        form = get_object_or_404(FormAction, id=action_id) 
         fields = FormActionField.objects.filter(action_id=action_id)
     except Exception as e:
         print(f"Error fetching form data: {e}")  # Debugging

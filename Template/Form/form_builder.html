@@ -173,6 +173,7 @@
     
                     subControlHtml += `</select>`;
                 } 
+                
                 else if (field.type === "text") {
                     let selectedValidation = field.validation && field.validation.length > 0 ? field.validation[0] : {};
                     let selectedSubControl = subControls.find(control => control.control_value === selectedValidation.validation_type);
@@ -412,6 +413,25 @@
                         name="${fieldName}" 
                         placeholder="${placeholderText}">`;
             }
+            else if (field.type === "file multiple") {
+            
+
+                // Extract the correct validation value
+                let acceptedFormats = (Array.isArray(field.validation) && field.validation.length > 0) 
+                    ? field.validation[0].validation_value 
+                    : (Array.isArray(field.options) ? field.options.join(",") : field.options);
+    
+                // Set placeholder text dynamically
+                let placeholderText = acceptedFormats 
+                    ? `Only ${acceptedFormats} files are allowed.` 
+                    : "Select a valid file type.";
+    
+                // Generate file input HTML
+                inputHtml = `<input type="file" accept="${acceptedFormats || '*'}" 
+                            class="form-control w-100 file-input" 
+                            name="${fieldName}" 
+                            placeholder="${placeholderText}" multiple>`;
+                }
 
             
             else if (field.type === "text") {

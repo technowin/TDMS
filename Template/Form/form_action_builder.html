@@ -52,11 +52,11 @@
         <div class="col-md-2">
             <label for="add_into_master">Add to Master</label><br>
             <label class="switch">
-                <input type="checkbox" name="is_master" id="add_into_master" 
-                    ${form.is_master === "True" ? 'checked' : ''}>
+                <input type="checkbox" name="is_master" id="add_into_master" {% if form.is_master == True %}checked{% endif %}>
                 <span class="slider"></span>
             </label>
         </div>
+        
         
 
 
@@ -221,6 +221,7 @@ function renderFormBuilder() {
                             ).join('')}
                     </select>
                 </div>
+
 
                 <div class="col-md-2 mb-3">
                     <label>Select Status</label>
