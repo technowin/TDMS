@@ -127,8 +127,8 @@
 
             {% if action.type == "button" %}
                 <button type="{{ action.button_type|default:'button' }}"
-                        class="btn w-100"
-                        style="background-color: {{ action.bg_color }}; color: {{ action.text_color }};">
+                        class="btn w-100" 
+                        style="background-color: {{ action.bg_color }}; color: {{ action.text_color }}; border-radius:15px;">
                     {{ action.button_name }}
                 </button>
 
