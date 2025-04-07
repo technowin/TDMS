@@ -234,7 +234,7 @@ function renderFormBuilder() {
                     ${dropdownHtml}
                 </div>
                 <div class="col-md-2 mb-3">
-                    <input class="form-control" type="text" value="${field.label || ''}" onchange="updateField(${fieldId}, 'label', this.value)">
+                    <input class="form-control" type="text" value="${field.label || ''}" onchange="this.value = this.value.replace(/[^a-zA-Z0-9 ]/g, ''); updateField(${fieldId}, 'label', this.value)">
                 </div>
             `;
 
