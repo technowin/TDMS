@@ -192,7 +192,6 @@ class FormActionField(models.Model):
     type = models.TextField(null=True, blank=True)
     label_name = models.TextField(null=True, blank=True)
     button_name = models.TextField(null=True, blank=True)
-    type = models.TextField(null=True, blank=True)
     bg_color = models.TextField(null=True, blank=True)
     text_color = models.TextField(null=True, blank=True)
     button_type = models.TextField(null=True, blank=True)

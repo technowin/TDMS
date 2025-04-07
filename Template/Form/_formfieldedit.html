@@ -48,6 +48,7 @@
             <input type="hidden" name="form_id_{{ field.id }}" value="{{ field.form_id }}">
             <input type="hidden" name="field_id_{{ field.id }}" value="{{ field.id }}">
             <label class="fw-bold">{{ field.label }}</label>
+            
 
             {% if field.field_type == "select" %}
             <select class="form-control select" name="field_{{ field.id }}"
@@ -112,9 +113,44 @@
     {% endfor %}
 </div>
 
-<div class="d-flex justify-content-center mt-3">
+{% comment %} <div class="d-flex justify-content-center mt-3">
     <button type="submit" class="btn btn-primary">Update</button>
+</div> {% endcomment %}
+<div class="row justify-content-center mt-4">
+    {% for action in action_fields %}
+        <div class="col-md-1 text-center">
+            <input type="hidden" name="action_field_id_{{ action.id }}" value="{{ action.id }}">
+
+            {% if action.type != "button" %}
+                <label class="fw-bold mb-1">{{ action.label_name }}</label>
+            {% endif %}
+
+            {% if action.type == "button" %}
+                <button type="{{ action.button_type|default:'button' }}"
+                        class="btn w-100"
+                        style="background-color: {{ action.bg_color }}; color: {{ action.text_color }};">
+                    {{ action.button_name }}
+                </button>
+
+            {% elif action.type == "textarea" %}
+                <textarea class="form-control" name="action_field_{{ action.id }}" rows="2"></textarea>
+
+            {% elif action.type == "text" %}
+                <input type="text" class="form-control" name="action_field_{{ action.id }}">
+
+            {% elif action.type == "dropdown" %}
+                <select class="form-control" name="action_field_{{ action.id }}">
+                    <option value="" selected disabled>Select</option>
+                    {% for val in action.dropdown_values %}
+                        <option value="{{ val }}">{{ val }}</option>
+                    {% endfor %}
+                </select>
+            {% endif %}
+        </div>
+    {% endfor %}
 </div>
+
+
 </form>
 
 </div>

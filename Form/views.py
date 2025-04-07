@@ -51,7 +51,7 @@ import logging
 from django.http import FileResponse, Http404
 import mimetypes
 
-from Workflow.models import workflow_action_master
+from Workflow.models import workflow_matrix, workflow_action_master
 
 
 # Create your views here.
@@ -766,3 +766,122 @@ def common_form_edit(request):
 
     finally:
         return redirect("/masters?entity=form_master&type=i")
+    
+
+# def form_preview(request):
+#     id = request.GET.get("id")
+#     id = dec(id)
+#     if not id:
+#         return render(request, "Form/_formfields.html", {"fields": []})  # or handle error
+
+#     try:
+#         workflow = get_object_or_404(workflow_matrix, id=id)
+        
+#         form_id = workflow.form_id
+#         action_id = workflow.button_type_id  # if you need it
+
+#         # Fetch fields for the form
+#         fields = FormField.objects.filter(form_id=form_id).values(
+#             "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name"
+#         )
+#         fields = list(fields)
+
+
+#         action_fields = FormActionField.objects.filter(action_id=action_id).values(
+#             "id","type", "label_name", "button_name","bg_color","text_color","button_type","dropdown_values","status",
+#         )
+#         action_fields = list(action_fields)
+
+
+#         for field in fields:
+#             # Convert "values" from comma-separated string to list
+#             field["values"] = field["values"].split(",") if field["values"] else []
+
+#             # Convert "attributes" from comma-separated string to list
+#             attributes_list = field["attributes"].split(",") if field["attributes"] else []
+#             field["required"] = "required" if "1" in attributes_list else ""
+#             field["disabled"] = "disabled" if "3" in attributes_list else ""
+#             field["readonly"] = "readonly" if "4" in attributes_list else ""
+
+#             # Fetch field validation rules
+#             validations = FieldValidation.objects.filter(
+#                 field_id=field["id"], form_id=form_id
+#             ).values("value")
+#             field["validations"] = list(validations)
+
+#             # Extract file format or accepted pattern
+#             if field["field_type"] in ["file", "text"]:
+#                 file_validation = next((v for v in field["validations"]), None)
+#                 field["accept"] = file_validation["value"] if file_validation else ""
+
+#         for action in action_fields:
+#             field["dropdown_values"] = field["dropdown_values"].split(",") if field["dropdown_values"] else []
+
+
+#         return render(request, "Form/_formfieldedit.html", {"fields": fields,"action_fields":action_fields})
+    
+#     except Exception as e:
+#         traceback.print_exc()
+#         messages.error(request, "Oops...! Something went wrong!")
+
+from django.shortcuts import render, get_object_or_404
+from django.contrib import messages
+import traceback
+
+def form_preview(request):
+    id = request.GET.get("id")
+    id = dec(id)  # Decrypt function
+
+    if not id:
+        return render(request, "Form/_formfields.html", {"fields": []})  # fallback or error
+
+    try:
+        workflow = get_object_or_404(workflow_matrix, id=id)
+        form_id = workflow.form_id
+        action_id = workflow.button_type_id
+
+        # Fetch form fields
+        fields = list(FormField.objects.filter(form_id=form_id).values(
+            "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name"
+        ))
+
+        # Fetch action fields
+        action_fields = list(FormActionField.objects.filter(action_id=action_id).values(
+            "id", "type", "label_name", "button_name", "bg_color", "text_color", 
+            "button_type", "dropdown_values", "status"
+        ))
+
+        # Process form fields
+        for field in fields:
+            # Convert values and attributes
+            field["values"] = field["values"].split(",") if field["values"] else []
+            attributes_list = field["attributes"].split(",") if field["attributes"] else []
+
+            field["required"] = "required" if "1" in attributes_list else ""
+            field["disabled"] = "disabled" if "3" in attributes_list else ""
+            field["readonly"] = "readonly" if "4" in attributes_list else ""
+
+            # Fetch and assign validations
+            validations = FieldValidation.objects.filter(
+                field_id=field["id"], form_id=form_id
+            ).values("value")
+            field["validations"] = list(validations)
+
+            # Handle accept for file or text
+            if field["field_type"] in ["file", "text", "file multiple"]:
+                file_validation = next((v for v in field["validations"]), None)
+                field["accept"] = file_validation["value"] if file_validation else ""
+
+        # Process action fields
+        for action in action_fields:
+            action["dropdown_values"] = action["dropdown_values"].split(",") if action["dropdown_values"] else []
+
+        return render(request, "Form/_formfieldedit.html", {
+            "fields": fields,
+            "action_fields": action_fields
+        })
+
+    except Exception as e:
+        traceback.print_exc()
+        messages.error(request, "Oops...! Something went wrong!")
+        return render(request, "Form/_formfields.html", {"fields": []})

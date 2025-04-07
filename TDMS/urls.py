@@ -30,7 +30,7 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     # APP URLS
 
-     # Form builder
+    # Form 
     path('form_builder/', form_builder, name='form_builder'),
     path('form_action_builder/', form_action_builder, name='form_action_builder'),  # Render HTML
     path('save_form/', save_form, name='save_form'), 
@@ -39,10 +39,8 @@ urlpatterns = [
     path('form_master/',form_master, name='form_master'),
     path('common_form_post/',common_form_post, name='common_form_post'),
     path('common_form_edit/',common_form_edit, name='common_form_edit'),
-
-
-    # path('edit_form/', edit_form, name='edit_form'),  # API to create forms
     path('update_form/<int:form_id>/', update_form, name='update_form'),
+    path('form_preview/',form_preview, name='form_preview'),
 
     # Account
     path("", Login,name='Account'),
