@@ -211,6 +211,20 @@
             </select>
         </div>
 
+        <div class="form-group">
+            <label for="customRoleDropdown">Role: </label>
+            <select class="form-control" id="customRoleDropdown" name="new_roles" multiple>
+                {% for item in role_dropdown %}
+                    <option value="{{ item.0 }}" {% if item.0|stringformat:"s" in workflow_details.role_list %}selected{% endif %}>
+                        {{ item.1 }}
+                    </option>
+                {% endfor %}
+            </select>
+
+            
+        </div>
+        
+
         <!-- Submit Button -->
         <div class="submit-container">
             <button type="submit" class="btn-custom">Submit</button>
@@ -219,9 +233,25 @@
    
 </div>
 
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+
 <link href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/css/selectize.bootstrap3.min.css" rel="stylesheet">
 <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js"></script>
 {% comment %} <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script> {% endcomment %}
+
+<script>
+    document.querySelectorAll("#customRoleDropdown").forEach(select => {
+        $(select).selectize({
+            plugins: ["remove_button"],
+            delimiter: ",",
+            placeholder: "Select Role",
+            persist: false,
+            create: true
+        });
+    });
+    </script>
 <script>
     $(document).ready(function () {
         const selectElement = $('#workflowDropdown');
@@ -289,13 +319,15 @@
         let buttonTypeDropdown = $("#buttonTypeDropdown").val();
         let actionDropdown = $("#actionDropdown").val();
         let workflow_idEncrypt = $("#workflow_idEncrypt").val();
+        let selectedRoles = $("#customRoleDropdown").val();
 
         // Validation: Ensure dropdowns are not empty or "Select"
         if (!workflowDropdown || workflowDropdown === "Select" ||
             !stepName.trim() ||
             !formDropdown || formDropdown === "Select" ||
             !buttonTypeDropdown || buttonTypeDropdown === "Select" ||
-            !actionDropdown || actionDropdown === "Select") {
+            !actionDropdown || actionDropdown === "Select" ||
+            !selectedRoles || selectedRoles.length === 0) {
 
             Swal.fire({
                 icon: 'warning',
@@ -313,6 +345,7 @@
                 buttonTypeDropdown: $("#buttonTypeDropdown").val(),
                 actionDropdown: $("#actionDropdown").val(),
                 workflow_idEncrypt: $("#workflow_idEncrypt").val(),
+                roles: selectedRoles.join(","),
                 csrfmiddlewaretoken: $("input[name=csrfmiddlewaretoken]").val() // CSRF token
             };
 

@@ -52,7 +52,7 @@ class workflow_matrix(models.Model):
     # form_action = models.TextField(null=True, blank=True)
     # workflow_action = models.TextField(null=True, blank=True)
     # next_step = models.TextField(null=True, blank=True)
-    role_id = models.IntegerField(null=True, blank=True) 
+    role_id = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True)             
     created_by = models.TextField(null=True, blank=True) 
     updated_at = models.DateTimeField(null=True, blank=True)               
