@@ -118,6 +118,7 @@
     
         // Step 1: Save existing values before re-rendering
         formFields.forEach(field => {
+            debugger;
             let existingElement = document.getElementById(`dynamic-element-${field.id}`);
             if (existingElement) {
                 let inputElement = existingElement.querySelector("input, select");
@@ -131,7 +132,7 @@
     
         formFields.forEach(field => {
             let fieldId = field.id;
-    
+            debugger;
             // Main Field Type Dropdown
             let dropdownHtml = `<select class="form-control select" onchange="updateField(${fieldId}, 'type', this.value)">`;
             dropdownOptions.forEach(option => {
@@ -152,56 +153,70 @@
             let subControlHtml = "";
             let subControlData = subControls.filter(sub => sub.field_type === field.type);
     
-    if (subControlData.length > 0) {
-        let selectedValidation = Array.isArray(field.validation) && field.validation.length > 0
-            ? field.validation[0]
-            : { validation_value: "", id: "" };
-    
-        if (field.type === "file") {
-            debugger;
-            subControlHtml = `
-                <select class="form-control sub-control-dropdown"  id="dropdown"
-                    onchange="updatefileField(${fieldId}, 'validation', this.value, this.options[this.selectedIndex].dataset.id)">
-                    <option value="">Select File type</option>
-                    ${subControlData.map(sub => {
-                        const isSelected = selectedValidation.validation_value === sub.control_value ? "selected" : "";
-                        return `<option value="${sub.control_value}" data-id="${sub.id}" ${isSelected}>${sub.control_name}</option>`;
-                    }).join('')}
-                </select>
-            `;
-        }  else if (field.type === "text") {
-            let selectedSubControl = subControls.find(control => control.control_value === selectedValidation.validation_type);
-    
-            subControlHtml += `
-                <div style="display: flex; gap: 10px;">
-                    <select class="form-control select" id="text-dropdown-${fieldId}"
-                        onchange="updateSubFieldAndGenerateElement(${fieldId}, this.value, '${selectedValidation.validation_value || ""}', this.options[this.selectedIndex].dataset.id)">
-                        <option value="">Select</option>
-                        ${subControls.filter(control => control.field_type === "text")
-                            .map(control => 
-                                `<option value="${control.control_value}" data-id="${control.id}" ${control.id === selectedSubControl?.id ? "selected" : ""}>
-                                    ${control.control_name}
-                                </option>`
-                            ).join("")}
+            if (subControlData.length > 0) {
+                debugger;
+            
+                let selectedValidation = Array.isArray(field.validation) && field.validation.length > 0
+                    ? field.validation[0]
+                    : { validation_value: "", id: "" };
+            
+                if (field.type === "file") {
+                    debugger;
+                    subControlHtml = `
+                        <select class="form-control sub-control-dropdown"  id="dropdown"
+                            onchange="updatefileField(${fieldId}, 'validation', this.value, this.options[this.selectedIndex].dataset.id)">
+                            <option value="">Select File type</option>
+                            ${subControlData.map(sub => {
+                                const isSelected = selectedValidation.validation_value === sub.control_value ? "selected" : "";
+                                return `<option value="${sub.control_value}" data-id="${sub.id}" ${isSelected}>${sub.control_name}</option>`;
+                            }).join('')}
+                        </select>
+                    `;
+                } else if (field.type === "file multiple") {
+                    debugger;
+                    subControlHtml = `
+                    <select class="form-control sub-control-multiple-dropdown"  id="dropdown"
+                        onchange="updatefileField(${fieldId}, 'validation', this.value, this.options[this.selectedIndex].dataset.id)">
+                        <option value="">Select File type</option>
+                        ${subControlData.map(sub => {
+                            const isSelected = selectedValidation.validation_value === sub.control_value ? "selected" : "";
+                            return `<option value="${sub.control_value}" data-id="${sub.id}" ${isSelected}>${sub.control_name}</option>`;
+                        }).join('')}
                     </select>
-                    <div id="dynamic-element-${fieldId}"></div>
-                </div>
-            `;
-    
-            // Trigger the function manually after the dropdown is set
-            setTimeout(() => {
-                let textDropdown = document.getElementById(`text-dropdown-${fieldId}`);
-                if (textDropdown) {
-                    let selectedOption = textDropdown.options[textDropdown.selectedIndex];
-                    if (selectedOption) {
-                        let selectedValue = selectedOption.value;
-                        let subControlId = selectedOption.dataset.id;
-                        updateSubFieldAndGenerateElement(fieldId, selectedValue, selectedValidation.validation_value || "", subControlId);
-                    }
+                `;
+                }  else if (field.type === "text") {
+                    let selectedSubControl = subControls.find(control => control.control_value === selectedValidation.validation_type);
+                
+                    subControlHtml += `
+                        <div style="display: flex; gap: 10px;">
+                            <select class="form-control select" id="text-dropdown-${fieldId}"
+                                onchange="updateSubFieldAndGenerateElement(${fieldId}, this.value, '${selectedValidation.validation_value || ""}', this.options[this.selectedIndex].dataset.id)">
+                                <option value="">Select</option>
+                                ${subControls.filter(control => control.field_type === "text")
+                                    .map(control => 
+                                        `<option value="${control.control_value}" data-id="${control.id}" ${control.id === selectedSubControl?.id ? "selected" : ""}>
+                                            ${control.control_name}
+                                        </option>`
+                                    ).join("")}
+                            </select>
+                            <div id="dynamic-element-${fieldId}"></div>
+                        </div>
+                    `;
+                
+                    // Trigger the function manually after the dropdown is set
+                    setTimeout(() => {
+                        let textDropdown = document.getElementById(`text-dropdown-${fieldId}`);
+                        if (textDropdown) {
+                            let selectedOption = textDropdown.options[textDropdown.selectedIndex];
+                            if (selectedOption) {
+                                let selectedValue = selectedOption.value;
+                                let subControlId = selectedOption.dataset.id;
+                                updateSubFieldAndGenerateElement(fieldId, selectedValue, selectedValidation.validation_value || "", subControlId);
+                            }
+                        }
+                    }, 100);
                 }
-            }, 100);
-        }
-    }
+            }
     
             // Option Dropdown for Select, Radio, Multi-Select Fields
             let optionDropdownHtml = "";
@@ -432,7 +447,7 @@
     
                 // Generate file input HTML
                 inputHtml = `<input type="file" accept="${acceptedFormats || '*'}" 
-                            class="form-control w-100 file-input" 
+                            class="form-control custom-file-input w-100 file-input" 
                             name="${fieldName}" 
                             placeholder="${placeholderText}" multiple>`;
                 }
@@ -475,13 +490,16 @@
             }
             
             let fieldContainer = document.createElement("div");
-            fieldContainer.classList.add("col-md-6", "mb-3", "d-flex", "flex-column");
+            const colClass = (field.type === "file" || field.type === "file multiple") ? "col-md-12" : "col-md-6";
+            fieldContainer.classList.add(colClass, "mb-3", "d-flex", "flex-column");
+            
             fieldContainer.innerHTML = `
                 <label class="fw-bold">${field.label}</label>
                 ${inputHtml}
                 <input type="hidden" name="${fieldName}_type" value="${field.type}">
             `;
             preview.appendChild(fieldContainer);
+            
         });
         document.querySelectorAll(".select-multiple").forEach(select => {
             $(select).selectize({
