@@ -38,7 +38,7 @@
 
 
         <div class="col-md-4">
-            <h3 class="mb-0"><strong style="color: #4e73df;"><u id="form-title">Insert Form - {% if fields %}{{ form.name }}{% else %}Unknown{% endif %}Data</u></strong></h3>
+            <h3 class="mb-0"><strong style="color: #4e73df;"><u id="form-title">Insert Form - {% if fields %}{{ form.name }}{% else %}Unknown{% endif %}Datas</u></strong></h3>
         </div>
         
         <br>
@@ -100,13 +100,15 @@
                 <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control custom-file-input"
                     {% for attr in field.attributes %} {{ attr }} {% endfor %}>
 
+            {% elif field.field_type == "file multiple" %}
+                <input type="file" accept="{{ field.accept }}" multiple name="field_{{ field.id }}" class="form-control custom-file-input"
+                    {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+
             {% elif field.field_type == "textarea" %}
                 <textarea class="form-control custom-textarea" name="field_{{ field.id }}"
                     {% for attr in field.attributes %} {{ attr }} {% endfor %}>{{ field.value }}</textarea>
 
                         
-
-
             {% else %}
                 <input type="{{ field.field_type }}" class="form-control" name="field_{{ field.id }}" value="{{ field.value }}"
                     {% for attr in field.attributes %} {{ attr }} {% endfor %}>

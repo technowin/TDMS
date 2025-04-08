@@ -142,6 +142,7 @@ def save_form(request):
             form_name = request.POST.get("form_name")
             form_description = request.POST.get("form_description")
             form_data_json = request.POST.get("form_data")
+            index = 0 
 
             if not form_data_json:
                 return JsonResponse({"error": "No form data received"}, status=400)
@@ -155,13 +156,14 @@ def save_form(request):
             form = Form.objects.create(name=form_name, description=form_description)
 
             for field in form_data:
-                # Create the form field entry
+                
                 form_field = FormField.objects.create(
                     form=form,
                     label=field.get("label", ""),
                     field_type=field.get("type", ""),
                     attributes=field.get("attributes", ""),
                     values=",".join(option.strip() for option in field.get("options", [])),
+                    order = index + 1
                 )
                 field_id = form_field.id
 
@@ -199,6 +201,22 @@ def save_form(request):
                             sub_master_id=sub_master_id,  # Save only the ID
                             value=file_validation_value,  # Save only ".jpg, .jpeg, .png"
                         )
+
+                if field.get("type") == "file multiple" and "validation" in field:
+                    file_validation_list = field["validation"]  # This is a list of validation dicts
+
+                    if file_validation_list and isinstance(file_validation_list, list):
+                        for file_validation in file_validation_list:
+                            file_validation_value = file_validation.get("validation_value", "")
+                            sub_master_id = file_validation.get("id", None)
+
+                            FieldValidation.objects.create(
+                                field=get_object_or_404(FormField, id=field_id),
+                                form=get_object_or_404(Form, id=form.id),
+                                sub_master_id=sub_master_id,
+                                value=file_validation_value,
+                            )
+
 
 
             messages.success(request, "Form and fields saved successfully!!")
@@ -273,6 +291,23 @@ def update_form(request, form_id):
                             )
                 if field.get("type") == "file" and "validation" in field:
                     file_validation_list = field["validation"]  # This is a list
+
+                    if file_validation_list and isinstance(file_validation_list, list):
+                        file_validation = file_validation_list[0]  # Get first item (dictionary)
+
+                        file_validation_value = file_validation.get("validation_value", "")  # Extract ".jpg, .jpeg, .png"
+                        sub_master_id = file_validation.get("id", None)  # Extract "2"
+
+                        # Create FieldValidation record
+                        FieldValidation.objects.create(
+                            field=get_object_or_404(FormField, id=field_id),
+                            form=get_object_or_404(Form, id=form.id),
+                            sub_master_id=sub_master_id,  # Save only the ID
+                            value=file_validation_value,  # Save only ".jpg, .jpeg, .png"
+                        )
+
+                if field.get("type") == "file multiple" and "validation" in field:
+                    file_validation_list = field["validation"]  # This is a list of validation dicts
 
                     if file_validation_list and isinstance(file_validation_list, list):
                         file_validation = file_validation_list[0]  # Get first item (dictionary)
@@ -517,6 +552,10 @@ def form_master(request):
                     file_validation = next((v for v in field["validations"]), None)
                     field["accept"] = file_validation["value"] if file_validation else ""
 
+                if field["field_type"] == "file multiple":
+                    file_validation = next((v for v in field["validations"]), None)
+                    field["accept"] = file_validation["value"] if file_validation else ""
+
                 if field["field_type"] == "text":
                     file_validation = next((v for v in field["validations"]), None)
                     field["accept"] = file_validation["value"] if file_validation else ""
@@ -553,6 +592,10 @@ def form_master(request):
 
                     # Extract file format for file fields
                     if field["field_type"] == "file":
+                        file_validation = next((v for v in field["validations"]), None)
+                        field["accept"] = file_validation["value"] if file_validation else ""
+
+                    if field["field_type"] == "file multiple":
                         file_validation = next((v for v in field["validations"]), None)
                         field["accept"] = file_validation["value"] if file_validation else ""
 
@@ -611,8 +654,8 @@ def common_form_post(request):
                 )
                 field_value_map[field_id] = form_field_value
 
-        # Handle file uploads
-        for field_key, uploaded_file in request.FILES.items():
+
+        for field_key, uploaded_files in request.FILES.lists():
             if field_key.startswith("field_"):
                 field_id = field_key.split("_")[-1].strip()
                 field = get_object_or_404(FormField, id=field_id)
@@ -626,32 +669,35 @@ def common_form_post(request):
                 file_dir = os.path.join(settings.MEDIA_ROOT, form_name, created_by, form_data.req_no)
                 os.makedirs(file_dir, exist_ok=True)
 
-                # Generate filename
-                original_file_name, file_extension = os.path.splitext(uploaded_file.name.strip())
-                timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-                saved_file_name = f"{original_file_name}_{timestamp}{file_extension}"
+                # Loop through files (whether single or multiple)
+                for uploaded_file in uploaded_files:
+                    original_file_name, file_extension = os.path.splitext(uploaded_file.name.strip())
+                    timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')  # microsecond to avoid clashes
+                    saved_file_name = f"{original_file_name}_{timestamp}{file_extension}"
 
-                # Save file
-                fs = FileSystemStorage(location=file_dir)
-                saved_path = fs.save(saved_file_name, uploaded_file)
+                    # Save file
+                    fs = FileSystemStorage(location=file_dir)
+                    saved_path = fs.save(saved_file_name, uploaded_file)
 
-                # Generate file path
-                file_path = os.path.join(form_name, created_by, form_data.req_no, saved_file_name)
+                    # Generate file path
+                    file_path = os.path.join(form_name, created_by, form_data.req_no, saved_file_name)
 
-                # Insert into FormFile
-                form_file = FormFile.objects.create(
-                    file_name=saved_file_name,
-                    uploaded_name=uploaded_file.name.strip(),
-                    file_id=form_field_value.id,  # Link with FormFieldValues
-                    file_path=file_path,
-                    form_data=form_data,
-                    form=form,
-                    field=field
-                )
+                    # Insert into FormFile
+                    form_file = FormFile.objects.create(
+                        file_name=saved_file_name,
+                        uploaded_name=uploaded_file.name.strip(),
+                        file_id=form_field_value.id,  # Link with FormFieldValues
+                        file_path=file_path,
+                        form_data=form_data,
+                        form=form,
+                        field=field
+                    )
 
-                # Update FormFieldValues with FormFile ID
-                form_field_value.value = str(form_file.id)
-                form_field_value.save()
+                    # If only one file is allowed per field, you may overwrite the value
+                    # Otherwise, you can store as a list or last uploaded (based on your design)
+                    form_field_value.value = str(form_file.id)
+                    form_field_value.save()
+
 
         messages.success(request, "Form data saved successfully!")
 
@@ -709,7 +755,7 @@ def common_form_edit(request):
                 field_value_map[field_id] = form_field_value
 
         # Handle file uploads
-        for field_key, uploaded_file in request.FILES.items():
+        for field_key, uploaded_files in request.FILES.lists():
             if field_key.startswith("field_"):
                 field_id = field_key.split("_")[-1].strip()
                 field = get_object_or_404(FormField, id=field_id)
@@ -723,17 +769,18 @@ def common_form_edit(request):
                 file_dir = os.path.join(settings.MEDIA_ROOT, form_name, created_by, form_data.req_no)
                 os.makedirs(file_dir, exist_ok=True)
 
-                # Generate filename
-                original_file_name, file_extension = os.path.splitext(uploaded_file.name.strip())
-                timestamp = datetime.now().strftime('%Y%m%d%H%M%S')
-                saved_file_name = f"{original_file_name}_{timestamp}{file_extension}"
+                # Loop through files (whether single or multiple)
+                for uploaded_file in uploaded_files:
+                    original_file_name, file_extension = os.path.splitext(uploaded_file.name.strip())
+                    timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')  # microsecond to avoid clashes
+                    saved_file_name = f"{original_file_name}_{timestamp}{file_extension}"
 
-                # Save file
-                fs = FileSystemStorage(location=file_dir)
-                saved_path = fs.save(saved_file_name, uploaded_file)
+                    # Save file
+                    fs = FileSystemStorage(location=file_dir)
+                    saved_path = fs.save(saved_file_name, uploaded_file)
 
-                # Generate file path
-                file_path = os.path.join(form_name, created_by, form_data.req_no, saved_file_name)
+                    # Generate file path
+                    file_path = os.path.join(form_name, created_by, form_data.req_no, saved_file_name)
 
                 # Insert into FormFile
                 form_file = FormFile.objects.create(
