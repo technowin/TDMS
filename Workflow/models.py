@@ -82,4 +82,20 @@ class workflow_action_details(models.Model):
     updated_by = models.TextField(null=True, blank=True)
     class Meta:
         db_table = 'workflow_action_details'
+        
+class workflow_details(models.Model):
+    id = models.AutoField(primary_key=True)
+    workflow_id = models.IntegerField(null=True, blank=True)
+    step_id = models.IntegerField(null=True, blank=True)
+    action_id = models.IntegerField(null=True, blank=True)
+    action_details_id = models.IntegerField(null=True, blank=True)
+    role_id = models.TextField(null=True, blank=True)
+    form_id = models.IntegerField(null=True, blank=True)
+    status = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)             
+    created_by = models.TextField(null=True, blank=True) 
+    updated_at = models.DateTimeField(null=True, blank=True)               
+    updated_by = models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'workflow_details'
 
