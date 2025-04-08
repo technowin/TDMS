@@ -19,6 +19,7 @@
  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
  <!-- Selectize.js CSS -->
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <!-- Selectize.js JS -->
@@ -418,7 +419,7 @@
 
             // Set placeholder text dynamically
             let placeholderText = acceptedFormats 
-                ? `Only ${acceptedFormats} files are allowed.`                      
+                ? `Only ${acceptedFormats} files are allowed.` 
                 : "Select a valid file type.";
 
             // Generate file input HTML
@@ -496,7 +497,7 @@
             preview.appendChild(fieldContainer);
             
         });
-        document.querySelectorAll(".select-multiple").forEach(select => {     
+        document.querySelectorAll(".select-multiple").forEach(select => {
             $(select).selectize({
                 plugins: ["remove_button"],
                 delimiter: ",",
@@ -570,6 +571,28 @@
         renderFormBuilder();
         renderFormPreview();
     });
+</script>
+
+
+<script>
+
+Sortable.create(builder, {
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    handle: '.form-builder-item', // optional
+    onEnd: function (evt) {
+        const items = builder.querySelectorAll('.form-builder-item');
+        const newOrder = Array.from(items).map(item => parseInt(item.getAttribute("data-id")));
+        
+        // Reorder formFields array based on newOrder
+        formFields.sort((a, b) => {
+            return newOrder.indexOf(a.id) - newOrder.indexOf(b.id);
+        });
+
+        // Optionally re-render after sorting
+        renderFormBuilder();
+    }
+});
 </script>
 
 

@@ -75,8 +75,24 @@
             </label>
 
         {% elif field.field_type == "file" %}
-            <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control custom-file-input"
+        <div class="input-group">
+            <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control custom-file-input" id="fileInput_{{ field.id }}"
                 {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+        
+            <!-- Eye icon -->
+            <button type="button" class="btn btn-outline-secondary" id="previewBtn_{{ field.id }}">
+                👁️
+            </button>
+        </div>
+        
+        <!-- Show selected file name -->
+        <small id="fileName_{{ field.id }}" class="form-text text-muted">No file chosen</small>
+        
+            
+
+        {% comment %} {% elif field.field_type == "file" %}
+            <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control custom-file-input"
+                {% for attr in field.attributes %} {{ attr }} {% endfor %}> {% endcomment %}
 
         {% elif field.field_type == "file multiple" %}
             <input type="file" accept="{{ field.accept }}" multiple name="field_{{ field.id }}" class="form-control custom-file-input"
@@ -120,7 +136,34 @@
             });
         });
     
+</script>
 
+<script>
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const fileInput = document.getElementById('fileInput_{{ field.id }}');
+            const fileNameText = document.getElementById('fileName_{{ field.id }}');
+            const previewBtn = document.getElementById('previewBtn_{{ field.id }}');
+    
+            // Show file name after selecting
+            fileInput.addEventListener('change', function () {
+                if (fileInput.files.length > 0) {
+                    fileNameText.textContent = fileInput.files[0].name;
+                } else {
+                    fileNameText.textContent = 'No file chosen';
+                }
+            });
+    
+            // Show file on eye icon click
+            previewBtn.addEventListener('click', function () {
+                if (fileInput.files.length > 0) {
+                    const fileURL = URL.createObjectURL(fileInput.files[0]);
+                    window.open(fileURL, '_blank');
+                } else {
+                    alert('No file selected to preview.');
+                }
+            });
+        });
     
 </script>
 

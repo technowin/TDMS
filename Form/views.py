@@ -158,16 +158,19 @@ def save_form(request):
             for  index,field in enumerate(form_data):
                
                 
+                formatted_label = format_label(field.get("label", ""))
+
                 form_field = FormField.objects.create(
                     form=form,
-                    label=field.get("label", ""),
+                    label=formatted_label,  # Use formatted label here
                     field_type=field.get("type", ""),
                     attributes=field.get("attributes", ""),
                     values=",".join(option.strip() for option in field.get("options", [])),
-                    created_by = request.session.get('user_id', '').strip(),
-                    order = index + 1
+                    created_by=request.session.get('user_id', '').strip(),
+                    order=index + 1
                 )
                 field_id = form_field.id
+
 
                
                 # Handle regex & max_length validation separately
@@ -273,13 +276,15 @@ def update_form(request, form_id):
                 # ✅ Ensure attributes are stored correctly
                 attributes_value = field.get("attributes", "")
 
+                formatted_label = format_label(field.get("label", ""))
+                
                 form_field = FormField.objects.create(
                     form=form,
-                    label=field.get("label", ""),
+                    label=formatted_label,
                     field_type=field.get("type", ""),
                     attributes=attributes_value,  
                     values=",".join(option.strip() for option in field.get("options", [])),
-                    order = index +1,
+                    order = index + 1,
                     created_by = user,
                     updated_by = user
                 )
@@ -355,7 +360,7 @@ def update_form(request, form_id):
 def form_action_builder(request):
     action_id = request.GET.get('action_id')
     master_values = FormAction.objects.filter(is_master = 1).all()
-    button_type = list(CommonMaster.objects.filter(type='button').values("id", "control_value"))
+    button_type = list(CommonMaster.objects.filter(type='button').values("control_value"))
     dropdown_options = list(ControlParameterMaster.objects.filter(is_action=1).values("control_name", "control_value"))
 
     if not action_id:  
@@ -438,7 +443,9 @@ def save_form_action(request):
                     button_name= None
                     bg_color = None
                     text_color = None
-                    status = None
+                    status = field.get("status", None)
+                    if status in ["", "[]", [], {}, None]:
+                        status = None
                     
 
                 # Create the form field entry
@@ -449,7 +456,7 @@ def save_form_action(request):
                     button_name= button_name,
                     bg_color=bg_color,
                     text_color=text_color,
-                    button_type=field.get("buttonType", ""),
+                    button_type=field.get("button_type", ""),
                     status=status,
                     dropdown_values=",".join(option.strip() for option in field.get("options", [])),
                     created_by = user
@@ -516,7 +523,10 @@ def update_action_form(request, form_id):
                     button_name = None
                     bg_color = None
                     text_color = None
-                    status = None
+                    status = field.get("status", None)
+                    if status in ["", "[]", [], {}, None]:
+                        status = None
+                    
 
                 # Create the form field entry
                 FormActionField.objects.create(
@@ -526,7 +536,7 @@ def update_action_form(request, form_id):
                     button_name=button_name,
                     bg_color=bg_color,
                     text_color=text_color,
-                    button_type=field.get("buttonType", ""),
+                    button_type=field.get("button_type", ""),
                     status=status,
                     dropdown_values=",".join(option.strip() for option in field.get("options", [])),
                     updated_by = user,
@@ -719,7 +729,7 @@ def common_form_post(request):
                         form=form,
                         field=field
                     )
-                    
+
 
                     form_file_ids.append(str(form_file.id))
 
