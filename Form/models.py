@@ -116,7 +116,6 @@ class FieldValidation(models.Model):
     field = models.ForeignKey('Form.FormField',null=True, blank=True, on_delete=models.CASCADE, related_name='validations')
     form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_validations')
     sub_master =  models.ForeignKey('Form.ValidationMaster',null=True, blank=True, on_delete=models.CASCADE, related_name='field_validations')
-    datatype = models.TextField(null=True, blank=True)
     value = models.CharField(max_length=255)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
@@ -154,7 +153,6 @@ class CommonMaster(models.Model):
 class ValidationMaster(models.Model):
     field_type = models.TextField(null=True, blank=True)
     control_name = models.TextField(null=True, blank=True)
-    datatype = models.TextField(null=True, blank=True)
     control_value = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
@@ -241,6 +239,18 @@ class FormData(models.Model):
     updated_by =  models.TextField(null=True, blank=True)
     class Meta:
         db_table = 'form_data'
+
+class AttributeMaster(models.Model):
+    control_name = models.TextField(null=True, blank=True)
+    control_value = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'attribute_master'
+
+
 
 
 

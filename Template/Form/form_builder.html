@@ -164,7 +164,7 @@
         if (field.type === "file") {
             debugger;
             subControlHtml = `
-                <select class="form-control sub-control-dropdown" 
+                <select class="form-control sub-control-dropdown"  id="dropdown"
                     onchange="updatefileField(${fieldId}, 'validation', this.value, this.options[this.selectedIndex].dataset.id)">
                     <option value="">Select File type</option>
                     ${subControlData.map(sub => {
@@ -178,7 +178,7 @@
     
             subControlHtml += `
                 <div style="display: flex; gap: 10px;">
-                    <select class="form-control" id="text-dropdown-${fieldId}"
+                    <select class="form-control select" id="text-dropdown-${fieldId}"
                         onchange="updateSubFieldAndGenerateElement(${fieldId}, this.value, '${selectedValidation.validation_value || ""}', this.options[this.selectedIndex].dataset.id)">
                         <option value="">Select</option>
                         ${subControls.filter(control => control.field_type === "text")
@@ -329,14 +329,14 @@
                 formFields[fieldIndex].validation = [];
             }
     
-            let existingValidation = formFields[fieldIndex].validation.find(v => v.validation_type === type && v.id === subControlId);
-    
-            if (existingValidation) {
-                existingValidation.validation_value = value;
-                existingValidation.id = subControlId;
-            } else {
-                formFields[fieldIndex].validation.push({ id: subControlId, validation_type: type, validation_value: value });
-            }
+            let existingValidationIndex = formFields[fieldIndex].validation.findIndex(v => v.validation_type === type);
+
+        if (existingValidationIndex !== -1) {
+            formFields[fieldIndex].validation[existingValidationIndex] = { id: subControlId, validation_type: type, validation_value: value };
+        } else {
+            formFields[fieldIndex].validation.push({ id: subControlId, validation_type: type, validation_value: value });
+        }
+
     
             renderFormPreview();
         }
@@ -383,8 +383,10 @@
                 inputHtml += `</select>`;
             }
             else if (field.type === "textarea") {
-                inputHtml = `<textarea class="form-control" name="${fieldName}"></textarea>`;
+                inputHtml = `<textarea class="form-control" name="${fieldName}" style="height: 38px; "></textarea>`;
             }
+            
+            
             else if (field.type === "checkbox") {
                 let isChecked = field.value == "1" ? "checked" : "";
                 inputHtml = `
