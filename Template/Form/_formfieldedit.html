@@ -107,7 +107,6 @@
             {% elif field.field_type == "textarea" %}
                 <textarea class="form-control custom-textarea" name="field_{{ field.id }}"
                     {% for attr in field.attributes %} {{ attr }} {% endfor %}>{{ field.value }}</textarea>
-
                         
             {% else %}
                 <input type="{{ field.field_type }}" class="form-control" name="field_{{ field.id }}" value="{{ field.value }}"
