@@ -312,14 +312,9 @@
     
         if (selectedValue === "max_length") {
             dynamicElement.innerHTML = `
-                <input type="number"
-                       class="form-control"
-                       id="max-length-${fieldId}"
-                       placeholder="Max Characters"
-                       title="Max Characters"
-                       value="${savedValue}" 
-                       oninput="updateSubField(${fieldId}, 'max_length', this.value, ${subControlId})">
-            `;
+                <input type="number" class="form-control" id="max-length-${fieldId}" placeholder="Max Characters" title="Max Characters"
+                       value="${savedValue}" oninput="updateSubField(${fieldId}, 'max_length', this.value, ${subControlId})">
+                       `;
         }
          else if (selectedValue === "regex") {
             let regexOptions = `<option value="">Select Pattern</option>` +
@@ -330,7 +325,7 @@
                 ).join("");
     
             dynamicElement.innerHTML = `
-                <select class="form-control" id="regex-${fieldId}" onchange="updateSubField(${fieldId}, 'regex', this.value, ${subControlId})">
+                <select class="form-control select" id="regex-${fieldId}" onchange="updateSubField(${fieldId}, 'regex', this.value, ${subControlId})">
                     ${regexOptions}
                 </select>
             `;
@@ -423,7 +418,7 @@
 
             // Set placeholder text dynamically
             let placeholderText = acceptedFormats 
-                ? `Only ${acceptedFormats} files are allowed.` 
+                ? `Only ${acceptedFormats} files are allowed.`                      
                 : "Select a valid file type.";
 
             // Generate file input HTML
@@ -501,7 +496,7 @@
             preview.appendChild(fieldContainer);
             
         });
-        document.querySelectorAll(".select-multiple").forEach(select => {
+        document.querySelectorAll(".select-multiple").forEach(select => {     
             $(select).selectize({
                 plugins: ["remove_button"],
                 delimiter: ",",

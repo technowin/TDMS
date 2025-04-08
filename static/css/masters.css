@@ -410,6 +410,7 @@ input[type="time"],
 input[type="checkbox"], 
 input[type="file"],
 input[type="color"],
+input[type="password"],
 select[name="applicant_type"]{
     border-radius: 10px; 
     border: 1px solid #ccc; 
@@ -430,7 +431,8 @@ input[type="time"]:focus,
 input[type="checkbox"]:focus, 
 input[type="file"]:focus, 
 input[type="color"]:focus,
-select[name="company_id"]:focus {
+select[name="company_id"]:focus,
+input[type="password"]:focus {
     border-color: rgb(53,95,218); 
     outline: none; 
     box-shadow: inset 0 2px 4px rgba(0, 0, 0, 0.2); 

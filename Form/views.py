@@ -694,9 +694,11 @@ def common_form_post(request):
                 os.makedirs(file_dir, exist_ok=True)
 
                 # Loop through files (whether single or multiple)
+                form_file_ids = []
+
                 for uploaded_file in uploaded_files:
                     original_file_name, file_extension = os.path.splitext(uploaded_file.name.strip())
-                    timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')  # microsecond to avoid clashes
+                    timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
                     saved_file_name = f"{original_file_name}_{timestamp}{file_extension}"
 
                     # Save file
@@ -706,22 +708,25 @@ def common_form_post(request):
                     # Generate file path
                     file_path = os.path.join(form_name, created_by, form_data.req_no, saved_file_name)
 
-                    # Insert into FormFile
+                    # Create FormFile entry
                     form_file = FormFile.objects.create(
                         file_name=saved_file_name,
                         uploaded_name=uploaded_file.name.strip(),
-                        file_id=form_field_value.id,  # Link with FormFieldValues
+                        file_id=form_field_value.id,
                         file_path=file_path,
-                        created_by = user,
+                        created_by=user,
                         form_data=form_data,
                         form=form,
                         field=field
                     )
+                    
 
-                    # If only one file is allowed per field, you may overwrite the value
-                    # Otherwise, you can store as a list or last uploaded (based on your design)
-                    form_field_value.value = str(form_file.id)
-                    form_field_value.save()
+                    form_file_ids.append(str(form_file.id))
+
+                # Save comma-separated list of file IDs
+                form_field_value.value = ",".join(form_file_ids)
+                form_field_value.save()
+
 
 
         messages.success(request, "Form data saved successfully!")
