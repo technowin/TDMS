@@ -90,7 +90,7 @@
         cursor: pointer;
         transition: all 0.3s ease;
         box-shadow: 0 4px 6px rgba(0, 0, 0, 0.15); /* Shadow for button */
-        margin-top: 20px;
+        margin-top: 0px;
     }
 
     .btn-custom:hover {
@@ -120,7 +120,7 @@
     .submit-container {
         display: flex;
         justify-content: center;
-        margin-top: 2px;
+        margin-top: 1px;
     }
 
 
@@ -150,6 +150,88 @@
     }
     
 </style>
+<style>
+    /* 👇 Enhances the role dropdown (multi-select) style */
+    .select2-container--default .select2-selection--multiple {
+        min-height: 42px;
+        max-height: 120px;
+        overflow-y: auto;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        padding: 6px 8px;
+        background-color: #fff;
+        border: 1px solid #ced4da;
+        border-radius: 6px;
+        color: #212529;
+        font-size: 14px;
+    }
+    
+    /* 👇 Selected tag/chip style */
+    .select2-selection__choice {
+        background-color: #e9ecef !important;
+        border: 1px solid #adb5bd !important;
+        color: #212529 !important;
+        padding: 6px 10px 6px 10px !important;
+        margin: 4px 6px !important;
+        font-size: 13px !important;
+        border-radius: 6px !important;
+        font-weight: 500;
+        display: flex;
+        align-items: center;
+    }
+    
+    
+    /* 👇 Fix spacing inside select */
+    .select2-container--default .select2-selection--multiple .select2-selection__rendered {
+        display: flex;
+        flex-wrap: wrap;
+        padding: 0;
+        margin: 0;
+    }
+    
+    /* 👇 Hover & focus state */
+    .select2-container--default .select2-selection--multiple:focus,
+    .select2-container--default .select2-selection--multiple:hover {
+        border-color: #4e73df;
+    }
+    
+    /* Optional: better remove icon on tag */
+    .select2-selection__choice__remove {
+        position: absolute;
+        left: 8px;
+        top: 10%;
+        transform: translateY(-50%);
+        color: #dc3545 !important;
+        font-weight: bold;
+        font-size: 14px;
+        cursor: pointer;
+    }
+    .select2-container--default .select2-selection--multiple .select2-selection__choice {
+        position: relative;
+        display: block;
+        width: 100%;
+        padding: 6px 12px 6px 28px !important;  /* left space reserved for the × */
+        margin: 4px 0 !important;
+        background-color: #e9ecef !important;
+        border: 1px solid #adb5bd !important;
+        color: #212529 !important;
+        font-size: 13px !important;
+        border-radius: 4px !important;
+        font-weight: 500;
+        box-sizing: border-box;
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+    }
+    
+   
+    </style>
+    
+    
+        
+
+
 
 <!-- Main form content -->
 <div class="form-container">
@@ -199,6 +281,20 @@
             </select>
         </div>
 
+        <div class="form-group">
+            <label for="customRoleDropdown">Role: </label>
+            <select class="form-control" id="customRoleDropdown" name="new_roles" multiple>
+                {% for item in role_dropdown %}
+                    <option value="{{ item.0 }}">{{ item.1 }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        
+        
+        
+        
+        
+
         <!-- Submit Button -->
         <div class="submit-container">
             <button type="submit" class="btn-custom">Submit</button>
@@ -207,8 +303,35 @@
    
 </div>
 
-<link href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/css/selectize.bootstrap3.min.css" rel="stylesheet">
-<script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js"></script>
+{% comment %} <link href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/css/selectize.bootstrap3.min.css" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js"></script> {% endcomment %}
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
+
+<link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+
+<!-- Select2 JS -->
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $('#yourSelectId').on('select2:select', function (e) {
+        $('.select2-selection--multiple').scrollTop(0);
+    });
+</script>
+<script>
+    document.querySelectorAll("#customRoleDropdown").forEach(select => {
+        $(select).selectize({
+            plugins: ["remove_button"],
+            delimiter: ",",
+            placeholder: "Select Role",
+            persist: false,
+            create: true
+        });
+    });
+    </script>
+    
+    
+    
 <script>
     $(document).ready(function () {
         $('#workflowDropdown').selectize({
@@ -262,14 +385,16 @@
         let formDropdown = $("#formDropdown").val();
         let buttonTypeDropdown = $("#buttonTypeDropdown").val();
         let actionDropdown = $("#actionDropdown").val();
+        let selectedRoles = $("#customRoleDropdown").val();
 
         // Validation: Ensure dropdowns are not empty or "Select"
         if (!workflowDropdown || workflowDropdown === "Select" ||
             !stepName.trim() ||
             !formDropdown || formDropdown === "Select" ||
             !buttonTypeDropdown || buttonTypeDropdown === "Select" ||
-            !actionDropdown || actionDropdown === "Select") {
-
+            !actionDropdown || actionDropdown === "Select" ||
+            !selectedRoles || selectedRoles.length === 0) {
+            
             Swal.fire({
                 icon: 'warning',
                 title: 'Validation Error!',
@@ -279,13 +404,15 @@
         }
 
             let formData = {
+                workflowDropdown: workflowDropdown,
+            stepName: stepName,
+            formDropdown: formDropdown,
+            buttonTypeDropdown: buttonTypeDropdown,
+            actionDropdown: actionDropdown,
+            roles: selectedRoles.join(","),
+            csrfmiddlewaretoken: $("input[name=csrfmiddlewaretoken]").val()
+            
                 
-                workflowDropdown: $("#workflowDropdown").val(),
-                stepName: $("#stepName").val(),
-                formDropdown: $("#formDropdown").val(),
-                buttonTypeDropdown: $("#buttonTypeDropdown").val(),
-                actionDropdown: $("#actionDropdown").val(),
-                csrfmiddlewaretoken: $("input[name=csrfmiddlewaretoken]").val() // CSRF token
             };
 
             $.ajax({
