@@ -21,11 +21,6 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
 
-<!-- Selectize.js CSS -->
-<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css">
-<!-- Selectize.js JS -->
-<script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js"></script>
-
 {% if type == "edit"%}
 <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;" >
 {% endif%}
@@ -41,7 +36,7 @@
         <input type="hidden" name="field_id_{{ field.id }}" value="{{ field.id }}">
         <label class="fw-bold">{{ field.label }}</label>
 
-        {% if field.field_type == "select" %}
+        {% comment %} {% if field.field_type == "select" %}
         <select class="form-control select" name="field_{{ field.id }}"
             {% if "1" in field.attributes %} required {% endif %}
             {% if "3" in field.attributes %} disabled {% endif %}>
@@ -99,7 +94,60 @@
                 {% if "1" in field.attributes %} required {% endif %}
                 {% if "3" in field.attributes %} disabled {% endif %}
                 {% if "4" in field.attributes %} readonly {% endif %}>
+        {% endif %} {% endcomment %}
+
+        {% if field.field_type == "select" %}
+            <select class="form-control select" name="field_{{ field.id }}"
+                {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                <option value="" selected disabled>Select</option>
+                {% for option in field.values %}
+                    <option value="{{ option }}" {% if option == field.value %} selected {% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select>
+
+        {% elif field.field_type == "select multiple" %}
+            <select class="form-control select select_multiple" id="multiple" name="field_{{ field.id }}" multiple
+                {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                {% for option in field.values %}
+                    <option value="{{ option }}">{{ option }}</option>
+                {% endfor %}
+            </select>
+
+        {% elif field.field_type == "radio" %}
+            <div class="d-flex flex-wrap">
+                {% for option in field.values %}
+                    <div style="font-size:18px;" class="form-check me-2">
+                        <input class="form-check-input" type="radio" name="field_{{ field.id }}" value="{{ option }}" id="radio_{{ field.id }}_{{ forloop.counter }}"
+                            {% if option == field.value %} checked {% endif %}
+                            {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                        <label class="form-check-label" for="radio_{{ field.id }}_{{ forloop.counter }}">{{ option }}&nbsp;&nbsp;</label>
+                    </div>
+                {% endfor %}
+            </div>
+
+        {% elif field.field_type == "checkbox" %}
+            <br>
+            <label class="switch">
+                <input type="checkbox" name="field_{{ field.id }}"
+                    {% if field.value == "on" %} checked {% endif %}
+                    {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                <span class="slider"></span>
+            </label>
+
+        {% elif field.field_type == "file" %}
+            <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control custom-file-input"
+                {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+
+        {% elif field.field_type == "textarea" %}
+            <textarea class="form-control custom-textarea" name="field_{{ field.id }}"
+                {% for attr in field.attributes %} {{ attr }} {% endfor %}>{{ field.value }}</textarea>
+
+        {% else %}
+            <input type="{{ field.field_type }}" class="form-control" name="field_{{ field.id }}" value="{{ field.value }}"
+                {% for attr in field.attributes %} {{ attr }} {% endfor %}>
         {% endif %}
+
+
     </div>
 {% endfor %}
 

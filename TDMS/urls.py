@@ -39,6 +39,7 @@ urlpatterns = [
     path('form_master/',form_master, name='form_master'),
     path('common_form_post/',common_form_post, name='common_form_post'),
     path('common_form_edit/',common_form_edit, name='common_form_edit'),
+    path('common_form_action/',common_form_action, name='common_form_action'),
     path('update_form/<int:form_id>/', update_form, name='update_form'),
     path('form_preview/',form_preview, name='form_preview'),
 

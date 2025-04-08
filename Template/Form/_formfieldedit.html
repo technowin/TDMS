@@ -27,11 +27,19 @@
 <script src="{% static 'js/selectize.min.js' %}"></script>
 
 <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;" >
-    <form method="POST" action="{% url 'common_form_edit' %}" enctype="multipart/form-data">
+<style>
+
+  
+    
+</style>
+
+
+<form method="POST" action="{{ form_action_url }}" enctype="multipart/form-data">
+
+
         <div class="col-md-4">
-            <h3 class="mb-0"><strong style="color: #4e73df;"><u id="form-title"> Edit Form - {% if fields %}{{ fields.0.form_id__name }}{% else %}Unknown{% endif %}</u></strong></h3>
+            <h3 class="mb-0"><strong style="color: #4e73df;"><u id="form-title"> Edit Form - {% if fields %}{{ form.name }}{% else %}Unknown{% endif %}</u></strong></h3>
         </div>
-        
         
         <br>
     {% csrf_token %}
@@ -43,7 +51,7 @@
         {% endif %}
 
         <div class="col-md-3 mb-3">
-            <input type="hidden" name="form_name" value="{{ field.form_id__name }}">
+            <input type="hidden" name="form_name" value="{{ form.name }}">
             <input type="hidden" name="form_data_id" value="{{form_data_id}}">
             <input type="hidden" name="form_id_{{ field.id }}" value="{{ field.form_id }}">
             <input type="hidden" name="field_id_{{ field.id }}" value="{{ field.id }}">
@@ -51,17 +59,17 @@
             
 
             {% if field.field_type == "select" %}
-            <select class="form-control select" name="field_{{ field.id }}"
-                {% if "1" in field.attributes %} required {% endif %}
-                {% if "3" in field.attributes %} disabled {% endif %}>
-                <option value="" selected disabled>Select</option> <!-- Default option -->
-                {% for option in field.values %}
-                    <option value="{{ option }}" {% if option == field.value %} selected {% endif %}>{{ option }}</option>
-                {% endfor %}
-            </select>
+                <select class="form-control select" name="field_{{ field.id }}"
+                    {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                    <option value="" selected disabled>Select</option>
+                    {% for option in field.values %}
+                        <option value="{{ option }}" {% if option == field.value %} selected {% endif %}>{{ option }}</option>
+                    {% endfor %}
+                </select>
 
             {% elif field.field_type == "select multiple" %}
-                <select class="form-control select select_multiple" id="multiple" name="field_{{ field.id }}" multiple {{ field.required }} {{ field.disabled }} {{ field.readonly }}>
+                <select class="form-control select_multiple" id="multiple" name="field_{{ field.id }}" multiple
+                    {% for attr in field.attributes %} {{ attr }} {% endfor %}>
                     {% for option in field.values %}
                         <option value="{{ option }}">{{ option }}</option>
                     {% endfor %}
@@ -70,55 +78,51 @@
             {% elif field.field_type == "radio" %}
                 <div class="d-flex flex-wrap">
                     {% for option in field.values %}
-                    <div style="font-size:18px;" class="form-check me-2">
+                        <div style="font-size:18px;" class="form-check me-2">
                             <input class="form-check-input" type="radio" name="field_{{ field.id }}" value="{{ option }}" id="radio_{{ field.id }}_{{ forloop.counter }}"
-                            {% if option == field.value %} checked {% endif %}
-                                {% if "1" in field.attributes %} required {% endif %}
-                                {% if "3" in field.attributes %} disabled {% endif %}>
+                                {% if option == field.value %} checked {% endif %}
+                                {% for attr in field.attributes %} {{ attr }} {% endfor %}>
                             <label class="form-check-label" for="radio_{{ field.id }}_{{ forloop.counter }}">{{ option }}&nbsp;&nbsp;</label>
                         </div>
                     {% endfor %}
                 </div>
 
             {% elif field.field_type == "checkbox" %}
-            <br>
-            <label class="switch">
-                <input type="checkbox" name="field_{{ field.id }}"
-                    {% if field.value == "on" %} checked {% endif %}
-                    {% if "1" in field.attributes %} required {% endif %}
-                    {% if "3" in field.attributes %} disabled {% endif %}>
-                <span class="slider"></span>
-            </label>
+                <br>
+                <label class="switch">
+                    <input type="checkbox" name="field_{{ field.id }}"
+                        {% if field.value == "on" %} checked {% endif %}
+                        {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                    <span class="slider"></span>
+                </label>
 
             {% elif field.field_type == "file" %}
-                <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control"
-                    {% if "1" in field.attributes %} required {% endif %}
-                    {% if "3" in field.attributes %} disabled {% endif %}
-                    {% if "4" in field.attributes %} readonly {% endif %}>
-            
+                <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control custom-file-input"
+                    {% for attr in field.attributes %} {{ attr }} {% endfor %}>
 
             {% elif field.field_type == "textarea" %}
-            <textarea class="form-control" name="field_{{ field.id }}"
-                {% if "1" in field.attributes %} required {% endif %}
-                {% if "3" in field.attributes %} disabled {% endif %}
-                {% if "4" in field.attributes %} readonly {% endif %}>{{ field.value }}</textarea>
+                <textarea class="form-control custom-textarea" name="field_{{ field.id }}"
+                    {% for attr in field.attributes %} {{ attr }} {% endfor %}>{{ field.value }}</textarea>
+
+                        
+
 
             {% else %}
                 <input type="{{ field.field_type }}" class="form-control" name="field_{{ field.id }}" value="{{ field.value }}"
-                    {% if "1" in field.attributes %} required {% endif %}
-                    {% if "3" in field.attributes %} disabled {% endif %}
-                    {% if "4" in field.attributes %} readonly {% endif %}>
+                    {% for attr in field.attributes %} {{ attr }} {% endfor %}>
             {% endif %}
+
+        
         </div>
     {% endfor %}
 </div>
+</div>
+<br/>
 
-{% comment %} <div class="d-flex justify-content-center mt-3">
-    <button type="submit" class="btn btn-primary">Update</button>
-</div> {% endcomment %}
-<div class="row justify-content-center mt-4">
+<div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;" >
+<div class="row col-md-12 justify-content-center">
     {% for action in action_fields %}
-    <div class="{% if action.type == 'button' %}col-md-1 mt-4{% else %}col-md-2{% endif %} text-center">
+    <div class="{% if action.type == 'button' %}col-md-2{% else %}col-md-3{% endif %} mt-4 text-center">
             <input type="hidden" name="action_field_id_{{ action.id }}" value="{{ action.id }}">
 
             {% if action.type != "button" %}
@@ -127,13 +131,13 @@
 
             {% if action.type == "button" %}
                 <button type="{{ action.button_type|default:'button' }}"
-                        class="btn w-100" 
+                        class="btn w-100 mt-4" 
                         style="background-color: {{ action.bg_color }}; color: {{ action.text_color }}; border-radius:15px;">
                     {{ action.button_name }}
                 </button>
 
             {% elif action.type == "textarea" %}
-                <textarea class="form-control" name="action_field_{{ action.id }}" rows="2"></textarea>
+                <textarea class="form-control custom-textarea" name="action_field_{{ action.id }}" rows="2"></textarea>
 
             {% elif action.type == "text" %}
                 <input type="text" class="form-control" name="action_field_{{ action.id }}">
@@ -146,10 +150,9 @@
                     {% endfor %}
                 </select>
             {% endif %}
-        </div>
+    </div>
     {% endfor %}
 </div>
-
 
 </form>
 
@@ -161,6 +164,7 @@
             $('.select_multiple').selectize({
                 plugins: ['remove_button'],
                 delimiter: ',',
+                placeholder: "Select Options",
                 persist: false,
                 create: false,
                 selectOnTab: false, 

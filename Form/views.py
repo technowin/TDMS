@@ -62,7 +62,8 @@ def format_label_name(parameter_name):
 
 def form_builder(request):
     form_id = request.GET.get('form_id')
-    common_options = list(CommonMaster.objects.filter(type='attribute').values("id", "control_value"))
+    # common_options = list(CommonMaster.objects.filter(type='attribute').values("id", "control_value"))
+    common_options = list(AttributeMaster.objects.values("id","control_name", "control_value",))
     sub_control = list(ValidationMaster.objects.values("id", "control_name", "control_value", "field_type"))
     regex = list(RegexPattern.objects.values("id", "input_type", "regex_pattern", "description"))  
     dropdown_options = list(ControlParameterMaster.objects.values("control_name", "control_value"))
@@ -377,7 +378,7 @@ def save_form_action(request):
                     dropdown_values = None
                     bg_color = field.get("bg_color", "")
                     text_color = field.get("text_color", "")
-                    status = field.get("status",None)
+                    status = field.get("status","")
                     button_name = field.get("value", "")
                 else:
                     label_name = field.get("label", "")
@@ -503,14 +504,9 @@ def form_master(request):
             fields = list(fields)
             
             for field in fields:
-                # Convert "values" from comma-separated string to list
-                field["values"] = field["values"].split(",") if field["values"] else []
-                
-                # Convert "attributes" from comma-separated string to list
-                attributes_list = field["attributes"].split(",") if field["attributes"] else []
-                field["required"] = "required" if "1" in attributes_list else ""
-                field["disabled"] = "disabled" if "3" in attributes_list else ""
-                field["readonly"] = "readonly" if "4" in attributes_list else ""
+                field["values"] = field["values"].split(",") if field.get("values") else []
+                field["attributes"] = field["attributes"].split(",") if field.get("attributes") else []
+
                 
                 # Fetch field validation rules
                 validations = FieldValidation.objects.filter(field_id=field["id"], form_id=form_id).values("value")
@@ -548,12 +544,8 @@ def form_master(request):
                 values_dict = {fv["field_id"]: fv["value"] for fv in field_values}
 
                 for field in fields:
-                    field["values"] = field["values"].split(",") if field["values"] else []
-                    
-                    attributes_list = field["attributes"].split(",") if field["attributes"] else []
-                    field["required"] = "required" if "1" in attributes_list else ""
-                    field["disabled"] = "disabled" if "3" in attributes_list else ""
-                    field["readonly"] = "readonly" if "4" in attributes_list else ""
+                    field["values"] = field["values"].split(",") if field.get("values") else []
+                    field["attributes"] = field["attributes"].split(",") if field.get("attributes") else []
 
                     # Fetch validation rules
                     validations = FieldValidation.objects.filter(field_id=field["id"], form_id=form_id).values("value")
@@ -770,7 +762,7 @@ def common_form_edit(request):
 
 def form_preview(request):
     id = request.GET.get("id")
-    id = dec(id)  # Decrypt function
+    id = dec(id)  
 
     if not id:
         return render(request, "Form/_formfields.html", {"fields": []})  # fallback or error
@@ -779,6 +771,8 @@ def form_preview(request):
         workflow = get_object_or_404(workflow_matrix, id=id)
         form_id = workflow.form_id
         action_id = workflow.button_type_id
+
+        form  = get_object_or_404(Form,id = form_id)
 
         # Fetch form fields
         fields = list(FormField.objects.filter(form_id=form_id).values(
@@ -791,37 +785,57 @@ def form_preview(request):
             "button_type", "dropdown_values", "status"
         ))
 
+        # Process action fields
+        for action in action_fields:
+            action["dropdown_values"] = action["dropdown_values"].split(",") if action["dropdown_values"] else []
+
+            # Set form_action_url based on button_type (first matched)
+            if action["type"] == "button":
+                if action["button_type"] == "Submit":
+                    form_action_url = reverse('common_form_post')
+                    break
+                elif action["button_type"] == "Action":
+                    form_action_url = reverse('common_form_action')
+                    break
+
         # Process form fields
         for field in fields:
-            # Convert values and attributes
-            field["values"] = field["values"].split(",") if field["values"] else []
-            attributes_list = field["attributes"].split(",") if field["attributes"] else []
+            field["values"] = field["values"].split(",") if field.get("values") else []
+            field["attributes"] = field["attributes"].split(",") if field.get("attributes") else []
 
-            field["required"] = "required" if "1" in attributes_list else ""
-            field["disabled"] = "disabled" if "3" in attributes_list else ""
-            field["readonly"] = "readonly" if "4" in attributes_list else ""
-
-            # Fetch and assign validations
+            # Fetch validations
             validations = FieldValidation.objects.filter(
                 field_id=field["id"], form_id=form_id
             ).values("value")
             field["validations"] = list(validations)
 
-            # Handle accept for file or text
+            # Handle accept type for file input
             if field["field_type"] in ["file", "text", "file multiple"]:
                 file_validation = next((v for v in field["validations"]), None)
                 field["accept"] = file_validation["value"] if file_validation else ""
 
-        # Process action fields
-        for action in action_fields:
-            action["dropdown_values"] = action["dropdown_values"].split(",") if action["dropdown_values"] else []
-
         return render(request, "Form/_formfieldedit.html", {
             "fields": fields,
-            "action_fields": action_fields
+            "form":form,
+            "action_fields": action_fields,
+            "form_action_url": form_action_url
         })
 
     except Exception as e:
         traceback.print_exc()
         messages.error(request, "Oops...! Something went wrong!")
         return render(request, "Form/_formfields.html", {"fields": []})
+    
+
+def common_form_action(request):
+    try:
+        form_data_id = get_object_or_404(id = 1)
+        
+
+
+    except Exception as e:
+        traceback.print_exc()
+        messages.error(request, "Oops...! Something went wrong!")
+        return render(request, "Form/_formfields.html", {"fields": []})
+
+    return

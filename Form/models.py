@@ -250,6 +250,17 @@ class AttributeMaster(models.Model):
     class Meta:
         db_table = 'attribute_master'
 
+class ActionData(models.Model):
+    value = models.TextField(null=True, blank=True)
+    form_data = models.ForeignKey('Form.FormData',null=True, blank=True, on_delete=models.CASCADE, related_name='action_data_id')
+    form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='action_data_id')
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'action_data'
+
 
 
 

@@ -36,7 +36,7 @@
         {% csrf_token %}
         <div class="col-md-3">
             <label>Form Action Name:</label>
-            <input type="text" class="form-control" name="action_name" value="{{ form.name }}" required>
+            <input type="text" placeholder="Enter Action Template Name" class="form-control" name="action_name" value="{{ form.name }}" required>
         </div>
 
         <div class="col-md-3">
@@ -210,17 +210,16 @@ function renderFormBuilder() {
                 </div>
                 <div class="col-md-2 mb-3">
                     <label>Button Type</label>
-                    <select class="form-control" onchange="updateField(${fieldId}, 'buttonType', this.value)">
+                    <select class="form-control select" onchange="updateField(${fieldId}, 'buttonType', this.value)">
                         <option value="" disabled ${!field.buttonType ? "selected" : ""}>Select button type</option> 
-                        ${buttontype
-                            .map(option => 
-                                `<option value="${option.control_value}" 
-                                    ${String(field.buttonType) === String(option.control_value) ? "selected" : ""}>
-                                    ${option.control_value}
-                                </option>`
-                            ).join('')}
+                        ${buttontype.map(option => `
+                            <option value="${option.control_value}" 
+                                ${String(field.buttonType || '').trim() === String(option.control_value).trim() ? "selected" : ""}>
+                                ${option.control_value}
+                            </option>`).join('')}
                     </select>
                 </div>
+
 
 
                 <div class="col-md-2 mb-3">
@@ -234,7 +233,7 @@ function renderFormBuilder() {
                     ${dropdownHtml}
                 </div>
                 <div class="col-md-2 mb-3">
-                    <input class="form-control" type="text" value="${field.label || ''}" onchange="this.value = this.value.replace(/[^a-zA-Z0-9 ]/g, ''); updateField(${fieldId}, 'label', this.value)">
+                    <input class="form-control" type="text" value="${field.label || ''}" onchange="this.value = this.value.replace(/[^a-zA-Z0-9 ]/g, ''); "updateField(${fieldId}, 'label', this.value)">
                 </div>
             `;
 
@@ -305,7 +304,7 @@ function renderFormPreview() {
             });
             inputHtml += `</select>`;
         } else if(field.type === "textarea") {
-            inputHtml = `<label class="fw-bold">${field.label}</label>` + `<textarea type="text" class="btn w-100 mt-4"></textarea>`
+            inputHtml = `<label class="fw-bold">${field.label}</label>` + `<textarea type="text" class="btn w-100 custom-textarea"></textarea>`
         
         }else {
             inputHtml = `<label class="fw-bold">${field.label}</label>` + 

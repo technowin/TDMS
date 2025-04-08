@@ -23,11 +23,7 @@
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <!-- Selectize.js JS -->
 <script src="{% static 'js/selectize.min.js' %}"></script>
-<style>
-   
-    
-    
-</style>
+
 
 <div class="mt-4">
     <form method="POST" action="{% if form %}{% url 'update_form' form.id %}{% else %}{% url 'save_form' %}{% endif %}" class="row col-md-12" id="main-form"
@@ -35,12 +31,12 @@
         {% csrf_token %}
         <div class="col-md-4">
             <label>Form Name:</label>
-            <input type="text" class="form-control" name="form_name" value="{{ form.name }}" required>
+            <input type="text" placeholder="Enter Form Name" class="form-control" name="form_name" value="{{ form.name }}" required>
         </div>
 
         <div class="col-md-4">
             <label>Form Description:</label>
-            <input type="text" class="form-control" name="form_description" value="{{ form.description }}">
+            <input type="text" placeholder="Enter Form Description"class="form-control" name="form_description" value="{{ form.description }}">
         </div>
 
         <input type="hidden" name="form_data" id="form-data-input">
@@ -147,8 +143,8 @@
             let selectedIds = field.attributes ? field.attributes.split(",").map(id => id.trim()) : [];
             let commonDropdownHtml = `<select id="common-dropdown-${field.id}" class="form-control common-select" multiple>`;
             commonOptions.forEach(option => {
-                let isSelected = selectedIds.includes(option.id.toString()) ? "selected" : "";
-                commonDropdownHtml += `<option value="${option.id}" ${isSelected}>${option.control_value}</option>`;
+                let isSelected = selectedIds.includes(option.control_value.toString()) ? "selected" : "";
+                commonDropdownHtml += `<option value="${option.control_value}" ${isSelected}>${option.control_name}</option>`;
             });
             commonDropdownHtml += `</select>`;
     
@@ -301,11 +297,16 @@
     
         if (selectedValue === "max_length") {
             dynamicElement.innerHTML = `
-                <input type="number" class="form-control" id="max-length-${fieldId}" placeholder="Max Characters"
-                    value="${savedValue}" 
-                    oninput="updateSubField(${fieldId}, 'max_length', this.value, ${subControlId})">
+                <input type="number"
+                       class="form-control"
+                       id="max-length-${fieldId}"
+                       placeholder="Max Characters"
+                       title="Max Characters"
+                       value="${savedValue}" 
+                       oninput="updateSubField(${fieldId}, 'max_length', this.value, ${subControlId})">
             `;
-        } else if (selectedValue === "regex") {
+        }
+         else if (selectedValue === "regex") {
             let regexOptions = `<option value="">Select Pattern</option>` +
                 regex.map(option => 
                     `<option value="${option.regex_pattern}" ${option.regex_pattern === savedValue ? "selected" : ""}>
@@ -383,7 +384,7 @@
                 inputHtml += `</select>`;
             }
             else if (field.type === "textarea") {
-                inputHtml = `<textarea class="form-control" name="${fieldName}" style="height: 38px; "></textarea>`;
+                inputHtml = `<textarea class="form-control custom-textarea" rows="5" cols="5" name="${fieldName}" style="height: 20px; "></textarea>`;
             }
             
             
@@ -412,7 +413,7 @@
 
             // Generate file input HTML
             inputHtml = `<input type="file" accept="${acceptedFormats || '*'}" 
-                        class="form-control w-100 file-input" 
+                        class="form-control custom-file-input w-100 file-input" 
                         name="${fieldName}" 
                         placeholder="${placeholderText}">`;
             }
