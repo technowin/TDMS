@@ -338,7 +338,7 @@ def update_form(request, form_id):
                             sub_master_id=sub_master_id,  # Save only the ID
                             value=file_validation_value,
                             created_by = user,
-                            updated_by = user# Save only ".jpg, .jpeg, .png"
+                            updated_by = user
                         )
 
             messages.success(request, "Form updated successfully!!")
