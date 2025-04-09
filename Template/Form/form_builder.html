@@ -83,7 +83,7 @@
     function addField() {
         let newField = {
             id: formFields.length + 1,
-            label: "Label Name",
+            label: "Label Name " + (formFields.length + 1),
             type: "text",
             commonType: [],
             options: []
@@ -92,23 +92,23 @@
         renderFormBuilder();
         renderFormPreview();
     }
+    
     {% else %}
     let formFields = [];
 
     function addField() {
         let newField = {
             id: formFields.length + 1,
-            label: "Label Name",
+            label: "Label Name " + (formFields.length + 1),
             type: "text",
             commonType: [],
-            selectedValue: "",  // Stores selected sub-control dropdown value
-            subFieldValue: ""   // Stores value for max_length or regex pattern
+            options: []
         };
-    
         formFields.push(newField);
         renderFormBuilder();
         renderFormPreview();
     }
+    
 
     {% endif %}
 

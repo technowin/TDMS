@@ -71,11 +71,6 @@
 
           </div>
             
-
-        {% comment %} {% elif field.field_type == "file" %}
-            <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control custom-file-input"
-                {% for attr in field.attributes %} {{ attr }} {% endfor %}> {% endcomment %}
-
         {% elif field.field_type == "file multiple" %}
         <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
             <input type="file" accept="{{ field.accept }}" multiple name="field_{{ field.id }}" class="form-control custom-file-input"  style="padding-right: 100px;"
