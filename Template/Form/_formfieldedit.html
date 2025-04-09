@@ -29,8 +29,8 @@
 <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;" >
 
 
+    <form id="dynamicForm" method="POST" action="" enctype="multipart/form-data">
 
-<form method="POST" action="{{ form_action_url }}" enctype="multipart/form-data">
 
 
         <div class="col-md-4">
@@ -97,12 +97,8 @@
                 {% comment %} <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control custom-file-input"
                     {% for attr in field.attributes %} {{ attr }} {% endfor %}> {% endcomment %}
                     <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
-                        <input type="file"
-                               accept="{{ field.accept }}"
-                               name="field_{{ field.id }}"
-                               class="form-control custom-file-input"
-                               style="padding-right: 100px;"
-                               id="file_input_{{ field.id }}"
+                        <input type="file" accept="{{ field.accept }}"  name="field_{{ field.id }}"
+                               class="form-control custom-file-input" style="padding-right: 100px;" id="file_input_{{ field.id }}"
                                {% for attr in field.attributes %} {{ attr }} {% endfor %}>
                     
                         <i class="fa-solid fa-eye eye-icon"
@@ -115,16 +111,9 @@
                     </div>
                     
             {% elif field.field_type == "file multiple" %}
-            {% comment %} <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control custom-file-input"
-                {% for attr in field.attributes %} {{ attr }} {% endfor %}> {% endcomment %}
                 <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
-                    <input type="file"
-                           accept="{{ field.accept }}"
-                           name="field_{{ field.id }}"
-                           multiple
-                           class="form-control custom-file-input"
-                           style="padding-right: 100px;"
-                           id="file_input_{{ field.id }}"
+                    <input type="file" accept="{{ field.accept }}"name="field_{{ field.id }}" multiple
+                           class="form-control custom-file-input"style="padding-right: 100px;" id="file_input_{{ field.id }}"
                            {% for attr in field.attributes %} {{ attr }} {% endfor %}>
                 
                     <i class="fa-solid fa-eye eye-icon"
@@ -141,12 +130,12 @@
 
 
             {% elif field.field_type == "textarea" %}
-                <textarea class="form-control custom-textarea" name="field_{{ field.id }}"
+                <textarea class="form-control custom-textarea" name="field_{{ field.id }}" rows="1" value={{ field.value }}
                     {% for attr in field.attributes %} {{ attr }} {% endfor %}>{{ field.value }}</textarea>
             
             {% elif field.field_type == "text" %}
-                <input type="text" class="form-control" name="field_{{ field.id }}" 
-                    {% if field.accept %} maxlength="{{ field.accept }}" {% endif %}
+                <input type="text" class="form-control" name="field_{{ field.id }}"  value="{{ field.value }}"
+                    {% if field.accept %} maxlength="{{ field.accept }}" {% endif %} 
                     placeholder="{% if field.accept %}Enter up to {{ field.accept }} characters{% else %}Enter text{% endif %}"
                     {% for attr in field.attributes %} {{ attr }} {% endfor %}>
                 
@@ -174,14 +163,16 @@
             {% endif %}
 
             {% if action.type == "button" %}
-                <button type="{{ action.button_type|default:'button' }}"
-                        class="btn w-100 mt-4" 
-                        style="background-color: {{ action.bg_color }}; color: {{ action.text_color }}; border-radius:15px;">
+            <button type="submit"
+                    data-button-type="{{ action.button_type|default:'button' }}"
+                    class="btn w-100 mt-4 submit-btn"
+                    style="background-color: {{ action.bg_color }}; color: {{ action.text_color }}; border-radius:15px;">
                     {{ action.button_name }}
                 </button>
+        
 
             {% elif action.type == "textarea" %}
-                <textarea class="form-control custom-textarea" name="action_field_{{ action.id }}" rows="2"></textarea>
+                <textarea class="form-control custom-textarea" name="action_field_{{ action.id }}" rows="1"></textarea>
 
             {% elif action.type == "text" %}
                 <input type="text" class="form-control" name="action_field_{{ action.id }}">
@@ -254,7 +245,7 @@
                                 <tr>
                                     <td style="padding: 8px;">${index + 1}</td>
                                     <td style="padding: 8px;">${file.name}</td>
-                                    <td style="padding: 8px;"><a href="${file.url}" download>Download</a></td>
+                                    <td style="padding: 8px;"><a href="${file.url}" download><i class="fa-solid fa-download"></i></a></td>
                                 </tr>
                             `;
                         });
@@ -333,6 +324,26 @@
     
 
   
+</script>
+
+<script>
+
+        document.querySelectorAll('.submit-btn').forEach(button => {
+            button.addEventListener('click', function (e) {
+                const form = document.getElementById('dynamicForm');
+                const buttonType = this.getAttribute('data-button-type');
+    
+                if (buttonType === 'Submit') {
+                    form.action = "{% url 'common_form_post' %}";
+                } else if (buttonType === 'Action') {
+                    form.action = "{% url 'common_form_action' %}";
+                }
+    
+                // optional: if you want to submit the form manually
+                // form.submit();
+            });
+        });
+    
 </script>
 
 {% if messages %}

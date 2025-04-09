@@ -887,14 +887,7 @@ def form_preview(request):
         for action in action_fields:
             action["dropdown_values"] = action["dropdown_values"].split(",") if action["dropdown_values"] else []
 
-            # Set form_action_url based on button_type (first matched)
-            if action["type"] == "button":
-                if action["button_type"] == "Submit":
-                    form_action_url = reverse('common_form_post')
-                    break
-                elif action["button_type"] == "Action":
-                    form_action_url = reverse('common_form_action')
-                    break
+           
 
         # Process form fields
         for field in fields:
@@ -916,7 +909,6 @@ def form_preview(request):
             "fields": fields,
             "form":form,
             "action_fields": action_fields,
-            "form_action_url": form_action_url,
             "type":"create"
         })
 
@@ -928,7 +920,7 @@ def form_preview(request):
 
 def common_form_action(request):
     try:
-        form_data_id = get_object_or_404(id = 1)
+        form_data_id = get_object_or_404(FormData,id = 1)
         
     except Exception as e:
         traceback.print_exc()

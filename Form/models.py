@@ -232,6 +232,7 @@ class FormFile(models.Model):
 
 class FormData(models.Model):
     form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_data_id')
+    action = models.ForeignKey('Form.FormAction',null=True, blank=True, on_delete=models.CASCADE, related_name='form_action_id')
     req_no = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
@@ -253,7 +254,6 @@ class AttributeMaster(models.Model):
 class ActionData(models.Model):
     value = models.TextField(null=True, blank=True)
     form_data = models.ForeignKey('Form.FormData',null=True, blank=True, on_delete=models.CASCADE, related_name='action_data_id')
-    form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='action_data_id')
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
