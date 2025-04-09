@@ -126,8 +126,6 @@
                 </div>
                       
                      
-        
-
 
             {% elif field.field_type == "textarea" %}
                 <textarea class="form-control custom-textarea" name="field_{{ field.id }}" rows="1" value={{ field.value }}
@@ -164,12 +162,14 @@
 
             {% if action.type == "button" %}
             <button type="submit"
+                    name="button_type"
+                    value="{{ action.button_type|default:'button' }}"
                     data-button-type="{{ action.button_type|default:'button' }}"
                     class="btn w-100 mt-4 submit-btn"
                     style="background-color: {{ action.bg_color }}; color: {{ action.text_color }}; border-radius:15px;">
-                    {{ action.button_name }}
-                </button>
-        
+                {{ action.button_name }}
+            </button>
+    
 
             {% elif action.type == "textarea" %}
                 <textarea class="form-control custom-textarea" name="action_field_{{ action.id }}" rows="1"></textarea>

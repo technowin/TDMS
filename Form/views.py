@@ -601,23 +601,25 @@ def form_master(request):
             return render(request, "Form/_formfields.html", {"fields": fields})
         
         else:
+        
             form_data_id = request.GET.get("form")
 
-            if form_data_id:
-                form_data_id = dec(form_data_id)
-                form_instance = FormData.objects.filter(id=form_data_id).values("id","form_id").first()
-                if form_instance:
-                    form_id = form_instance["form_id"]
-                    fields = FormField.objects.filter(form_id=form_id).values(
-                        "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name"
-                    )
-                    fields = list(fields)
+        if form_data_id:
+            form_data_id = dec(form_data_id)
+            form_instance = FormData.objects.filter(id=form_data_id).values("id", "form_id", "action_id").first()
+            
+            if form_instance:
+                form_id = form_instance["form_id"]
+                action_id = form_instance["action_id"]
 
+                # Fetch fields from the form
+                fields = FormField.objects.filter(form_id=form_id).values(
+                    "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name",
+                )
+                fields = list(fields)
 
                 # Fetch saved values for the form data
                 field_values = FormFieldValues.objects.filter(form_data_id=form_data_id).values("field_id", "value")
-
-                # Convert to a dictionary for quick lookup
                 values_dict = {fv["field_id"]: fv["value"] for fv in field_values}
 
                 for field in fields:
@@ -629,18 +631,27 @@ def form_master(request):
                     field["validations"] = list(validations)
 
                     # Extract file format for file fields
-                    if field["field_type"] == "file":
-                        file_validation = next((v for v in field["validations"]), None)
-                        field["accept"] = file_validation["value"] if file_validation else ""
-
-                    if field["field_type"] == "file multiple":
+                    if field["field_type"] in ["file", "file multiple"]:
                         file_validation = next((v for v in field["validations"]), None)
                         field["accept"] = file_validation["value"] if file_validation else ""
 
                     # Set existing values if available
                     field["value"] = values_dict.get(field["id"], "")
 
-                return render(request, "Form/_formfieldedit.html", {"fields": fields,"type":"edit","form_data_id":form_data_id})
+                # ✅ Fetch action fields (no validations needed)
+                action_fields = list(FormActionField.objects.filter(action_id=action_id).values(
+                    "id", "type", "label_name", "button_name", "bg_color", "text_color", 
+                    "button_type", "dropdown_values", "status"
+                ))
+                action_fields = list(action_fields)
+
+                for af in action_fields:
+                    af["dropdown_values"] = af["dropdown_values"].split(",") if af.get("dropdown_values") else []
+
+        # Now you can return or use both `fields` and `action_fields` as needed
+
+
+                return render(request, "Form/_formfieldedit.html", {"fields": fields,"action_fields":action_fields,"type":"edit","form_data_id":form_data_id})
             else:
                 type = request.GET.get("type")
                 form = Form.objects.all()
@@ -657,27 +668,34 @@ def common_form_post(request):
     try:
         if request.method != "POST":
             return JsonResponse({"error": "Invalid request method"}, status=400)
-
+        
         created_by = request.session.get('user_id', '').strip()
         form_name = request.POST.get('form_name', '').strip()
 
-        # Get form ID
         form_id_key = next((key for key in request.POST if key.startswith("form_id_")), None)
         if not form_id_key:
             return JsonResponse({"error": "Form ID not found"}, status=400)
+        
+        action_id_key = next((key for key in request.POST if key.startswith("action_field_id_")), None)
+        if not action_id_key:
+            return JsonResponse({"error": "Form ID not found"}, status=400)
+        
 
         form_id = request.POST.get(form_id_key, '').strip()
         form = get_object_or_404(Form, id=form_id)
 
+        action_id = request.POST.get(action_id_key, '').strip()
+        action = get_object_or_404(FormAction,id = action_id )
+
         # Create FormData entry
-        form_data = FormData.objects.create(form=form)
+        form_data = FormData.objects.create(form=form,action=action)
         form_data.req_no = f"REQNO-00{form_data.id}"
         form_data.created_by = user
         form_data.save()
 
         saved_values = []
         file_records = []
-        field_value_map = {}  # Map to store field_id -> FormFieldValues instance
+        field_value_map = {} 
 
         # Process each field
         for key, value in request.POST.items():
@@ -862,7 +880,7 @@ def form_preview(request):
     id = dec(id)  
 
     if not id:
-        return render(request, "Form/_formfields.html", {"fields": []})  # fallback or error
+        return render(request, "Form/_formfields.html", {"fields": []})  
 
     try:
         workflow = get_object_or_404(workflow_matrix, id=id)
@@ -887,8 +905,6 @@ def form_preview(request):
         for action in action_fields:
             action["dropdown_values"] = action["dropdown_values"].split(",") if action["dropdown_values"] else []
 
-           
-
         # Process form fields
         for field in fields:
             field["values"] = field["values"].split(",") if field.get("values") else []
@@ -906,6 +922,7 @@ def form_preview(request):
                 field["accept"] = file_validation["value"] if file_validation else ""
 
         return render(request, "Form/_formfieldedit.html", {
+            "matrix_id":id,
             "fields": fields,
             "form":form,
             "action_fields": action_fields,
@@ -920,14 +937,47 @@ def form_preview(request):
 
 def common_form_action(request):
     try:
-        form_data_id = get_object_or_404(FormData,id = 1)
-        
+        form_data_id = request.POST.get("form_data_id")
+        user = request.session.get('user_id', '')
+
+        if not form_data_id:
+            messages.error(request, "Form data ID is missing.")
+            return render(request, "Form/_formfields.html", {"fields": []})
+
+        # 1. Save only non-empty input fields
+        for key, value in request.POST.items():
+            if key.startswith("action_field_") and value.strip():
+                ActionData.objects.create(
+                    value=value.strip(),
+                    form_data_id=form_data_id,
+                    created_by=user,
+                    updated_by=user
+                )
+
+        # 2. Save the clicked action button name as status
+        clicked_button = request.POST.get("clicked_action")
+        if clicked_button:
+            ActionData.objects.create(
+                value=clicked_button,  # this is the status
+                form_data_id=form_data_id,
+                created_by=user,
+                updated_by=user
+            ) # assuming only one action button is clicked
+
+        messages.success(request, "Action data saved successfully!")
+
     except Exception as e:
         traceback.print_exc()
         messages.error(request, "Oops...! Something went wrong!")
-        return render(request, "Form/_formfields.html", {"fields": []})
 
-    return
+        messages.success(request, "Action data saved successfully!")
+        new_url = f'/masters?entity=wfseq&type=i'
+        return redirect(new_url)
+
+    except Exception as e:
+        traceback.print_exc()
+        return render
+
 
 def download_file(request, filepath):
     full_path = os.path.join(settings.MEDIA_ROOT, filepath)
