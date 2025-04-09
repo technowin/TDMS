@@ -3,23 +3,10 @@
 {% block content %}
 {% load static %}
 {% csrf_token %}
-<link href="{% static 'css/masters.css' %}" rel="stylesheet" type="text/css">
-<link href="{% static 'css/table.css' %}" rel="stylesheet" type="text/css">
-<link href="{% static 'css/activebtn.css' %}" rel="stylesheet" type="text/css">
-<link rel="stylesheet" type="text/css" href="{% static 'css/tooltips.css' %}">
 
-<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
-
-<!-- Include DataTables CSS -->
-<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.min.css">
-<!-- Include DataTables JS -->
-<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
-
-<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
-
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+<style>
+  
+</style>
 
 {% if type == "edit"%}
 <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;" >
@@ -75,12 +62,29 @@
             </label>
 
         {% elif field.field_type == "file" %}
+        <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
+            <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control custom-file-input"  style="padding-right: 100px;"
+                   {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+
+                   <i class="fa-solid fa-eye eye-icon" 
+                    onclick="showScript({{ form_data_id }}, {{ field.id }})"></i>
+
+          </div>
+            
+
+        {% comment %} {% elif field.field_type == "file" %}
             <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control custom-file-input"
-                {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                {% for attr in field.attributes %} {{ attr }} {% endfor %}> {% endcomment %}
 
         {% elif field.field_type == "file multiple" %}
-            <input type="file" accept="{{ field.accept }}" multiple name="field_{{ field.id }}" class="form-control custom-file-input"
-                 {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+        <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
+            <input type="file" accept="{{ field.accept }}" multiple name="field_{{ field.id }}" class="form-control custom-file-input"  style="padding-right: 100px;"
+                   {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+
+                   <i class="fa-solid fa-eye eye-icon" 
+                    onclick="showScript({{ form_data_id }}, {{ field.id }})"></i>
+
+          </div>
 
         {% elif field.field_type == "textarea" %}
             <textarea class="form-control custom-textarea" name="field_{{ field.id }}"
@@ -103,24 +107,32 @@
 {% endif%}
 
 
-
 <script>
-        $(document).ready(function() {
-            $('.select_multiple').selectize({
-                plugins: ['remove_button'],
-                delimiter: ',',
-                persist: false,
-                create: false,
-                selectOnTab: false, 
-                maxItems: null,
-                onInitialize: function() {
-                    var control = this;
-                    control.clear();
+
+        document.addEventListener('DOMContentLoaded', function () {
+            const fileInput = document.getElementById('fileInput_{{ field.id }}');
+            const fileNameText = document.getElementById('fileName_{{ field.id }}');
+            const previewBtn = document.getElementById('previewBtn_{{ field.id }}');
+    
+            // Show file name after selecting
+            fileInput.addEventListener('change', function () {
+                if (fileInput.files.length > 0) {
+                    fileNameText.textContent = fileInput.files[0].name;
+                } else {
+                    fileNameText.textContent = 'No file chosen';
+                }
+            });
+    
+            // Show file on eye icon click
+            previewBtn.addEventListener('click', function () {
+                if (fileInput.files.length > 0) {
+                    const fileURL = URL.createObjectURL(fileInput.files[0]);
+                    window.open(fileURL, '_blank');
+                } else {
+                    alert('No file selected to preview.');
                 }
             });
         });
-    
-
     
 </script>
 

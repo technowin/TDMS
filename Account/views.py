@@ -83,27 +83,36 @@ def logoutView(request):
     return redirect("Account")  
 
 def register_new_user(request):
+    Db.closeConnection()
+    m = Db.get_connection()
+    cursor=m.cursor()
     if request.method=="GET":
-        id = request.GET.get('id', '0')
-        roles = callproc("stp_get_dropdown_values",['roles'])
-       
-        
+        id = request.GET.get('id', '')
+        cursor.callproc("stp_get_dropdown_values",['roles'])
+        for result in cursor.stored_results():
+            roles = list(result.fetchall())
+
         if id != '0':
             id1 = dec(id)
             users = get_object_or_404(CustomUser, id=id1)
             full_name = users.full_name.split(" ", 1) 
             first_name = full_name[0] 
             last_name = full_name[1] if len(full_name) > 1 else ""  
+
+
             context = {'users':users,'first_name':first_name,'last_name':last_name,'roles':roles}
-            
+           
         else:
-            context = {'id':id,'roles': roles,}
-        return render(request,'Account/register_new_user.html',context)
+
+            context = {'id':id,'roles': roles}
+
 
     if request.method == "POST":
         id = request.POST.get('id', '')
         try:  
-            if id == '0':                
+            if id == '0':
+               # Extract data from the request
+                
                 firstname = request.POST.get('firstname')
                 lastname = request.POST.get('lastname')
                 email = request.POST.get('email')
@@ -111,42 +120,32 @@ def register_new_user(request):
                 phone = request.POST.get('mobileNumber')
                 role_id = request.POST.get('role_id')
                 full_name = f"{firstname} {lastname}"
-                existing_user = CustomUser.objects.filter(email=email, phone=phone, role_id=role_id).exists()
-                if existing_user:
-                    messages.error(request, "A user with the same email, phone, and role already exists.")
-                    return redirect('/register_new_user?id=0')
-                else:
-                    from django.db import transaction
 
-                    user = CustomUser(
-                        full_name=full_name,email=email,phone=phone,role_id=role_id
+                user = CustomUser(
+                    full_name=full_name, email=email, phone=phone,
+                    role_id=role_id,
+                )
+                user.username = user.email
+                user.is_active = True 
+                try:
+                    validate_password(password, user=user)
+                    user.set_password(password)
+                    user.save()
+                    password_storage.objects.create(user=user, passwordText=password)
+                    assigned_menus = RoleMenuMaster.objects.filter(role_id=role_id)
+
+                # Insert assigned menus into userMenuMaster1
+                    for menu in assigned_menus:
+                        UserMenuDetails.objects.create(
+                            user_id=user.id,
+                            menu_id=menu.menu_id,
+                            role_id=role_id
                     )
-                    user.username = user.email
-                    user.is_active = True 
-                    try:
-                        validate_password(password, user=user)
-                        user.set_password(password)
-                        if existing_user:
-                            user = CustomUser.objects.get(email=email, phone=phone, role_id=role_id)
-                            user_id = user.id
-                        else:
-                            with transaction.atomic(using='default'):
-                                user.save(using='default') 
-                                password_storage.objects.using('default').create(user=user, passwordText=password)
-                            user_id = user.id
-                       
-                        assigned_menus = RoleMenuMaster.objects.filter(role_id=role_id)
-                        for menu in assigned_menus:
-                            UserMenuDetails.objects.create(
-                                user_id=user.id,
-                                menu_id=menu.menu_id,
-                                role_id=role_id
-                        )
 
-                        messages.success(request, "User registered successfully!")
+                    messages.success(request, "User registered successfully!")
 
-                    except ValidationError as e:
-                        messages.error(request, ' '.join(e.messages))
+                except ValidationError as e:
+                    messages.error(request, ' '.join(e.messages))
                     
             else:
                 firstname = request.POST.get('firstname')
@@ -163,16 +162,33 @@ def register_new_user(request):
                 user.role_id = role_id
                 user.save()
 
+                UserMenuDetails.objects.filter(user_id=user.id).delete()
+
+                # Fetch the menus for the new role
+                assigned_menus = RoleMenuMaster.objects.filter(role_id=role_id)
+
+                # Assign the new menus to the user
+                for menu in assigned_menus:
+                    UserMenuDetails.objects.create(
+                        user_id=user.id,
+                        menu_id=menu.menu_id,
+                        role_id=role_id
+                    )
+
                 messages.success(request, "User details updated successfully!")
-            return redirect('/masters?entity=user&type=i')
 
         except Exception as e:
             tb = traceback.extract_tb(e.__traceback__)
             fun = tb[0].name
-            callproc("stp_error_log",[fun,str(e),request.user.id])  
+            cursor.callproc("stp_error_log",[fun,str(e),request.user.id])  
             print(f"error: {e}")
             messages.error(request, 'Oops...! Something went wrong!')
             response = {'result': 'fail','messages ':'something went wrong !'}   
+
+    if request.method=="GET":
+        return render(request,'Account/register_new_user.html',context)
+    elif request.method == "POST":
+        return redirect('/masters?entity=user&type=i')  
 
 def forgot_password(request):
     try:

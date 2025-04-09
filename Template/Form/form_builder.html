@@ -19,6 +19,7 @@
  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+
  <!-- Selectize.js CSS -->
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <!-- Selectize.js JS -->
@@ -31,7 +32,7 @@
         {% csrf_token %}
         <div class="col-md-4">
             <label>Form Name:</label>
-            <input type="text" placeholder="Enter Form Name" class="form-control" name="form_name" value="{{ form.name }}" required>
+            <input type="text" onchange="DublicateformName()" placeholder="Enter Form Name" class="form-control" name="form_name" id="form_name" value="{{ form.name }}" required>
         </div>
 
         <div class="col-md-4">
@@ -49,7 +50,7 @@
     </form>
 
     <br> 
-    <div class="row" style="padding: 20px; border: 2px solid #b3b3b3; border-radius: 15px;">
+    <div class="row" >
         <div class="col-md-8">
             <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px;">
                 <h2 style="text-align:center; font-weight:600; color:black">
@@ -232,7 +233,7 @@
                 <div class="col-md-2 mb-3">
                     <input class="form-control" type="text" 
                         value="${field.label}" 
-                        onchange="this.value = this.value.replace(/[^a-zA-Z0-9 ]/g, ''); updateField(${fieldId}, 'label', this.value)">
+                        onchange="validateAndUpdateLabel(this, ${fieldId})">
                 </div>
 
                 <div class="col-md-2 mb-3">
@@ -312,14 +313,9 @@
     
         if (selectedValue === "max_length") {
             dynamicElement.innerHTML = `
-                <input type="number"
-                       class="form-control"
-                       id="max-length-${fieldId}"
-                       placeholder="Max Characters"
-                       title="Max Characters"
-                       value="${savedValue}" 
-                       oninput="updateSubField(${fieldId}, 'max_length', this.value, ${subControlId})">
-            `;
+                <input type="number" class="form-control" id="max-length-${fieldId}" placeholder="Max Characters" title="Max Characters"
+                       value="${savedValue}" oninput="updateSubField(${fieldId}, 'max_length', this.value, ${subControlId})">
+                       `;
         }
          else if (selectedValue === "regex") {
             let regexOptions = `<option value="">Select Pattern</option>` +
@@ -330,7 +326,7 @@
                 ).join("");
     
             dynamicElement.innerHTML = `
-                <select class="form-control" id="regex-${fieldId}" onchange="updateSubField(${fieldId}, 'regex', this.value, ${subControlId})">
+                <select class="form-control select" id="regex-${fieldId}" onchange="updateSubField(${fieldId}, 'regex', this.value, ${subControlId})">
                     ${regexOptions}
                 </select>
             `;
@@ -575,6 +571,74 @@
         renderFormBuilder();
         renderFormPreview();
     });
+</script>
+
+
+<script>
+
+Sortable.create(builder, {
+    animation: 150,
+    ghostClass: 'sortable-ghost',
+    handle: '.form-builder-item', // optional
+    onEnd: function (evt) {
+        const items = builder.querySelectorAll('.form-builder-item');
+        const newOrder = Array.from(items).map(item => parseInt(item.getAttribute("data-id")));
+        
+        // Reorder formFields array based on newOrder
+        formFields.sort((a, b) => {
+            return newOrder.indexOf(a.id) - newOrder.indexOf(b.id);
+        });
+
+        // Optionally re-render after sorting
+        renderFormBuilder();
+    }
+});
+</script>
+
+<script>
+
+    function DublicateformName() {
+        var form_name = $('#form_name').val();
+        $.ajax({
+            url: "{% url 'get_dublicate_name' %}",
+            type: 'POST',
+            data: {
+                form_name: form_name,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.exists) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Duplicate Form Name',
+                        text: 'This form name already exists. Please choose a different name.'
+                    });
+                }
+            }
+        });
+    }
+
+    function validateAndUpdateLabel(inputElement, fieldId) {
+        debugger;
+    let newLabel = inputElement.value.replace(/[^a-zA-Z0-9 ]/g, '').trim();
+    
+    // Check for duplicates (excluding current field)
+    let isDuplicate = formFields.some(field => field.id !== fieldId && field.label.toLowerCase() === newLabel.toLowerCase());
+
+    if (isDuplicate) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Duplicate Label',
+            text: `A field with the label "${newLabel}" already exists.`,
+        });
+        inputElement.value = ""; // Clear the input
+        return;
+    }
+
+    updateField(fieldId, 'label', newLabel);
+}
+
+    
 </script>
 
 

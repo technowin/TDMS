@@ -59,6 +59,12 @@ def format_label_name(parameter_name):
     """Convert parameter name to a proper label format."""
     return " ".join(re.findall(r'[A-Za-z]+', parameter_name)).title()
 
+def get_dublicate_name(request):
+    if request.method == 'POST':
+        form_name = request.POST.get('form_name')
+        exists = Form.objects.filter(name=form_name).exists()  
+        return JsonResponse({'exists': exists})
+    return JsonResponse({'error': 'Invalid request'}, status=400)
 
 def form_builder(request):
     form_id = request.GET.get('form_id')
@@ -142,7 +148,6 @@ def save_form(request):
             form_name = request.POST.get("form_name")
             form_description = request.POST.get("form_description")
             form_data_json = request.POST.get("form_data")
-            index = 0 
 
             if not form_data_json:
                 return JsonResponse({"error": "No form data received"}, status=400)
@@ -154,18 +159,24 @@ def save_form(request):
 
             
             form = Form.objects.create(name=form_name, description=form_description)
+            index = 0
 
-            for field in form_data:
+            for  index,field in enumerate(form_data):
+               
                 
+                formatted_label = format_label(field.get("label", ""))
+
                 form_field = FormField.objects.create(
                     form=form,
-                    label=field.get("label", ""),
+                    label=formatted_label,  # Use formatted label here
                     field_type=field.get("type", ""),
                     attributes=field.get("attributes", ""),
                     values=",".join(option.strip() for option in field.get("options", [])),
-                    order = index + 1
+                    created_by=request.session.get('user_id', '').strip(),
+                    order=index + 1
                 )
                 field_id = form_field.id
+
 
                
                 # Handle regex & max_length validation separately
@@ -180,7 +191,8 @@ def save_form(request):
                                 field=get_object_or_404(FormField, id=field_id),
                                 form=get_object_or_404(Form, id=form.id),
                                 sub_master_id=sub_master_id,  # Save regex/max_length master ID
-                                value=validation_value,  # Save regex pattern or max_length
+                                value=validation_value,
+                                created_by = request.session.get('user_id', '').strip()  # Save regex pattern or max_length
                             )
 
 
@@ -199,7 +211,8 @@ def save_form(request):
                             field=get_object_or_404(FormField, id=field_id),
                             form=get_object_or_404(Form, id=form.id),
                             sub_master_id=sub_master_id,  # Save only the ID
-                            value=file_validation_value,  # Save only ".jpg, .jpeg, .png"
+                            value=file_validation_value,
+                            created_by = request.session.get('user_id', '').strip()
                         )
 
                 if field.get("type") == "file multiple" and "validation" in field:
@@ -215,6 +228,7 @@ def save_form(request):
                                 form=get_object_or_404(Form, id=form.id),
                                 sub_master_id=sub_master_id,
                                 value=file_validation_value,
+                                created_by = request.session.get('user_id', '').strip()
                             )
 
 
@@ -237,6 +251,7 @@ def save_form(request):
 
 @csrf_exempt
 def update_form(request, form_id):
+    user = request.session.get('user_id', '')
     try:
         if request.method == "POST":
             form_name = request.POST.get("form_name")
@@ -255,22 +270,29 @@ def update_form(request, form_id):
             form = get_object_or_404(Form, id=form_id)
             form.name = form_name
             form.description = form_description
+            updated_by = request.session.get('user_id', '').strip()
             form.save()
 
             # Delete existing form fields and validations
             FormField.objects.filter(form=form).delete()
             FieldValidation.objects.filter(form=form).delete()
+            index = 0
 
-            for field in form_data:
+            for index,field in enumerate(form_data):
                 # ✅ Ensure attributes are stored correctly
                 attributes_value = field.get("attributes", "")
 
+                formatted_label = format_label(field.get("label", ""))
+                
                 form_field = FormField.objects.create(
                     form=form,
-                    label=field.get("label", ""),
+                    label=formatted_label,
                     field_type=field.get("type", ""),
-                    attributes=attributes_value,  # ✅ Fixed attribute storage
+                    attributes=attributes_value,  
                     values=",".join(option.strip() for option in field.get("options", [])),
+                    order = index + 1,
+                    created_by = user,
+                    updated_by = user
                 )
 
                 field_id = form_field.id
@@ -287,7 +309,10 @@ def update_form(request, form_id):
                                 field=get_object_or_404(FormField, id=field_id),
                                 form=get_object_or_404(Form, id=form.id),
                                 sub_master_id=sub_master_id,  # Save regex/max_length master ID
-                                value=validation_value,  # Save regex pattern or max_length
+                                value=validation_value, 
+                                created_by = user,
+                                updated_by = user
+                                  # Save regex pattern or max_length
                             )
                 if field.get("type") == "file" and "validation" in field:
                     file_validation_list = field["validation"]  # This is a list
@@ -303,7 +328,9 @@ def update_form(request, form_id):
                             field=get_object_or_404(FormField, id=field_id),
                             form=get_object_or_404(Form, id=form.id),
                             sub_master_id=sub_master_id,  # Save only the ID
-                            value=file_validation_value,  # Save only ".jpg, .jpeg, .png"
+                            value=file_validation_value, 
+                            created_by = user,
+                            updated_by = user # Save only ".jpg, .jpeg, .png"
                         )
 
                 if field.get("type") == "file multiple" and "validation" in field:
@@ -320,7 +347,9 @@ def update_form(request, form_id):
                             field=get_object_or_404(FormField, id=field_id),
                             form=get_object_or_404(Form, id=form.id),
                             sub_master_id=sub_master_id,  # Save only the ID
-                            value=file_validation_value,  # Save only ".jpg, .jpeg, .png"
+                            value=file_validation_value,
+                            created_by = user,
+                            updated_by = user
                         )
 
             messages.success(request, "Form updated successfully!!")
@@ -337,7 +366,7 @@ def update_form(request, form_id):
 def form_action_builder(request):
     action_id = request.GET.get('action_id')
     master_values = FormAction.objects.filter(is_master = 1).all()
-    button_type = list(CommonMaster.objects.filter(type='button').values("id", "control_value"))
+    button_type = list(CommonMaster.objects.filter(type='button').values("control_value"))
     dropdown_options = list(ControlParameterMaster.objects.filter(is_action=1).values("control_name", "control_value"))
 
     if not action_id:  
@@ -402,7 +431,7 @@ def save_form_action(request):
                 return JsonResponse({"error": "Invalid JSON data"}, status=400)
 
             
-            form_action = FormAction.objects.create(name=form_name,is_master= form_master)
+            form_action = FormAction.objects.create(name=form_name,is_master= form_master,created_by = user)
 
 
             for field in form_data:
@@ -420,7 +449,9 @@ def save_form_action(request):
                     button_name= None
                     bg_color = None
                     text_color = None
-                    status = None
+                    status = field.get("status", None)
+                    if status in ["", "[]", [], {}, None]:
+                        status = None
                     
 
                 # Create the form field entry
@@ -431,9 +462,10 @@ def save_form_action(request):
                     button_name= button_name,
                     bg_color=bg_color,
                     text_color=text_color,
-                    button_type=field.get("buttonType", ""),
+                    button_type=field.get("button_type", ""),
                     status=status,
-                    dropdown_values=",".join(option.strip() for option in field.get("options", []))
+                    dropdown_values=",".join(option.strip() for option in field.get("options", [])),
+                    created_by = user
                 )
 
             messages.success(request, "Form Action and fields saved successfully!!")
@@ -476,6 +508,7 @@ def update_action_form(request, form_id):
 
             form_action.name = form_name
             form_action.is_master = form_master
+            form_action.updated_by= user
             form_action.save()
 
             # Delete existing form fields for this action
@@ -496,7 +529,10 @@ def update_action_form(request, form_id):
                     button_name = None
                     bg_color = None
                     text_color = None
-                    status = None
+                    status = field.get("status", None)
+                    if status in ["", "[]", [], {}, None]:
+                        status = None
+                    
 
                 # Create the form field entry
                 FormActionField.objects.create(
@@ -506,9 +542,11 @@ def update_action_form(request, form_id):
                     button_name=button_name,
                     bg_color=bg_color,
                     text_color=text_color,
-                    button_type=field.get("buttonType", ""),
+                    button_type=field.get("button_type", ""),
                     status=status,
-                    dropdown_values=",".join(option.strip() for option in field.get("options", []))
+                    dropdown_values=",".join(option.strip() for option in field.get("options", [])),
+                    updated_by = user,
+                    created_by = user
                 )
 
             messages.success(request, "Form Action and fields Updated successfully!!")
@@ -615,6 +653,7 @@ def form_master(request):
     
 
 def common_form_post(request):
+    user = request.session.get('user_id', '')
     try:
         if request.method != "POST":
             return JsonResponse({"error": "Invalid request method"}, status=400)
@@ -633,6 +672,7 @@ def common_form_post(request):
         # Create FormData entry
         form_data = FormData.objects.create(form=form)
         form_data.req_no = f"REQNO-00{form_data.id}"
+        form_data.created_by = user
         form_data.save()
 
         saved_values = []
@@ -670,9 +710,11 @@ def common_form_post(request):
                 os.makedirs(file_dir, exist_ok=True)
 
                 # Loop through files (whether single or multiple)
+                form_file_ids = []
+
                 for uploaded_file in uploaded_files:
                     original_file_name, file_extension = os.path.splitext(uploaded_file.name.strip())
-                    timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')  # microsecond to avoid clashes
+                    timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
                     saved_file_name = f"{original_file_name}_{timestamp}{file_extension}"
 
                     # Save file
@@ -682,21 +724,25 @@ def common_form_post(request):
                     # Generate file path
                     file_path = os.path.join(form_name, created_by, form_data.req_no, saved_file_name)
 
-                    # Insert into FormFile
+                    # Create FormFile entry
                     form_file = FormFile.objects.create(
                         file_name=saved_file_name,
                         uploaded_name=uploaded_file.name.strip(),
-                        file_id=form_field_value.id,  # Link with FormFieldValues
+                        file_id=form_field_value.id,
                         file_path=file_path,
+                        created_by=user,
                         form_data=form_data,
                         form=form,
                         field=field
                     )
 
-                    # If only one file is allowed per field, you may overwrite the value
-                    # Otherwise, you can store as a list or last uploaded (based on your design)
-                    form_field_value.value = str(form_file.id)
-                    form_field_value.save()
+
+                    form_file_ids.append(str(form_file.id))
+
+                # Save comma-separated list of file IDs
+                form_field_value.value = ",".join(form_file_ids)
+                form_field_value.save()
+
 
 
         messages.success(request, "Form data saved successfully!")
@@ -710,6 +756,7 @@ def common_form_post(request):
 
 
 def common_form_edit(request):
+    user = request.session.get('user_id', '')
     try:
         if request.method != "POST":
             return JsonResponse({"error": "Invalid request method"}, status=400)
@@ -726,6 +773,7 @@ def common_form_edit(request):
         if form_id_key:
             form_id = request.POST.get(form_id_key, "").strip()
             form_data.form_id = form_id
+            form_data.updated_by = user
             form_data.save()
 
         # Delete existing records in related tables
@@ -790,6 +838,8 @@ def common_form_edit(request):
                     file_path=file_path,
                     form_data=form_data,
                     form=form_data.form,
+                    created_by= user,
+                    updated_by = user,
                     field=field
                 )
 
@@ -832,6 +882,7 @@ def form_preview(request):
             "button_type", "dropdown_values", "status"
         ))
 
+
         # Process action fields
         for action in action_fields:
             action["dropdown_values"] = action["dropdown_values"].split(",") if action["dropdown_values"] else []
@@ -865,7 +916,8 @@ def form_preview(request):
             "fields": fields,
             "form":form,
             "action_fields": action_fields,
-            "form_action_url": form_action_url
+            "form_action_url": form_action_url,
+            "type":"create"
         })
 
     except Exception as e:
@@ -878,11 +930,44 @@ def common_form_action(request):
     try:
         form_data_id = get_object_or_404(id = 1)
         
-
-
     except Exception as e:
         traceback.print_exc()
         messages.error(request, "Oops...! Something went wrong!")
         return render(request, "Form/_formfields.html", {"fields": []})
 
     return
+
+def download_file(request, filepath):
+    full_path = os.path.join(settings.MEDIA_ROOT, filepath)
+    if os.path.exists(full_path):
+        return FileResponse(open(full_path, 'rb'), as_attachment=True)
+    raise Http404()
+
+def get_uploaded_files(request):
+    try:
+        field_id = request.POST.get("field_id")
+        form_data_id = request.POST.get("form_data_id")
+
+        files = FormFile.objects.filter(
+            field_id=field_id,
+            form_data_id=form_data_id
+        )
+
+        file_list = []
+        for f in files:
+            if f.file_path:
+                # Correctly build the URL for the file
+                file_url = settings.MEDIA_URL + f.file_path
+            else:
+                file_url = '#'
+
+            file_list.append({
+                'name': f.uploaded_name,
+                'url': file_url
+            })
+
+        return JsonResponse({'files': file_list})
+
+    except Exception as e:
+        traceback.print_exc()
+        return JsonResponse({'error': 'Something went wrong while fetching files'}, status=500)
