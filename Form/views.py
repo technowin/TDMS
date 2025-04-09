@@ -930,8 +930,6 @@ def common_form_action(request):
     try:
         form_data_id = get_object_or_404(id = 1)
         
-
-
     except Exception as e:
         traceback.print_exc()
         messages.error(request, "Oops...! Something went wrong!")
