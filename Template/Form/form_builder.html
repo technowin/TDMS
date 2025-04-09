@@ -32,7 +32,7 @@
         {% csrf_token %}
         <div class="col-md-4">
             <label>Form Name:</label>
-            <input type="text" placeholder="Enter Form Name" class="form-control" name="form_name" value="{{ form.name }}" required>
+            <input type="text" onchange="DublicateformName()" placeholder="Enter Form Name" class="form-control" name="form_name" id="form_name" value="{{ form.name }}" required>
         </div>
 
         <div class="col-md-4">
@@ -233,7 +233,7 @@
                 <div class="col-md-2 mb-3">
                     <input class="form-control" type="text" 
                         value="${field.label}" 
-                        onchange="this.value = this.value.replace(/[^a-zA-Z0-9 ]/g, ''); updateField(${fieldId}, 'label', this.value)">
+                        onchange="validateAndUpdateLabel(this, ${fieldId})">
                 </div>
 
                 <div class="col-md-2 mb-3">
@@ -593,6 +593,52 @@ Sortable.create(builder, {
         renderFormBuilder();
     }
 });
+</script>
+
+<script>
+
+    function DublicateformName() {
+        var form_name = $('#form_name').val();
+        $.ajax({
+            url: "{% url 'get_dublicate_name' %}",
+            type: 'POST',
+            data: {
+                form_name: form_name,
+                csrfmiddlewaretoken: '{{ csrf_token }}'
+            },
+            success: function(response) {
+                if (response.exists) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Duplicate Form Name',
+                        text: 'This form name already exists. Please choose a different name.'
+                    });
+                }
+            }
+        });
+    }
+
+    function validateAndUpdateLabel(inputElement, fieldId) {
+        debugger;
+    let newLabel = inputElement.value.replace(/[^a-zA-Z0-9 ]/g, '').trim();
+    
+    // Check for duplicates (excluding current field)
+    let isDuplicate = formFields.some(field => field.id !== fieldId && field.label.toLowerCase() === newLabel.toLowerCase());
+
+    if (isDuplicate) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Duplicate Label',
+            text: `A field with the label "${newLabel}" already exists.`,
+        });
+        inputElement.value = ""; // Clear the input
+        return;
+    }
+
+    updateField(fieldId, 'label', newLabel);
+}
+
+    
 </script>
 
 

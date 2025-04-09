@@ -59,6 +59,12 @@ def format_label_name(parameter_name):
     """Convert parameter name to a proper label format."""
     return " ".join(re.findall(r'[A-Za-z]+', parameter_name)).title()
 
+def get_dublicate_name(request):
+    if request.method == 'POST':
+        form_name = request.POST.get('form_name')
+        exists = Form.objects.filter(name=form_name).exists()  
+        return JsonResponse({'exists': exists})
+    return JsonResponse({'error': 'Invalid request'}, status=400)
 
 def form_builder(request):
     form_id = request.GET.get('form_id')
