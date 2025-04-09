@@ -27,25 +27,7 @@
 <script src="{% static 'js/selectize.min.js' %}"></script>
 
 <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;" >
-    <style>
-        .eye-icon {
-            color: #4e73df;
-            font-size: 25px;
-            position: absolute;
-            top: 50%;
-            right: 10px;
-            transform: translateY(-50%);
-            z-index: 2;
-            transition: all 0.3s ease;
-        }
-    
-        .eye-icon:hover {
-            font-size: 30px;
-            color: #1d4ed8; /* A bit brighter blue */
-            text-shadow: 0 0 8px rgba(66, 135, 245, 0.7); /* Glow effect */
-            cursor: pointer;
-        }
-    </style>
+
 
 
 <form method="POST" action="{{ form_action_url }}" enctype="multipart/form-data">
@@ -127,7 +109,7 @@
                            {% if type == "create" %}
                                onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
                            {% else %}
-                               onclick="showScript({{ form.id }}, {{ form_data_id }}, {{ field.id }})"
+                               onclick="showScript({{ form_data_id }}, {{ field.id }})"
                            {% endif %}>
                         </i>
                     </div>
@@ -149,7 +131,7 @@
                        {% if type == "create" %}
                            onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
                        {% else %}
-                           onclick="showScript({{ form.id }}, {{ form_data_id }}, {{ field.id }})"
+                           onclick="showScript( {{ form_data_id }}, {{ field.id }})"
                        {% endif %}>
                     </i>
                 </div>
