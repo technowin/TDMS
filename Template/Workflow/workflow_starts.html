@@ -1,0 +1,83 @@
+{% extends "Shared/Layout.html" %}
+{% block username %}{{ username }}{% endblock %}
+{% block content %}
+{% load static %}
+
+<link href="{% static 'css/masters.css' %}" rel="stylesheet">
+<link href="{% static 'css/table.css' %}" rel="stylesheet">
+<link href="{% static 'css/uploadExcel.css' %}" rel="stylesheet">
+<link href="{% static 'css/uploadModal.css' %}" rel="stylesheet">
+<link rel="stylesheet" href="{% static 'css/tooltips.css' %}">
+
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.min.css">
+<script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+
+<input type="hidden" id="form_idH" name="form_idH" value={{form_id}}>
+<input type="hidden" id="butType_idH" name="butType_idH" value={{but_type}}>
+<input type="hidden" id="butAct_idH" name="butAct_idH" value={{but_act}}>
+    <div class="card mb-4" style="padding: 10px;border: 2px solid #b3b3b3;border-radius: 15px;margin-left:0px;">
+    {% if step %}
+
+    <div class="text-center" style="margin-top:10px; margin-bottom: 10px">
+        <button class="btn btn-primary" style="margin-top:0px" onclick="startStep('{{ step.idEncrypt }}','{{ step.form_id }}', '{{ step.but_type }}', '{{ step.but_act }}')">
+            {{ step.step_name }}
+        </button>
+    </div>
+    {% else %}
+        <p class="text-center text-muted">No steps available for your role.</p>
+    {% endif %}
+
+
+    <table id="workflowTable" class="display" style="width:100%; border-radius: 12px; overflow: hidden;">
+        <thead style="background-color:#a9c7fc;">
+            <tr>
+                <th>Sr. No.</th>
+                <th>Step Name</th>
+                <th>Roles</th>
+                <th>Action</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for step in workflow_steps %}
+                {% if forloop.first %}
+                <tr>
+                    <td>{{ forloop.counter }}</td>
+                    <td>{{ step.step_name }}</td>
+                    <td>{{ step.role_ids|join:", " }}</td>
+                    <td>
+                        <a href="{% url 'your_form_view' step.id %}" class="btn btn-sm btn-primary">Step {{ forloop.counter }}</a>
+                    </td>
+                </tr>
+                {% endif %}
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+
+
+<script>
+    function startStep(id,stepId, actionId, formId) {
+        const url = `/workflow_form_step/?id=${id}&step_id=${stepId}&action_id=${actionId}&form_id=${formId}`;
+        window.location.href = url;
+    }
+</script>
+<script>
+    $(document).ready(function () {
+        $('#workflowTable').DataTable({
+            pageLength: 10,
+            lengthChange: true,
+            searching: true,
+            ordering: false
+        });
+    });
+</script>
+
+
+
+{% endblock %}

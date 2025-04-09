@@ -7,6 +7,7 @@ from Masters.models import *
 from Workflow.models import *
 import traceback
 from Account.db_utils import callproc
+
 from django.contrib import messages
 from django.conf import settings
 from TDMS.encryption import *
@@ -25,6 +26,10 @@ from django.template.loader import render_to_string
 import time
 import xlsxwriter
 import io
+import Db
+
+from Form.models import *
+from django.urls import reverse
 
 @login_required 
 def index(request):
@@ -275,3 +280,120 @@ def download_xls(request):
         messages.error(request, 'Oops...! Something went wrong!')
     finally:
         return response
+    
+def workflow_starts(request):
+    Db.closeConnection()
+    m = Db.get_connection()
+    cursor = m.cursor()
+
+    if request.user.is_authenticated:
+        global user, role_id
+        user = request.user.id    
+        role_id = str(request.user.role_id)  # Ensure it's a string for matching
+
+    try:
+        workflow_para = "test_workflow7"
+        param = [workflow_para]
+        cursor.callproc("stp_checkRoleForWorkflow", param)
+        for result in cursor.stored_results():
+            raw_steps = result.fetchall()
+
+        # Filter steps that match the current role
+        filtered_steps = []
+        for row in raw_steps:
+            roles = [r.strip() for r in row[2].split(',')]
+            if role_id in roles:
+                filtered_steps.append({
+                    'id': row[0],
+                    'idEncrypt': enc(str(row[0])),
+                    'step_name': row[1],
+                    'role_ids': roles,
+                    'form_id': row[3],'but_type': row[4],'but_act': row[5]
+                })
+
+        # Only pass the first matched step for now
+        step_to_show = filtered_steps[0] if filtered_steps else None
+
+        return render(request, "Workflow/workflow_starts.html", {
+            "step": step_to_show
+        })
+
+    except Exception as e:
+        print("error-" + str(e))
+        messages.error(request, "Some Error Occurred !!")
+        return render(request, "Workflow/workflow_starts.html", {
+            "step": None
+        })
+    finally:
+        cursor.close()        
+        m.close()
+        Db.closeConnection()
+        
+def workflow_form_step(request):
+    id = request.GET.get("id")
+    id = dec(id)  
+
+    if not id:
+        return render(request, "Form/_formfields.html", {"fields": []})  # fallback or error
+
+    try:
+        workflow = get_object_or_404(workflow_matrix, id=id)
+        form_id = workflow.form_id
+        action_id = workflow.button_type_id
+
+        form  = get_object_or_404(Form,id = form_id)
+
+        # Fetch form fields
+        fields = list(FormField.objects.filter(form_id=form_id).values(
+            "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name"
+        ))
+
+        # Fetch action fields
+        action_fields = list(FormActionField.objects.filter(action_id=action_id).values(
+            "id", "type", "label_name", "button_name", "bg_color", "text_color", 
+            "button_type", "dropdown_values", "status"
+        ))
+
+        # Process action fields
+        for action in action_fields:
+            action["dropdown_values"] = action["dropdown_values"].split(",") if action["dropdown_values"] else []
+
+            # Set form_action_url based on button_type (first matched)
+            if action["type"] == "button":
+                if action["button_type"] == "Submit":
+                    form_action_url = reverse('common_form_post')
+                    break
+                elif action["button_type"] == "Action":
+                    form_action_url = reverse('common_form_action')
+                    break
+
+        # Process form fields
+        for field in fields:
+            field["values"] = field["values"].split(",") if field.get("values") else []
+            field["attributes"] = field["attributes"].split(",") if field.get("attributes") else []
+
+            # Fetch validations
+            validations = FieldValidation.objects.filter(
+                field_id=field["id"], form_id=form_id
+            ).values("value")
+            field["validations"] = list(validations)
+
+            # Handle accept type for file input
+            if field["field_type"] in ["file", "text", "file multiple"]:
+                file_validation = next((v for v in field["validations"]), None)
+                field["accept"] = file_validation["value"] if file_validation else ""
+
+        return render(request, "Form/_formfieldedit.html", {
+            "fields": fields,
+            "form":form,
+            "action_fields": action_fields,
+            "form_action_url": form_action_url
+        })
+
+    except Exception as e:
+        traceback.print_exc()
+        messages.error(request, "Oops...! Something went wrong!")
+        return render(request, "Form/_formfields.html", {"fields": []})
+
+
+
