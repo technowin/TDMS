@@ -27,18 +27,32 @@
 <script src="{% static 'js/selectize.min.js' %}"></script>
 
 <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;" >
-<style>
-
-  
+    <style>
+        .eye-icon {
+            color: #4e73df;
+            font-size: 25px;
+            position: absolute;
+            top: 50%;
+            right: 10px;
+            transform: translateY(-50%);
+            z-index: 2;
+            transition: all 0.3s ease;
+        }
     
-</style>
+        .eye-icon:hover {
+            font-size: 30px;
+            color: #1d4ed8; /* A bit brighter blue */
+            text-shadow: 0 0 8px rgba(66, 135, 245, 0.7); /* Glow effect */
+            cursor: pointer;
+        }
+    </style>
 
 
 <form method="POST" action="{{ form_action_url }}" enctype="multipart/form-data">
 
 
         <div class="col-md-4">
-            <h3 class="mb-0"><strong style="color: #4e73df;"><u id="form-title">Insert Form - {% if fields %}{{ form.name }}{% else %}Unknown{% endif %}Datas</u></strong></h3>
+            <h3 class="mb-0"><strong style="color: #4e73df;"><u id="form-title">Insert Form Data - {% if fields %}{{ form.name }}{% else %}Unknown{% endif %}</u></strong></h3>
         </div>
         
         <br>
@@ -52,10 +66,11 @@
 
         <div class="col-md-3 mb-3">
             <input type="hidden" name="form_name" value="{{ form.name }}">
-            <input type="hidden" name="form_data_id" value="{{form_data_id}}">
-            <input type="hidden" name="form_id_{{ field.id }}" value="{{ field.form_id }}">
-            <input type="hidden" name="field_id_{{ field.id }}" value="{{ field.id }}">
+            <input type="hidden"  id="form_data_id" name="form_data_id" value="{{form_data_id}}">
+            <input type="hidden" id="form_id" name="form_id_{{ field.id }}" value="{{ field.form_id }}">
+            <input type="hidden" id="field_id" name="field_id_{{ field.id }}" value="{{ field.id }}">
             <label class="fw-bold">{{ field.label }}</label>
+            <input type="hidden" value ="{{type}}">
             
 
             {% if field.field_type == "select" %}
@@ -97,12 +112,51 @@
                 </label>
 
             {% elif field.field_type == "file" %}
-                <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control custom-file-input"
-                    {% for attr in field.attributes %} {{ attr }} {% endfor %}>
-
+                {% comment %} <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control custom-file-input"
+                    {% for attr in field.attributes %} {{ attr }} {% endfor %}> {% endcomment %}
+                    <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
+                        <input type="file"
+                               accept="{{ field.accept }}"
+                               name="field_{{ field.id }}"
+                               class="form-control custom-file-input"
+                               style="padding-right: 100px;"
+                               id="file_input_{{ field.id }}"
+                               {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                    
+                        <i class="fa-solid fa-eye eye-icon"
+                           {% if type == "create" %}
+                               onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
+                           {% else %}
+                               onclick="showScript({{ form.id }}, {{ form_data_id }}, {{ field.id }})"
+                           {% endif %}>
+                        </i>
+                    </div>
+                    
             {% elif field.field_type == "file multiple" %}
-                <input type="file" accept="{{ field.accept }}" multiple name="field_{{ field.id }}" class="form-control custom-file-input"
-                    {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+            {% comment %} <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control custom-file-input"
+                {% for attr in field.attributes %} {{ attr }} {% endfor %}> {% endcomment %}
+                <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
+                    <input type="file"
+                           accept="{{ field.accept }}"
+                           name="field_{{ field.id }}"
+                           multiple
+                           class="form-control custom-file-input"
+                           style="padding-right: 100px;"
+                           id="file_input_{{ field.id }}"
+                           {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                
+                    <i class="fa-solid fa-eye eye-icon"
+                       {% if type == "create" %}
+                           onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
+                       {% else %}
+                           onclick="showScript({{ form.id }}, {{ form_data_id }}, {{ field.id }})"
+                       {% endif %}>
+                    </i>
+                </div>
+                      
+                     
+        
+
 
             {% elif field.field_type == "textarea" %}
                 <textarea class="form-control custom-textarea" name="field_{{ field.id }}"
@@ -123,7 +177,7 @@
 <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;" >
 <div class="row col-md-12 justify-content-center">
     {% for action in action_fields %}
-    <div class="{% if action.type == 'button' %}col-md-2{% else %}col-md-3{% endif %} mt-4 text-center">
+    <div class="{% if action.type == 'button' %}col-md-2{% else %}col-md-3{% endif %} mt-1 text-center">
             <input type="hidden" name="action_field_id_{{ action.id }}" value="{{ action.id }}">
 
             {% if action.type != "button" %}
@@ -177,6 +231,119 @@
             });
         });
     
+</script>
+
+<script>
+        function showScript(form_data_id, field_id) {
+            debugger;
+    
+            $.ajax({
+                url: "{% url 'get_uploaded_files' %}",
+                type: 'POST',
+                data: {
+                    field_id: field_id,
+                    form_data_id: form_data_id,
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                },
+                success: function(data) {
+                    debugger;
+                    if (data.files && data.files.length > 0) {
+                        let tableHTML = `
+                            <table style="width:100%; text-align:left; border-collapse: collapse;">
+                                <thead>
+                                    <tr>
+                                        <th style="border-bottom: 1px solid #ccc; padding: 8px;">Sr No.</th>
+                                        <th style="border-bottom: 1px solid #ccc; padding: 8px;">File Name</th>
+                                        <th style="border-bottom: 1px solid #ccc; padding: 8px;">Download</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                        `;
+    
+                        data.files.forEach((file, index) => {
+                            tableHTML += `
+                                <tr>
+                                    <td style="padding: 8px;">${index + 1}</td>
+                                    <td style="padding: 8px;">${file.name}</td>
+                                    <td style="padding: 8px;"><a href="${file.url}" download>Download</a></td>
+                                </tr>
+                            `;
+                        });
+    
+                        tableHTML += `</tbody></table>`;
+    
+                        Swal.fire({
+                            title: 'Uploaded Files',
+                            html: tableHTML,
+                            width: '600px',
+                            confirmButtonText: 'Close'
+                        });
+                    } else {
+                        Swal.fire({
+                            icon: 'info',
+                            title: 'No Documents Uploaded',
+                            text: 'There are currently no uploaded documents.',
+                            confirmButtonText: 'Okay'
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error('AJAX Error:', error);
+                    Swal.fire('Error', 'Something went wrong while fetching documents.', 'error');
+                }
+            });
+        }
+    
+  </script>
+
+<script>
+
+    function showFile(input) {
+        debugger;
+        const files = input.files;
+    
+        if (!files || files.length === 0) {
+            Swal.fire({
+                icon: 'info',
+                title: 'No Files Selected',
+                text: 'Please select files to view them.',
+                confirmButtonText: 'Okay'
+            });
+            return;
+        }
+    
+        let tableHTML = `
+            <table style="width:100%; text-align:left; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th style="border-bottom: 1px solid #ccc; padding: 8px;">Sr No.</th>
+                        <th style="border-bottom: 1px solid #ccc; padding: 8px;">File Name</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+    
+        Array.from(files).forEach((file, index) => {
+            tableHTML += `
+                <tr>
+                    <td style="padding: 8px;">${index + 1}</td>
+                    <td style="padding: 8px;">${file.name}</td>
+                </tr>
+            `;
+        });
+    
+        tableHTML += `</tbody></table>`;
+    
+        Swal.fire({
+            title: 'Selected Files',
+            html: tableHTML,
+            width: '600px',
+            confirmButtonText: 'Close'
+        });
+    }
+    
+
+  
 </script>
 
 {% if messages %}

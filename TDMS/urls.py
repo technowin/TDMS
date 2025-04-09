@@ -42,6 +42,8 @@ urlpatterns = [
     path('common_form_action/',common_form_action, name='common_form_action'),
     path('update_form/<int:form_id>/', update_form, name='update_form'),
     path('form_preview/',form_preview, name='form_preview'),
+    path('get_uploaded_files/',get_uploaded_files, name='get_uploaded_files'),
+    path('download_file/<path:filepath>',download_file, name='download_file'),
 
     # Account
     path("", Login,name='Account'),

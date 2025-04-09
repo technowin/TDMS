@@ -876,6 +876,7 @@ def form_preview(request):
             "button_type", "dropdown_values", "status"
         ))
 
+
         # Process action fields
         for action in action_fields:
             action["dropdown_values"] = action["dropdown_values"].split(",") if action["dropdown_values"] else []
@@ -909,7 +910,8 @@ def form_preview(request):
             "fields": fields,
             "form":form,
             "action_fields": action_fields,
-            "form_action_url": form_action_url
+            "form_action_url": form_action_url,
+            "type":"create"
         })
 
     except Exception as e:
@@ -930,3 +932,38 @@ def common_form_action(request):
         return render(request, "Form/_formfields.html", {"fields": []})
 
     return
+
+def download_file(request, filepath):
+    full_path = os.path.join(settings.MEDIA_ROOT, filepath)
+    if os.path.exists(full_path):
+        return FileResponse(open(full_path, 'rb'), as_attachment=True)
+    raise Http404()
+
+def get_uploaded_files(request):
+    try:
+        field_id = request.POST.get("field_id")
+        form_data_id = request.POST.get("form_data_id")
+
+        files = FormFile.objects.filter(
+            field_id=field_id,
+            form_data_id=form_data_id
+        )
+
+        file_list = []
+        for f in files:
+            if f.file_path:
+                # Correctly build the URL for the file
+                file_url = settings.MEDIA_URL + f.file_path
+            else:
+                file_url = '#'
+
+            file_list.append({
+                'name': f.uploaded_name,
+                'url': file_url
+            })
+
+        return JsonResponse({'files': file_list})
+
+    except Exception as e:
+        traceback.print_exc()
+        return JsonResponse({'error': 'Something went wrong while fetching files'}, status=500)
