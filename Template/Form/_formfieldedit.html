@@ -154,7 +154,7 @@
 <div class="row col-md-12 justify-content-center">
     {% for action in action_fields %}
     <div class="{% if action.type == 'button' %}col-md-2{% else %}col-md-3{% endif %} mt-1 text-center">
-            <input type="hidden" name="action_field_id_{{ action.id }}" value="{{ action.id }}">
+            <input type="hidden" name="action_field_id_{{ action.id }}" value="{{ action.action_id }}">
 
             {% if action.type != "button" %}
                 <label class="fw-bold mb-1">{{ action.label_name }}</label>

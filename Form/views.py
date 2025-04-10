@@ -570,6 +570,7 @@ def update_action_form(request, form_id):
 
 def form_master(request):
     try:
+
         if request.method == "POST":
             form_id = request.POST.get("form")
             
@@ -580,8 +581,6 @@ def form_master(request):
                 field["values"] = field["values"].split(",") if field.get("values") else []
                 field["attributes"] = field["attributes"].split(",") if field.get("attributes") else []
 
-                
-                # Fetch field validation rules
                 validations = FieldValidation.objects.filter(field_id=field["id"], form_id=form_id).values("value")
                 field["validations"] = list(validations)
                 
@@ -648,14 +647,11 @@ def form_master(request):
                 for af in action_fields:
                     af["dropdown_values"] = af["dropdown_values"].split(",") if af.get("dropdown_values") else []
 
-        # Now you can return or use both `fields` and `action_fields` as needed
-
-
                 return render(request, "Form/_formfieldedit.html", {"fields": fields,"action_fields":action_fields,"type":"edit","form_data_id":form_data_id})
-            else:
-                type = request.GET.get("type")
-                form = Form.objects.all()
-                return render(request, "Form/form_master.html", {"form": form,"type":type})
+        else:
+            type = request.GET.get("type")
+            form = Form.objects.all()
+            return render(request, "Form/form_master.html", {"form": form,"type":type})
     
     except Exception as e:
         traceback.print_exc()
@@ -897,7 +893,7 @@ def form_preview(request):
         # Fetch action fields
         action_fields = list(FormActionField.objects.filter(action_id=action_id).values(
             "id", "type", "label_name", "button_name", "bg_color", "text_color", 
-            "button_type", "dropdown_values", "status"
+            "button_type", "dropdown_values", "status","action_id"
         ))
 
 
