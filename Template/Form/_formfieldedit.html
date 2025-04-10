@@ -52,7 +52,7 @@
             <input type="hidden" id="form_id" name="form_id_{{ field.id }}" value="{{ field.form_id }}">
             <input type="hidden" id="field_id" name="field_id_{{ field.id }}" value="{{ field.id }}">
             <label class="fw-bold">{{ field.label }}</label>
-            <input type="hidden" value ="{{type}}">
+            <input type="hidden" id = "type" value ="{{type}}">
             
 
             {% if field.field_type == "select" %}
@@ -154,7 +154,7 @@
 <div class="row col-md-12 justify-content-center">
     {% for action in action_fields %}
     <div class="{% if action.type == 'button' %}col-md-2{% else %}col-md-3{% endif %} mt-1 text-center">
-            <input type="hidden" name="action_field_id_{{ action.id }}" value="{{ action.action_id }}">
+            <input type="hidden" name="action_field_id_{{ action.id }}" value="{{ action.action_id }}"> 
 
             {% if action.type != "button" %}
                 <label class="fw-bold mb-1">{{ action.label_name }}</label>
@@ -198,7 +198,7 @@
         $(document).ready(function() {
             $('.select_multiple').selectize({
                 plugins: ['remove_button'],
-                delimiter: ',',
+                delimiter: ',', 
                 placeholder: "Select Options",
                 persist: false,
                 create: false,
@@ -221,7 +221,7 @@
                 url: "{% url 'get_uploaded_files' %}",
                 type: 'POST',
                 data: {
-                    field_id: field_id,
+                    field_id: field_id, 
                     form_data_id: form_data_id,
                     csrfmiddlewaretoken: '{{ csrf_token }}'
                 },
@@ -328,21 +328,25 @@
 
 <script>
 
-        document.querySelectorAll('.submit-btn').forEach(button => {
-            button.addEventListener('click', function (e) {
-                const form = document.getElementById('dynamicForm');
-                const buttonType = this.getAttribute('data-button-type');
+    document.querySelectorAll('.submit-btn').forEach(button => {
+        button.addEventListener('click', function (e) {
+            debugger;
+            const form = document.getElementById('dynamicForm');
+            const buttonType = this.getAttribute('data-button-type');
+            const type = $('#type').val(); // ensure "type" is lowercase to match the variable
     
-                if (buttonType === 'Submit') {
-                    form.action = "{% url 'common_form_post' %}";
-                } else if (buttonType === 'Action') {
-                    form.action = "{% url 'common_form_action' %}";
-                }
+            if (buttonType === 'Submit' && type === 'create') {
+                form.action = "{% url 'common_form_post' %}";
+            } else if (buttonType === 'Submit' && type === 'edit') {
+                form.action = "{% url 'common_form_edit' %}";
+            } else if (buttonType === 'Action') {
+                form.action = "{% url 'common_form_action' %}";
+            }
     
-                // optional: if you want to submit the form manually
-                // form.submit();
-            });
+            // optional: submit the form
+            // form.submit();
         });
+    });    
     
 </script>
 
