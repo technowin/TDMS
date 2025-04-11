@@ -55,9 +55,6 @@
             <label class="fw-bold">{{ field.label }}</label>
             <input type="hidden" id = "type" name = "type" value ="{{type}}">
           
-
-            
-
             {% if field.field_type == "select" %}
                 <select class="form-control select" name="field_{{ field.id }}"
                     {% for attr in field.attributes %} {{ attr }} {% endfor %}>
@@ -223,8 +220,6 @@
 
 <script>
         function showScript(form_data_id, field_id) {
-            debugger;
-    
             $.ajax({
                 url: "{% url 'get_uploaded_files' %}",
                 type: 'POST',

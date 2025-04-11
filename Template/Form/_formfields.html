@@ -18,12 +18,14 @@
     {% endif %}
 
     <div class="col-md-3 mb-3">
-        <input type="hidden" name="form_name" value="{{ field.form_id__name }}">
-        <input type="hidden" name="form_name" value="{{ field.form_id__name }}">
-        <input type="hidden" name="form_id_{{ field.id }}" value="{{ field.form_id }}">
-        <input type="hidden" name="type" value="{{ type }}">
+        <input type="hidden" name="form_name" value="{{ form.name }}">
+        <input type="hidden"  id="form_data_id" name="form_data_id" value="{{form_data_id}}">
+        <input type="hidden" id="form_id" name="form_id_{{ field.id }}" value="{{ field.form_id }}">
+        <input type="hidden" id="action_id" name="action_id_{{ field.id }}" value="{{ field.action_id }}">
+        <input type="hidden" id="field_id" name="field_id_{{ field.id }}" value="{{ field.id }}">
         <label class="fw-bold">{{ field.label }}</label>
-
+        <input type="hidden" id = "type" name = "type" value ="{{type}}">
+      
         {% if field.field_type == "select" %}
             <select class="form-control select" name="field_{{ field.id }}"
                 {% for attr in field.attributes %} {{ attr }} {% endfor %}>
@@ -34,7 +36,7 @@
             </select>
 
         {% elif field.field_type == "select multiple" %}
-            <select class="form-control select select_multiple" id="multiple" name="field_{{ field.id }}" multiple
+            <select class="form-control select_multiple" id="multiple" name="field_{{ field.id }}" multiple
                 {% for attr in field.attributes %} {{ attr }} {% endfor %}>
                 {% for option in field.values %}
                     <option value="{{ option }}">{{ option }}</option>
@@ -62,7 +64,7 @@
                 <span class="slider"></span>
             </label>
 
-            {% elif field.field_type == "file" %}
+        {% elif field.field_type == "file" %}
             {% comment %} <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control custom-file-input"
                 {% for attr in field.attributes %} {{ attr }} {% endfor %}> {% endcomment %}
                 <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
@@ -71,7 +73,7 @@
                            {% for attr in field.attributes %} {{ attr }} {% endfor %}>
                 
                     <i class="fa-solid fa-eye eye-icon"
-                           onclick="showFile(document.getElementById('file_input_{{ field.id }}'))">
+                           onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
                     </i>
                 </div>
                 
@@ -82,26 +84,29 @@
                        {% for attr in field.attributes %} {{ attr }} {% endfor %}>
             
                 <i class="fa-solid fa-eye eye-icon"
-                       onclick="showFile(document.getElementById('file_input_{{ field.id }}'))">
+                       onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
                 </i>
             </div>
+                  
+                 
 
         {% elif field.field_type == "textarea" %}
-          <textarea class="form-control custom-textarea" name="field_{{ field.id }}" rows="1" value={{ field.value }}
-              {% for attr in field.attributes %} {{ attr }} {% endfor %}>{{ field.value }}</textarea>
-      
+            <textarea class="form-control custom-textarea" name="field_{{ field.id }}" rows="1" value={{ field.value }}
+                {% for attr in field.attributes %} {{ attr }} {% endfor %}>{{ field.value }}</textarea>
+        
         {% elif field.field_type == "text" %}
             <input type="text" class="form-control" name="field_{{ field.id }}"  value="{{ field.value }}"
                 {% if field.accept %} maxlength="{{ field.accept }}" {% endif %} 
                 placeholder="{% if field.accept %}Enter up to {{ field.accept }} characters{% else %}Enter text{% endif %}"
                 {% for attr in field.attributes %} {{ attr }} {% endfor %}>
-
+            
+                
         {% else %}
             <input type="{{ field.field_type }}" class="form-control" name="field_{{ field.id }}" value="{{ field.value }}"
                 {% for attr in field.attributes %} {{ attr }} {% endfor %}>
         {% endif %}
 
-
+    
     </div>
 {% endfor %}
 
@@ -140,58 +145,6 @@
             });
         });
     
-</script>
-
-
-
-<script>
-
-function showFile(input) {
-    debugger;
-    const files = input.files;
-
-    if (!files || files.length === 0) {
-        Swal.fire({
-            icon: 'info',
-            title: 'No Files Selected',
-            text: 'Please select files to view them.',
-            confirmButtonText: 'Okay'
-        });
-        return;
-    }
-
-    let tableHTML = `
-        <table style="width:100%; text-align:left; border-collapse: collapse;">
-            <thead>
-                <tr>
-                    <th style="border-bottom: 1px solid #ccc; padding: 8px;">Sr No.</th>
-                    <th style="border-bottom: 1px solid #ccc; padding: 8px;">File Name</th>
-                </tr>
-            </thead>
-            <tbody>
-    `;
-
-    Array.from(files).forEach((file, index) => {
-        tableHTML += `
-            <tr>
-                <td style="padding: 8px;">${index + 1}</td>
-                <td style="padding: 8px;">${file.name}</td>
-            </tr>
-        `;
-    });
-
-    tableHTML += `</tbody></table>`;
-
-    Swal.fire({
-        title: 'Selected Files',
-        html: tableHTML,
-        width: '600px',
-        confirmButtonText: 'Close'
-    });
-}
-
-
-
 </script>
 
 {% if messages %}
