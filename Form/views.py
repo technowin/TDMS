@@ -597,7 +597,7 @@ def form_master(request):
                     file_validation = next((v for v in field["validations"]), None)
                     field["accept"] = file_validation["value"] if file_validation else ""
             
-            return render(request, "Form/_formfields.html", {"fields": fields,"type":"master"})
+            return render(request, "Form/_formfield.html", {"fields": fields,"type":"master"})
         
         else:
         
@@ -677,6 +677,7 @@ def common_form_post(request):
             action_id_key = next((key for key in request.POST if key.startswith("action_field_id_")), None)
             if not action_id_key:
                 return JsonResponse({"error": "Form ID not found"}, status=400)
+            
         
 
         form_id = request.POST.get(form_id_key, '').strip()

@@ -73,7 +73,7 @@
                            {% for attr in field.attributes %} {{ attr }} {% endfor %}>
                 
                     <i class="fa-solid fa-eye eye-icon"
-                           onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
+                           onclick="showFile(document.getElementById('file_input_{{ field.id }}'))">
                     </i>
                 </div>
                 
@@ -84,7 +84,7 @@
                        {% for attr in field.attributes %} {{ attr }} {% endfor %}>
             
                 <i class="fa-solid fa-eye eye-icon"
-                       onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
+                       onclick="showFile(document.getElementById('file_input_{{ field.id }}'))">
                 </i>
             </div>
                   

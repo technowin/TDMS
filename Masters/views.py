@@ -205,11 +205,14 @@ def workflow_mapping(request):
             cursor.callproc("stp_getRoleDD")
             for result in cursor.stored_results():
                 role_dropdown = list(result.fetchall())
+            cursor.callproc("stp_getEditCreateWFDD")
+            for result in cursor.stored_results():
+                wfEditCreate_dropdown = list(result.fetchall())
             # cursor.callproc("stp_getEditCrtForMapping")
             # for result in cursor.stored_results():
             #     EditCrt_dropdown = list(result.fetchall())
             getformdata = {'form_dropdown':form_dropdown,'ButType_dropdown':ButType_dropdown,
-                           'ButAct_dropdown':ButAct_dropdown,'workflow_dropdown':workflow_dropdown,'role_dropdown':role_dropdown,}
+                           'ButAct_dropdown':ButAct_dropdown,'workflow_dropdown':workflow_dropdown,'role_dropdown':role_dropdown,"wfEditCreate_dropdown":wfEditCreate_dropdown,}
             return render(request, "Master/workflow_mapping.html",getformdata)
         
     except Exception as e:
@@ -304,7 +307,10 @@ def workflow_Editmap(request):
             cursor.callproc("stp_getRoleDD")
             for result in cursor.stored_results():
                 role_dropdown = list(result.fetchall())
-                    
+            cursor.callproc("stp_getEditCreateWFDD")
+            for result in cursor.stored_results():
+                wfEditCreate_dropdown = list(result.fetchall())        
+                  
             cursor.callproc("stp_getworkflowEdit", param)
             workflow_data = []
             for result in cursor.stored_results():
@@ -334,6 +340,7 @@ def workflow_Editmap(request):
                     "workflow_details": workflow_details,
                     "role_dropdown":role_dropdown,
                     "workflow_id":workflow_idIncrypt,
+                    "wfEditCreate_dropdown":wfEditCreate_dropdown,
                 }
 
             return render(request, "Master/workflow_Editmap.html", getformdata)
