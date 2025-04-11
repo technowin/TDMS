@@ -52,7 +52,9 @@
             <input type="hidden" id="form_id" name="form_id_{{ field.id }}" value="{{ field.form_id }}">
             <input type="hidden" id="field_id" name="field_id_{{ field.id }}" value="{{ field.id }}">
             <label class="fw-bold">{{ field.label }}</label>
-            <input type="hidden" id = "type" value ="{{type}}">
+            <input type="hidden" id = "type" name = "type" value ="{{type}}">
+          
+
             
 
             {% if field.field_type == "select" %}
@@ -152,6 +154,8 @@
 
 <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;" >
 <div class="row col-md-12 justify-content-center">
+    <input type="hidden" id="clicked_action_id" name="clicked_action_id">
+
     {% for action in action_fields %}
     <div class="{% if action.type == 'button' %}col-md-2{% else %}col-md-3{% endif %} mt-1 text-center">
             <input type="hidden" name="action_field_id_{{ action.id }}" value="{{ action.action_id }}"> 
@@ -165,9 +169,12 @@
                     name="button_type"
                     value="{{ action.button_type|default:'button' }}"
                     data-button-type="{{ action.button_type|default:'button' }}"
+                    data-action-id="{{ action.id }}"
                     class="btn w-100 mt-4 submit-btn"
                     style="background-color: {{ action.bg_color }}; color: {{ action.text_color }}; border-radius:15px;">
                 {{ action.button_name }}
+            </button>
+
             </button>
     
 
@@ -328,7 +335,8 @@
 
 <script>
 
-    document.querySelectorAll('.submit-btn').forEach(button => {
+    {% comment %} document.querySelectorAll('.submit-btn').forEach(button => {
+        debugger;
         button.addEventListener('click', function (e) {
             debugger;
             const form = document.getElementById('dynamicForm');
@@ -343,10 +351,59 @@
                 form.action = "{% url 'common_form_action' %}";
             }
     
-            // optional: submit the form
-            // form.submit();
         });
-    });    
+    });      {% endcomment %}
+
+    document.querySelectorAll('.submit-btn').forEach(button => {
+        button.addEventListener('click', function () {
+            debugger;
+            const buttonType = this.getAttribute('data-button-type');
+            const actionId = this.getAttribute('data-action-id');
+            
+            if (buttonType === 'Action') {
+                document.getElementById('clicked_action_id').value = actionId;
+            }
+    
+            // optional: dynamically change the form action if needed
+            const form = document.getElementById('dynamicForm');
+            const type = $('#type').val(); // assuming jQuery is used here
+            if (buttonType === 'Submit' && type === 'create') {
+                form.action = "{% url 'common_form_post' %}";
+            } else if (buttonType === 'Submit' && type === 'edit') {
+                form.action = "{% url 'common_form_edit' %}";
+            } else if (buttonType === 'Action') {
+                form.action = "{% url 'common_form_action' %}";
+            }
+        });
+    });
+    
+
+    {% comment %} document.querySelectorAll('.submit-btn').forEach(button => {
+        debugger;
+        button.addEventListener('click', function (e) {
+            const buttonFieldId = this.closest('div').querySelector("input[type='hidden']").name.replace('action_field_id_', '');
+    
+            // Store clicked button's id in a hidden input
+            let input = document.createElement('input');
+            input.type = 'hidden';
+            input.name = 'clicked_button_id';
+            input.value = buttonFieldId;
+            this.closest('form').appendChild(input);
+    
+            const form = document.getElementById('dynamicForm');
+            const buttonType = this.getAttribute('data-button-type');
+            const type = $('#type').val();
+    
+            if (buttonType === 'Submit' && type === 'create') {
+                form.action = "{% url 'common_form_post' %}";
+            } else if (buttonType === 'Submit' && type === 'edit') {
+                form.action = "{% url 'common_form_edit' %}";
+            } else if (buttonType === 'Action') {
+                form.action = "{% url 'common_form_action' %}";
+            }
+        });
+    });
+     {% endcomment %}
     
 </script>
 

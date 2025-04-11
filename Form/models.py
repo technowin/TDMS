@@ -254,6 +254,7 @@ class AttributeMaster(models.Model):
 class ActionData(models.Model):
     value = models.TextField(null=True, blank=True)
     form_data = models.ForeignKey('Form.FormData',null=True, blank=True, on_delete=models.CASCADE, related_name='action_data_id')
+    field = models.ForeignKey('Form.FormActionField',null=True, blank=True, on_delete=models.CASCADE, related_name='action_field_id')
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)

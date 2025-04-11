@@ -597,7 +597,7 @@ def form_master(request):
                     file_validation = next((v for v in field["validations"]), None)
                     field["accept"] = file_validation["value"] if file_validation else ""
             
-            return render(request, "Form/_formfields.html", {"fields": fields})
+            return render(request, "Form/_formfields.html", {"fields": fields,"type":"master"})
         
         else:
         
@@ -665,26 +665,31 @@ def common_form_post(request):
         if request.method != "POST":
             return JsonResponse({"error": "Invalid request method"}, status=400)
         
-        created_by = request.session.get('user_id', '').strip()
+        created_by = user
         form_name = request.POST.get('form_name', '').strip()
+        type = request.POST.get('type','')
 
         form_id_key = next((key for key in request.POST if key.startswith("form_id_")), None)
         if not form_id_key:
             return JsonResponse({"error": "Form ID not found"}, status=400)
         
-        action_id_key = next((key for key in request.POST if key.startswith("action_field_id_")), None)
-        if not action_id_key:
-            return JsonResponse({"error": "Form ID not found"}, status=400)
+        if type != 'master':
+            action_id_key = next((key for key in request.POST if key.startswith("action_field_id_")), None)
+            if not action_id_key:
+                return JsonResponse({"error": "Form ID not found"}, status=400)
         
 
         form_id = request.POST.get(form_id_key, '').strip()
         form = get_object_or_404(Form, id=form_id)
 
-        action_id = request.POST.get(action_id_key, '').strip()
-        action = get_object_or_404(FormAction,id = action_id )
+        if type != 'master':
+            action_id = request.POST.get(action_id_key, '').strip()
+            action = get_object_or_404(FormAction,id = action_id )
 
-        # Create FormData entry
-        form_data = FormData.objects.create(form=form,action=action)
+        if type == 'master':
+            form_data = FormData.objects.create(form=form)
+        else:
+            form_data = FormData.objects.create(form=form,action=action)
         form_data.req_no = f"REQNO-00{form_data.id}"
         form_data.created_by = user
         form_data.save()
@@ -931,48 +936,113 @@ def form_preview(request):
         return render(request, "Form/_formfields.html", {"fields": []})
     
 
+# def common_form_action(request):
+#     user = request.session.get('user_id', '')
+#     try:
+#         if request.method == 'POST':
+#             form_data_id = request.POST.get('form_data_id')  # or however you're getting this
+#             form_data = get_object_or_404(FormData, pk=form_data_id)
+
+            
+
+#             button_type = request.POST.get('button_type')
+
+#             # Process only if it's an Action button
+#             if button_type == 'Action':
+#                 for key, value in request.POST.items():
+#                     if key.startswith("action_field_id_"):
+#                         field = key.replace("action_field_id_", "")
+#                         action_field = get_object_or_404(FormActionField, pk=field)
+
+#                         # Check if this is the clicked action button
+#                         if action_field.button_type == 'Action':
+#                             # Save only this action button's value = status
+#                             ActionData.objects.create(
+#                                 value=action_field.status,  # saving status from FormActionField
+#                                 form_data=form_data,
+#                                 field=action_field,
+#                                 created_by=user,
+#                                 updated_by=user,
+#                             )
+
+#                     elif key.startswith("action_field_"):
+#                         field = key.replace("action_field_", "")
+#                         action_field = get_object_or_404(FormActionField, pk=field)
+
+#                         # Save only if not a button field
+#                         if action_field.type in ['text', 'textarea', 'dropdown']:
+#                             ActionData.objects.create(
+#                                 value=value,
+#                                 form_data=form_data,
+#                                 field=action_field,
+#                                 created_by=user,
+#                                 updated_by=user,
+#                             ) # assuming only one action button is clicked
+
+#         messages.success(request, "Action data saved successfully!")
+
+#     except Exception as e:
+#         traceback.print_exc()
+#         messages.error(request, "Oops...! Something went wrong!")
+
+#         messages.success(request, "Action data saved successfully!")
+#         new_url = f'/masters?entity=form_master&type=i'
+#         return redirect(new_url)
+
 def common_form_action(request):
+    user = request.session.get('user_id', '')
     try:
-        form_data_id = request.POST.get("form_data_id")
-        user = request.session.get('user_id', '')
-
-        if not form_data_id:
-            messages.error(request, "Form data ID is missing.")
-            return render(request, "Form/_formfields.html", {"fields": []})
-
-        # 1. Save only non-empty input fields
-        for key, value in request.POST.items():
-            if key.startswith("action_field_") and value.strip():
-                ActionData.objects.create(
-                    value=value.strip(),
-                    form_data_id=form_data_id,
-                    created_by=user,
-                    updated_by=user
-                )
-
-        # 2. Save the clicked action button name as status
-        clicked_button = request.POST.get("clicked_action")
-        if clicked_button:
-            ActionData.objects.create(
-                value=clicked_button,  # this is the status
-                form_data_id=form_data_id,
-                created_by=user,
-                updated_by=user
-            ) # assuming only one action button is clicked
-
-        messages.success(request, "Action data saved successfully!")
-
+        if request.method == 'POST':
+            form_data_id = request.POST.get('form_data_id')
+            form_data = get_object_or_404(FormData, pk=form_data_id)
+            button_type = request.POST.get('button_type')
+            clicked_action_id = request.POST.get('clicked_action_id')
+            
+            # Process only if it's an Action button
+            if button_type == 'Action':
+                clicked_action_id = request.POST.get('clicked_action_id')
+                if clicked_action_id:
+                    try:
+                        clicked_action_id = int(clicked_action_id)
+                    except ValueError:
+                        messages.error(request, "Invalid action button identifier.")
+                        return redirect('/masters?entity=form_master&type=i')
+                    
+                    # Save the clicked action button with its status
+                    action_field = get_object_or_404(FormActionField, pk=clicked_action_id)
+                    if action_field.button_type == 'Action':
+                        ActionData.objects.create(
+                            value=action_field.status,  # saving the status from FormActionField
+                            form_data=form_data,
+                            field=action_field,
+                            created_by=user,
+                            updated_by=user,
+                        )
+                
+                # Now process the non-button fields (text, textarea, dropdown)
+                for key, value in request.POST.items():
+                    if key.startswith("action_field_") and not key.startswith("action_field_id_"):
+                        # Extract the numeric ID using a regular expression to avoid non-integer parts
+                        match = re.match(r'action_field_(\d+)', key)
+                        if match:
+                            field_id = int(match.group(1))
+                            action_field = get_object_or_404(FormActionField, pk=field_id)
+                            if action_field.type in ['text', 'textarea', 'dropdown']:
+                                ActionData.objects.create(
+                                    value=value,
+                                    form_data=form_data,
+                                    field=action_field,
+                                    created_by=user,
+                                    updated_by=user,
+                                )
+            messages.success(request, "Action data saved successfully!")
+        
+        return redirect('/masters?entity=form_master&type=i')
+    
     except Exception as e:
         traceback.print_exc()
         messages.error(request, "Oops...! Something went wrong!")
-
-        messages.success(request, "Action data saved successfully!")
-        new_url = f'/masters?entity=wfseq&type=i'
-        return redirect(new_url)
-
-    except Exception as e:
-        traceback.print_exc()
-        return render
+        return redirect('/masters?entity=form_master&type=i')
 
 
 def download_file(request, filepath):

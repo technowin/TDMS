@@ -210,7 +210,7 @@ function renderFormBuilder() {
                 </div>
                 <div class="col-md-2 mb-3">
                     <label>Button Type</label>
-                    <select class="form-control select" onchange="updateField(${field.id}, 'button_type', this.value)">
+                    <select class="form-control select" onchange="handleButtonTypeChange(this, ${field.id})">
                         <option value="" disabled ${!field.button_type ? "selected" : ""}>Select button type</option>
                         ${buttontype.map(option => {
                             const value = String(option.control_value).trim();
@@ -220,7 +220,7 @@ function renderFormBuilder() {
                     </select>
                 </div>
 
-                <div class="col-md-2 mb-3">
+                <div class="col-md-2 mb-3" id="statusField-${field.id}" style="${field.button_type === 'Actin' ? '' : 'display: none;'}">
                     <label>Select Status</label>
                     <input class="form-control" type="text" value="${field.status || ''}" placeholder="Enter Status" onchange="updateField(${fieldId}, 'status', this.value)">
                 </div>
@@ -231,7 +231,9 @@ function renderFormBuilder() {
                     ${dropdownHtml}
                 </div>
                 <div class="col-md-2 mb-3">
-                    <input class="form-control" type="text" value="${field.label || ''}" onchange="this.value = this.value.replace(/[^a-zA-Z0-9 ]/g, ''); "updateField(${fieldId}, 'label', this.value)">
+                    <input class="form-control" type="text" 
+                        value="${field.label}" 
+                        onchange="validateAndUpdateLabel(this, ${fieldId})">
                 </div>
             `;
 
@@ -282,9 +284,30 @@ function renderFormBuilder() {
     });
 }
 
+function validateAndUpdateLabel(inputElement, fieldId) {
+    debugger;
+let newLabel = inputElement.value.replace(/[^a-zA-Z0-9 ]/g, '').trim();
+
+// Check for duplicates (excluding current field)
+let isDuplicate = formFields.some(field => field.id !== fieldId && field.label.toLowerCase() === newLabel.toLowerCase());
+
+if (isDuplicate) {
+    Swal.fire({
+        icon: 'error',
+        title: 'Duplicate Label',
+        text: `A field with the label "${newLabel}" already exists.`,
+    });
+    inputElement.value = ""; // Clear the input
+    return;
+}
+
+updateField(fieldId, 'label', newLabel);
+}
+
 
 
 function renderFormPreview() {
+    debugger;
     let preview = document.getElementById("dynamic-form");
     preview.innerHTML = "";
     
@@ -337,6 +360,19 @@ document.addEventListener("DOMContentLoaded", function() {
     renderFormBuilder();
     renderFormPreview();
 });
+</script>
+
+<script>
+    function handleButtonTypeChange(select, fieldId) {
+        const value = select.value;
+        updateField(fieldId, 'button_type', value);
+        const statusField = document.getElementById(`statusField-${fieldId}`);
+        if (value === 'Action') {
+            statusField.style.display = '';
+        } else {
+            statusField.style.display = 'none';
+        }
+    }
 </script>
 
 
