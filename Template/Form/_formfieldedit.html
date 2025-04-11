@@ -50,6 +50,7 @@
             <input type="hidden" name="form_name" value="{{ form.name }}">
             <input type="hidden"  id="form_data_id" name="form_data_id" value="{{form_data_id}}">
             <input type="hidden" id="form_id" name="form_id_{{ field.id }}" value="{{ field.form_id }}">
+            <input type="hidden" id="action_id" name="action_id_{{ field.id }}" value="{{ field.action_id }}">
             <input type="hidden" id="field_id" name="field_id_{{ field.id }}" value="{{ field.id }}">
             <label class="fw-bold">{{ field.label }}</label>
             <input type="hidden" id = "type" name = "type" value ="{{type}}">
@@ -335,24 +336,7 @@
 
 <script>
 
-    {% comment %} document.querySelectorAll('.submit-btn').forEach(button => {
-        debugger;
-        button.addEventListener('click', function (e) {
-            debugger;
-            const form = document.getElementById('dynamicForm');
-            const buttonType = this.getAttribute('data-button-type');
-            const type = $('#type').val(); // ensure "type" is lowercase to match the variable
-    
-            if (buttonType === 'Submit' && type === 'create') {
-                form.action = "{% url 'common_form_post' %}";
-            } else if (buttonType === 'Submit' && type === 'edit') {
-                form.action = "{% url 'common_form_edit' %}";
-            } else if (buttonType === 'Action') {
-                form.action = "{% url 'common_form_action' %}";
-            }
-    
-        });
-    });      {% endcomment %}
+
 
     document.querySelectorAll('.submit-btn').forEach(button => {
         button.addEventListener('click', function () {
@@ -378,32 +362,7 @@
     });
     
 
-    {% comment %} document.querySelectorAll('.submit-btn').forEach(button => {
-        debugger;
-        button.addEventListener('click', function (e) {
-            const buttonFieldId = this.closest('div').querySelector("input[type='hidden']").name.replace('action_field_id_', '');
     
-            // Store clicked button's id in a hidden input
-            let input = document.createElement('input');
-            input.type = 'hidden';
-            input.name = 'clicked_button_id';
-            input.value = buttonFieldId;
-            this.closest('form').appendChild(input);
-    
-            const form = document.getElementById('dynamicForm');
-            const buttonType = this.getAttribute('data-button-type');
-            const type = $('#type').val();
-    
-            if (buttonType === 'Submit' && type === 'create') {
-                form.action = "{% url 'common_form_post' %}";
-            } else if (buttonType === 'Submit' && type === 'edit') {
-                form.action = "{% url 'common_form_edit' %}";
-            } else if (buttonType === 'Action') {
-                form.action = "{% url 'common_form_action' %}";
-            }
-        });
-    });
-     {% endcomment %}
     
 </script>
 

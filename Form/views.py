@@ -725,7 +725,7 @@ def common_form_post(request):
                     continue
 
                 # Define file directory
-                file_dir = os.path.join(settings.MEDIA_ROOT, form_name, created_by, form_data.req_no)
+                file_dir = os.path.join(MEDIA_ROOT, form_name, created_by, form_data.req_no)
                 os.makedirs(file_dir, exist_ok=True)
 
                 # Loop through files (whether single or multiple)
@@ -784,14 +784,11 @@ def common_form_edit(request):
 
         if not form_data_id:
             return JsonResponse({"error": "form_data_id is required"}, status=400)
+        
 
         form_data = get_object_or_404(FormData, id=form_data_id)
 
-        # Update form_id if provided
-        form_id_key = next((key for key in request.POST if key.startswith("form_id_")), None)
-        if form_id_key:
-            form_id = request.POST.get(form_id_key, "").strip()
-            form_data.form_id = form_id
+        if form_data:
             form_data.updated_by = user
             form_data.save()
 
@@ -936,58 +933,6 @@ def form_preview(request):
         return render(request, "Form/_formfields.html", {"fields": []})
     
 
-# def common_form_action(request):
-#     user = request.session.get('user_id', '')
-#     try:
-#         if request.method == 'POST':
-#             form_data_id = request.POST.get('form_data_id')  # or however you're getting this
-#             form_data = get_object_or_404(FormData, pk=form_data_id)
-
-            
-
-#             button_type = request.POST.get('button_type')
-
-#             # Process only if it's an Action button
-#             if button_type == 'Action':
-#                 for key, value in request.POST.items():
-#                     if key.startswith("action_field_id_"):
-#                         field = key.replace("action_field_id_", "")
-#                         action_field = get_object_or_404(FormActionField, pk=field)
-
-#                         # Check if this is the clicked action button
-#                         if action_field.button_type == 'Action':
-#                             # Save only this action button's value = status
-#                             ActionData.objects.create(
-#                                 value=action_field.status,  # saving status from FormActionField
-#                                 form_data=form_data,
-#                                 field=action_field,
-#                                 created_by=user,
-#                                 updated_by=user,
-#                             )
-
-#                     elif key.startswith("action_field_"):
-#                         field = key.replace("action_field_", "")
-#                         action_field = get_object_or_404(FormActionField, pk=field)
-
-#                         # Save only if not a button field
-#                         if action_field.type in ['text', 'textarea', 'dropdown']:
-#                             ActionData.objects.create(
-#                                 value=value,
-#                                 form_data=form_data,
-#                                 field=action_field,
-#                                 created_by=user,
-#                                 updated_by=user,
-#                             ) # assuming only one action button is clicked
-
-#         messages.success(request, "Action data saved successfully!")
-
-#     except Exception as e:
-#         traceback.print_exc()
-#         messages.error(request, "Oops...! Something went wrong!")
-
-#         messages.success(request, "Action data saved successfully!")
-#         new_url = f'/masters?entity=form_master&type=i'
-#         return redirect(new_url)
 
 def common_form_action(request):
     user = request.session.get('user_id', '')
@@ -1065,7 +1010,7 @@ def get_uploaded_files(request):
         for f in files:
             if f.file_path:
                 # Correctly build the URL for the file
-                file_url = settings.MEDIA_URL + f.file_path
+                file_url = MEDIA_ROOT + f.file_path
             else:
                 file_url = '#'
 
