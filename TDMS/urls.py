@@ -45,6 +45,8 @@ urlpatterns = [
     path('get_uploaded_files/',get_uploaded_files, name='get_uploaded_files'),
     path('get_dublicate_name',get_dublicate_name, name='get_dublicate_name'),
     path('download_file/',download_file, name='download_file'),
+    path('delete-file/', delete_file, name='delete_file'),
+
 
     # Account
     path("", Login,name='Account'),

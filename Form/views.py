@@ -1156,24 +1156,59 @@ def common_form_action(request):
         return redirect('/masters?entity=form_master&type=i')
 
 
+
 def download_file(request):
     try:
         encrypted_path = request.GET.get('file')
         if not encrypted_path:
             raise Http404("Missing file parameter")
 
-        # Decrypt using your predefined `dec()` function
-        filepath = dec(encrypted_path)  # make sure this returns a relative path
-
+        # Decrypt to get file_path
+        filepath = dec(encrypted_path)  # This should match the `file_path` in the DB
         full_path = os.path.join(settings.MEDIA_ROOT, filepath)
 
-        if os.path.exists(full_path):
-            return FileResponse(open(full_path, 'rb'), as_attachment=True)
-        else:
+        if not os.path.exists(full_path):
             raise Http404("File does not exist")
+
+        # Lookup uploaded name from DB using file_path
+        try:
+            file_obj = FormFile.objects.get(file_path=filepath)
+            uploaded_name = file_obj.uploaded_name
+        except FormFile.DoesNotExist:
+            uploaded_name = os.path.basename(filepath)  # fallback
+
+        response = FileResponse(open(full_path, 'rb'), as_attachment=True, filename=uploaded_name)
+        return response
 
     except Exception as e:
         raise Http404("Invalid or corrupted file path")
+    
+def delete_file(request):
+    if request.method == "POST":
+        try:
+            data = json.loads(request.body)
+            enc_id = data.get("id")
+            enc_path = data.get("path")
+
+            file_id = dec(enc_id)
+            file_path = dec(enc_path)
+
+            # Delete the file record
+            form_file = FormFile.objects.get(id=file_id)
+            full_path = os.path.join(settings.MEDIA_ROOT, file_path)
+
+            if os.path.exists(full_path):
+                os.remove(full_path)
+
+            form_file.delete()
+
+            return JsonResponse({"success": True})
+        except Exception as e:
+            traceback.print_exc()
+            return JsonResponse({"success": False, "error": "Could not delete file"}, status=500)
+    return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
+
+
 
 def get_uploaded_files(request):
     try:
@@ -1190,8 +1225,10 @@ def get_uploaded_files(request):
             full_path = os.path.join(settings.MEDIA_ROOT, f.file_path)
             exists = os.path.exists(full_path)
 
+            file_id = enc(str(f.id))  # Use current file's ID
+
             if exists:
-                encrypted_url = enc(f.file_path)  # Using your predefined enc() function
+                encrypted_url = enc(f.file_path)
                 status = 1
             else:
                 encrypted_url = ''
@@ -1200,7 +1237,8 @@ def get_uploaded_files(request):
             file_list.append({
                 'name': f.uploaded_name,
                 'status': status,
-                'encrypted_url': encrypted_url
+                'encrypted_url': encrypted_url,
+                'file_id': file_id  # Correctly encrypted ID for each file
             })
 
         return JsonResponse({'files': file_list})
