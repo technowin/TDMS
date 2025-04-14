@@ -637,6 +637,9 @@ def form_master(request):
                             file_validation = next((v for v in field["validations"]), None)
                             field["accept"] = file_validation["value"] if file_validation else ""
 
+                            file_exists = FormFile.objects.filter(field_id=field["id"], form_data_id=form_data_id).exists()
+                            field["file_uploaded"] = 1 if file_exists else 0
+
                         # Set existing values if available
                         saved_value = values_dict.get(field["id"], "")
 
@@ -644,7 +647,6 @@ def form_master(request):
                             field["value"] = [val.strip() for val in saved_value.split(",") if val.strip()]
                         else:
                             field["value"] = saved_value
-
 
                     # ✅ Fetch action fields (no validations needed)
                     action_fields = list(FormActionField.objects.filter(action_id=action_id).values(

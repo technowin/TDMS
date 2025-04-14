@@ -93,7 +93,6 @@
                 </i>
             </div>
                   
-                 
 
         {% elif field.field_type == "textarea" %}
             <textarea class="form-control custom-textarea" name="field_{{ field.id }}" rows="1" value={{ field.value }}
@@ -129,6 +128,7 @@
         $('.select_multiple').selectize({
             plugins: ['remove_button'],
             delimiter: ',',
+            placeholder: "Select Options",
             persist: false,
             create: false,
             selectOnTab: false, 
