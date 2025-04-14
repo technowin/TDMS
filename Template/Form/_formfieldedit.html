@@ -225,7 +225,7 @@
 
 <script>
 
-        function showScript(form_data_id, field_id) {
+        {% comment %} function showScript(form_data_id, field_id) {
             const inputElement = document.getElementById('file_input_' + field_id);
             const newFiles = inputElement.files;
         
@@ -292,7 +292,91 @@
                     Swal.fire('Error', 'Something went wrong while fetching documents.', 'error');
                 }
             });
+        } {% endcomment %}
+
+        function showScript(form_data_id, field_id) {
+            const inputElement = document.getElementById('file_input_' + field_id);
+            const newFiles = inputElement.files;
+        
+            $.ajax({
+                url: "{% url 'get_uploaded_files' %}",
+                type: 'POST',
+                data: {
+                    field_id: field_id,
+                    form_data_id: form_data_id,
+                    csrfmiddlewaretoken: '{{ csrf_token }}'
+                },
+                success: function (data) {
+                    debugger;
+                    let tableHTML = `
+                        <table style="width:100%; text-align:left; border-collapse: collapse;">
+                            <thead>
+                                <tr>
+                                    <th style="border-bottom: 1px solid #ccc; padding: 8px;">Sr No.</th>
+                                    <th style="border-bottom: 1px solid #ccc; padding: 8px;">File Name</th>
+                                    <th style="border-bottom: 1px solid #ccc; padding: 8px;">Download</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+        
+                    let srNo = 1;
+        
+                    // Existing files from DB
+                    if (data.files && data.files.length > 0) {
+                        data.files.forEach((file) => {
+                            let downloadIcon = file.status === 1
+                                ? `<a href="javascript:void(0);" onclick="downloadFile('${file.encrypted_url}')" title="Download File"><i class="fa-solid fa-download"></i></a>`
+                                : `<i class="fa-solid fa-ban" title="File missing"></i>`;
+        
+                            tableHTML += `
+                                <tr>
+                                    <td style="padding: 8px;">${srNo++}</td>
+                                    <td style="padding: 8px;">${file.name}</td>
+                                    <td style="padding: 8px;">${downloadIcon}</td>
+                                </tr>
+                            `;
+                        });
+                    }
+        
+                    // New files selected in input
+                    if (newFiles && newFiles.length > 0) {
+                        Array.from(newFiles).forEach((file) => {
+                            tableHTML += `
+                                <tr>
+                                    <td style="padding: 8px;">${srNo++}</td>
+                                    <td style="padding: 8px;">${file.name}</td>
+                                    <td style="padding: 8px;">
+                                        <i class="fa-solid fa-file-circle-plus" title="File will be uploaded after saving"></i>
+                                    </td>
+                                </tr>
+                            `;
+                        });
+                    }
+        
+                    tableHTML += `</tbody></table>`;
+        
+                    Swal.fire({
+                        title: 'Uploaded + New Files',
+                        html: tableHTML,
+                        width: '600px',
+                        confirmButtonText: 'Close'
+                    });
+                },
+                error: function (xhr, status, error) {
+                    console.error('AJAX Error:', error);
+                    Swal.fire('Error', 'Something went wrong while fetching documents.', 'error');
+                }
+            });
         }
+        function downloadFile(encryptedPath) {
+            debugger;
+            const baseUrl = "{% url 'download_file' %}";
+            const downloadUrl = `${baseUrl}?file=${encodeURIComponent(encryptedPath)}`;
+            window.open(downloadUrl);
+        }
+        
+        
         
     
   </script>

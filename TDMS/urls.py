@@ -44,6 +44,7 @@ urlpatterns = [
     path('form_preview/',form_preview, name='form_preview'),
     path('get_uploaded_files/',get_uploaded_files, name='get_uploaded_files'),
     path('get_dublicate_name',get_dublicate_name, name='get_dublicate_name'),
+    path('download_file/',download_file, name='download_file'),
 
     # Account
     path("", Login,name='Account'),

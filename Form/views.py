@@ -574,7 +574,7 @@ def form_master(request):
         if request.method == "POST":
             form_id = request.POST.get("form")
             
-            fields = FormField.objects.filter(form_id=form_id).values("id", "label", "field_type", "values", "attributes","form_id","form_id__name")
+            fields = FormField.objects.filter(form_id=form_id).values("id", "label", "field_type", "values", "attributes","form_id","form_id__name").order_by("order")
             fields = list(fields)
             
             for field in fields:
@@ -613,10 +613,12 @@ def form_master(request):
                 action_id = form_instance["action_id"]
 
                 # Fetch fields from the form
+                # Fetch fields from the form, ordered by the 'order' field
                 fields = FormField.objects.filter(form_id=form_id).values(
-                    "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name",
-                )
+                    "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name"
+                ).order_by("order")  # Sort by 'order' field
                 fields = list(fields)
+
 
                 # Fetch saved values for the form data
                 field_values = FormFieldValues.objects.filter(form_data_id=form_data_id).values("field_id", "value")
@@ -1052,8 +1054,9 @@ def form_preview(request):
 
         # Fetch form fields
         fields = list(FormField.objects.filter(form_id=form_id).values(
-            "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name"
-        ))
+            "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name","order"
+        ).order_by("order"))
+
 
         # Fetch action fields
         action_fields = list(FormActionField.objects.filter(action_id=action_id).values(
@@ -1153,11 +1156,24 @@ def common_form_action(request):
         return redirect('/masters?entity=form_master&type=i')
 
 
-def download_file(request, filepath):
-    full_path = os.path.join(settings.MEDIA_ROOT, filepath)
-    if os.path.exists(full_path):
-        return FileResponse(open(full_path, 'rb'), as_attachment=True)
-    raise Http404()
+def download_file(request):
+    try:
+        encrypted_path = request.GET.get('file')
+        if not encrypted_path:
+            raise Http404("Missing file parameter")
+
+        # Decrypt using your predefined `dec()` function
+        filepath = dec(encrypted_path)  # make sure this returns a relative path
+
+        full_path = os.path.join(settings.MEDIA_ROOT, filepath)
+
+        if os.path.exists(full_path):
+            return FileResponse(open(full_path, 'rb'), as_attachment=True)
+        else:
+            raise Http404("File does not exist")
+
+    except Exception as e:
+        raise Http404("Invalid or corrupted file path")
 
 def get_uploaded_files(request):
     try:
@@ -1171,15 +1187,20 @@ def get_uploaded_files(request):
 
         file_list = []
         for f in files:
-            if f.file_path:
-                # Correctly build the URL for the file
-                file_url = MEDIA_ROOT + f.file_path
+            full_path = os.path.join(settings.MEDIA_ROOT, f.file_path)
+            exists = os.path.exists(full_path)
+
+            if exists:
+                encrypted_url = enc(f.file_path)  # Using your predefined enc() function
+                status = 1
             else:
-                file_url = '#'
+                encrypted_url = ''
+                status = 0
 
             file_list.append({
                 'name': f.uploaded_name,
-                'url': file_url
+                'status': status,
+                'encrypted_url': encrypted_url
             })
 
         return JsonResponse({'files': file_list})
