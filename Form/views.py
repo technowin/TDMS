@@ -50,6 +50,7 @@ from TDMS.settings import *
 import logging
 from django.http import FileResponse, Http404
 import mimetypes
+from django.template.loader import render_to_string
 
 from Workflow.models import workflow_matrix, workflow_action_master
 
@@ -574,87 +575,92 @@ def form_master(request):
         if request.method == "POST":
             form_id = request.POST.get("form")
             
-            fields = FormField.objects.filter(form_id=form_id).values("id", "label", "field_type", "values", "attributes","form_id","form_id__name").order_by("order")
+            fields = FormField.objects.filter(form_id=form_id).values(
+                "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name"
+            ).order_by("order")
+
             fields = list(fields)
-            
+
             for field in fields:
-                field["values"] = field["values"].split(",") if field.get("values") else []
-                field["attributes"] = field["attributes"].split(",") if field.get("attributes") else []
+                # Properly clean up values and attributes
+                field["values"] = [v.strip() for v in field["values"].split(",")] if field.get("values") else []
+                field["attributes"] = [a.strip() for a in field["attributes"].split(",")] if field.get("attributes") else []
 
-                validations = FieldValidation.objects.filter(field_id=field["id"], form_id=form_id).values("value")
+                validations = FieldValidation.objects.filter(
+                    field_id=field["id"], form_id=form_id
+                ).values("value")
                 field["validations"] = list(validations)
-                
-                # Extract file format for file fields
-                if field["field_type"] == "file":
+
+                # Handle file/text accept fields
+                if field["field_type"] in ["file", "file multiple", "text"]:
                     file_validation = next((v for v in field["validations"]), None)
                     field["accept"] = file_validation["value"] if file_validation else ""
 
-                if field["field_type"] == "file multiple":
-                    file_validation = next((v for v in field["validations"]), None)
-                    field["accept"] = file_validation["value"] if file_validation else ""
+            context = {"fields": fields, "type": "master"}
+            html = render_to_string("Form/_formfields.html", context)
+            data = {'html': html}
+            return JsonResponse(data, safe=False)
 
-                if field["field_type"] == "text":
-                    file_validation = next((v for v in field["validations"]), None)
-                    field["accept"] = file_validation["value"] if file_validation else ""
-            
-            return render(request, "Form/_formfields.html", {"fields": fields,"type":"master"})
         
         else:
         
             form_data_id = request.GET.get("form")
 
-        if form_data_id:
-            form_data_id = dec(form_data_id)
-            form_instance = FormData.objects.filter(id=form_data_id).values("id","form_id", "action_id").first()
-            
-            if form_instance:
-                form_id = form_instance["form_id"]
-                form = get_object_or_404(Form,id = form_id)
-                action_id = form_instance["action_id"]
+            if form_data_id:
+                form_data_id = dec(form_data_id)
+                form_instance = FormData.objects.filter(id=form_data_id).values("id","form_id", "action_id").first()
+                
+                if form_instance:
+                    form_id = form_instance["form_id"]
+                    form = get_object_or_404(Form,id = form_id)
+                    action_id = form_instance["action_id"]
+                    
+                    fields = FormField.objects.filter(form_id=form_id).values(
+                        "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name"
+                    ).order_by("order")  # Sort by 'order' field
+                    fields = list(fields)
 
-                # Fetch fields from the form
-                # Fetch fields from the form, ordered by the 'order' field
-                fields = FormField.objects.filter(form_id=form_id).values(
-                    "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name"
-                ).order_by("order")  # Sort by 'order' field
-                fields = list(fields)
+                    # Fetch saved values for the form data
+                    field_values = FormFieldValues.objects.filter(form_data_id=form_data_id).values("field_id", "value")
+                    values_dict = {fv["field_id"]: fv["value"] for fv in field_values}
+
+                    for field in fields:
+                        field["values"] = field["values"].split(",") if field.get("values") else []
+                        field["attributes"] = field["attributes"].split(",") if field.get("attributes") else []
+
+                        # Fetch validation rules
+                        validations = FieldValidation.objects.filter(field_id=field["id"], form_id=form_id).values("value")
+                        field["validations"] = list(validations)
+
+                        # Extract file format for file fields
+                        if field["field_type"] in ["file", "file multiple"]:
+                            file_validation = next((v for v in field["validations"]), None)
+                            field["accept"] = file_validation["value"] if file_validation else ""
+
+                        # Set existing values if available
+                        saved_value = values_dict.get(field["id"], "")
+
+                        if field["field_type"] == "select multiple":
+                            field["value"] = [val.strip() for val in saved_value.split(",") if val.strip()]
+                        else:
+                            field["value"] = saved_value
 
 
-                # Fetch saved values for the form data
-                field_values = FormFieldValues.objects.filter(form_data_id=form_data_id).values("field_id", "value")
-                values_dict = {fv["field_id"]: fv["value"] for fv in field_values}
+                    # ✅ Fetch action fields (no validations needed)
+                    action_fields = list(FormActionField.objects.filter(action_id=action_id).values(
+                        "id", "type", "label_name", "button_name", "bg_color", "text_color", 
+                        "button_type", "dropdown_values", "status"
+                    ))
+                    action_fields = list(action_fields)
 
-                for field in fields:
-                    field["values"] = field["values"].split(",") if field.get("values") else []
-                    field["attributes"] = field["attributes"].split(",") if field.get("attributes") else []
+                    for af in action_fields:
+                        af["dropdown_values"] = af["dropdown_values"].split(",") if af.get("dropdown_values") else []
 
-                    # Fetch validation rules
-                    validations = FieldValidation.objects.filter(field_id=field["id"], form_id=form_id).values("value")
-                    field["validations"] = list(validations)
-
-                    # Extract file format for file fields
-                    if field["field_type"] in ["file", "file multiple"]:
-                        file_validation = next((v for v in field["validations"]), None)
-                        field["accept"] = file_validation["value"] if file_validation else ""
-
-                    # Set existing values if available
-                    field["value"] = values_dict.get(field["id"], "")
-
-                # ✅ Fetch action fields (no validations needed)
-                action_fields = list(FormActionField.objects.filter(action_id=action_id).values(
-                    "id", "type", "label_name", "button_name", "bg_color", "text_color", 
-                    "button_type", "dropdown_values", "status"
-                ))
-                action_fields = list(action_fields)
-
-                for af in action_fields:
-                    af["dropdown_values"] = af["dropdown_values"].split(",") if af.get("dropdown_values") else []
-
-                return render(request, "Form/_formfieldedit.html", {"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id})
-        else:
-            type = request.GET.get("type")
-            form = Form.objects.all()
-            return render(request, "Form/form_master.html", {"form": form,"type":type})
+                    return render(request, "Form/_formfieldedit.html", {"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id})
+            else:
+                type = request.GET.get("type")
+                form = Form.objects.all()
+                return render(request, "Form/form_master.html", {"form": form,"type":type})
     
     except Exception as e:
         traceback.print_exc()
@@ -708,8 +714,16 @@ def common_form_post(request):
                 field_id = value.strip()
                 field = get_object_or_404(FormField, id=field_id)
 
-                # Get actual input value
-                input_value = request.POST.get(f"field_{field_id}", "").strip()
+                if field.field_type.startswith("file"):
+                    continue
+
+
+                if field.field_type == "select multiple":
+                    selected_values = request.POST.getlist(f"field_{field_id}")
+                    input_value = ','.join([val.strip() for val in selected_values if val.strip()])
+                else:
+                    input_value = request.POST.get(f"field_{field_id}", "").strip()
+
 
                 # Insert into FormFieldValues first
                 form_field_value = FormFieldValues.objects.create(
@@ -760,14 +774,6 @@ def common_form_post(request):
                     )
 
 
-                    form_file_ids.append(str(form_file.id))
-
-                # Save comma-separated list of file IDs
-                form_field_value.value = ",".join(form_file_ids)
-                form_field_value.save()
-
-
-
         messages.success(request, "Form data saved successfully!")
 
     except Exception as e:
@@ -777,131 +783,6 @@ def common_form_post(request):
     finally:
         return redirect('/masters?entity=form_master&type=i')
 
-
-# def common_form_edit(request):
-#     user = request.session.get('user_id', '')
-#     try:
-#         if request.method != "POST":
-#             return JsonResponse({"error": "Invalid request method"}, status=400)
-
-#         form_data_id = request.POST.get("form_data_id")
-
-#         if not form_data_id:
-#             return JsonResponse({"error": "form_data_id is required"}, status=400)
-#         form_data = get_object_or_404(FormData, id=form_data_id)
-#         if form_data:
-#             form_data.updated_by = user
-#             form_data.save()
-
-#         # Delete existing records in related tables
-#         # FormFieldValues.objects.filter(form_data_id=form_data_id).delete()
-
-#         created_by = request.session.get("user_id", "").strip()
-#         form_name = request.POST.get("form_name", "").strip()
-
-#         saved_values = []
-#         file_records = []
-#         field_value_map = {}
-
-#         # Process each field
-#         for key, value in request.POST.items():
-#             if key.startswith("field_id_"):
-#                 field_id = value.strip()
-#                 field = get_object_or_404(FormField, id=field_id)
-
-#                 # Get actual input value
-#                 input_value = request.POST.get(f"field_{field_id}", "").strip()
-
-#                 # Insert into FormFieldValues
-#                 form_field_value = FormFieldValues.objects.create(
-#                     form_data=form_data, field=field, value=input_value, created_by=created_by
-#                 )
-#                 field_value_map[field_id] = form_field_value
-
-#         form_file_ids = []
-
-#         for field_key, uploaded_files in request.FILES.lists():
-#             if not field_key.startswith("field_"):
-#                 continue
-
-#             field_id = field_key.split("_")[-1].strip()
-#             field = get_object_or_404(FormField, id=field_id)
-
-#             file_dir = os.path.join(settings.MEDIA_ROOT, form_name, created_by, form_data.req_no)
-#             os.makedirs(file_dir, exist_ok=True)
-
-#             is_multiple = field.field_type == "file multiple"
-
-#             for uploaded_file in uploaded_files:
-#                 uploaded_file_name = uploaded_file.name.strip()
-#                 original_file_name, file_extension = os.path.splitext(uploaded_file_name)
-#                 timestamp = timezone.now().strftime('%Y%m%d%H%M%S%f')
-#                 saved_file_name = f"{original_file_name}_{timestamp}{file_extension}"
-#                 save_path = os.path.join(file_dir, saved_file_name)
-#                 relative_file_path = os.path.join(form_name, created_by, form_data.req_no, saved_file_name)
-
-#                 if is_multiple:
-#                     # Check if this file name already exists
-#                     existing_file = FormFile.objects.filter(
-#                         form_data=form_data,
-#                         field=field,
-#                         uploaded_name=uploaded_file_name
-#                     ).first()
-
-#                     if existing_file:
-#                         old_file_path = os.path.join(settings.MEDIA_ROOT, existing_file.file_path)
-#                         if os.path.exists(old_file_path):
-#                             os.remove(old_file_path)
-
-#                         with open(save_path, 'wb+') as destination:
-#                             for chunk in uploaded_file.chunks():
-#                                 destination.write(chunk)
-
-#                         existing_file.file_name = saved_file_name
-#                         existing_file.file_path = relative_file_path
-#                         existing_file.updated_by = user
-#                         existing_file.save()
-
-#                         continue
-
-#                 else:
-#                     # 🔥 Single file logic: Delete old one (if any) for this field + form_data
-#                     existing_files = FormFile.objects.filter(form_data=form_data, field=field)
-#                     for old_file in existing_files:
-#                         old_file_path = os.path.join(settings.MEDIA_ROOT, old_file.file_path)
-#                         if os.path.exists(old_file_path):
-#                             os.remove(old_file_path)
-#                         old_file.delete()
-
-#                 # Save new file
-#                 with open(save_path, 'wb+') as destination:
-#                     for chunk in uploaded_file.chunks():
-#                         destination.write(chunk)
-
-#                 form_file = FormFile.objects.create(
-#                     file_name=saved_file_name,
-#                     uploaded_name=uploaded_file_name,
-#                     file_path=relative_file_path,
-#                     form_data=form_data,
-#                     form=form_data.form,
-#                     created_by=user,
-#                     updated_by=user,
-#                     field=field
-#                 )
-
-#                 form_file_ids.append(str(form_file.id))
-#                 form_field_value.value = ",".join(form_file_ids)
-#                 form_field_value.save()
-
-
-#         messages.success(request, "Form data updated successfully!")
-
-#     except Exception as e:
-#         traceback.print_exc()
-#         messages.error(request, "Oops...! Something went wrong!")
-
-#     finally:
-#         return redirect("/masters?entity=form_master&type=i")
 
 def common_form_edit(request):
 
@@ -933,7 +814,11 @@ def common_form_edit(request):
                 if field.field_type.startswith("file"):
                     continue  # Skip file fields — handled separately
 
-                input_value = request.POST.get(f"field_{field_id}", "").strip()
+                if field.field_type == "select multiple":
+                    selected_values = request.POST.getlist(f"field_{field_id}")
+                    input_value = ','.join([val.strip() for val in selected_values if val.strip()])
+                else:
+                    input_value = request.POST.get(f"field_{field_id}", "").strip()
 
                 FormFieldValues.objects.create(
                     form_data=form_data,

@@ -66,12 +66,14 @@
                 </select>
 
             {% elif field.field_type == "select multiple" %}
-                <select class="form-control select_multiple" id="multiple" name="field_{{ field.id }}" multiple
+                <select class="form-control select_multiple" name="field_{{ field.id }}" multiple
                     {% for attr in field.attributes %} {{ attr }} {% endfor %}>
                     {% for option in field.values %}
-                        <option value="{{ option }}">{{ option }}</option>
+                        <option value="{{ option }}" {% if option in field.value %}selected{% endif %}>{{ option }}</option>
                     {% endfor %}
                 </select>
+            
+            
 
             {% elif field.field_type == "radio" %}
                 <div class="d-flex flex-wrap">
@@ -223,19 +225,16 @@
         $(document).ready(function() {
             $('.select_multiple').selectize({
                 plugins: ['remove_button'],
-                delimiter: ',', 
+                delimiter: ',',
                 placeholder: "Select Options",
                 persist: false,
                 create: false,
-                selectOnTab: false, 
-                maxItems: null,
-                onInitialize: function() {
-                    var control = this;
-                    control.clear();
-                }
+                selectOnTab: false,
+                maxItems: null
+                // Do not clear values on initialize!
             });
         });
-    
+        
 </script>
 
 <script>
@@ -365,10 +364,6 @@
         document.body.removeChild(a);
     }
     
-
-
-            
-        
         
     
   </script>
