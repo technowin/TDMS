@@ -34,7 +34,8 @@
 
 
         <div class="col-md-4">
-            <h3 class="mb-0"><strong style="color: #4e73df;"><u id="form-title">Insert Form Data - {% if fields %}{{ form.name }}{% else %}Unknown{% endif %}</u></strong></h3>
+            <h3 class="mb-0"><strong style="color: #4e73df;"><u id="form-title">Insert Form Data - {% if fields %}{{ form.name }}{% else %}{% endif %}
+            </u></strong></h3>
         </div>
         
         <br>
@@ -223,63 +224,76 @@
 </script>
 
 <script>
+
         function showScript(form_data_id, field_id) {
+            const inputElement = document.getElementById('file_input_' + field_id);
+            const newFiles = inputElement.files;
+        
             $.ajax({
                 url: "{% url 'get_uploaded_files' %}",
                 type: 'POST',
                 data: {
-                    field_id: field_id, 
+                    field_id: field_id,
                     form_data_id: form_data_id,
                     csrfmiddlewaretoken: '{{ csrf_token }}'
                 },
-                success: function(data) {
-                    debugger;
+                success: function (data) {
+                    let tableHTML = `
+                        <table style="width:100%; text-align:left; border-collapse: collapse;">
+                            <thead>
+                                <tr>
+                                    <th style="border-bottom: 1px solid #ccc; padding: 8px;">Sr No.</th>
+                                    <th style="border-bottom: 1px solid #ccc; padding: 8px;">File Name</th>
+                                    <th style="border-bottom: 1px solid #ccc; padding: 8px;">Download</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                    `;
+        
+                    let srNo = 1;
+        
+                    // Existing files from DB
                     if (data.files && data.files.length > 0) {
-                        let tableHTML = `
-                            <table style="width:100%; text-align:left; border-collapse: collapse;">
-                                <thead>
-                                    <tr>
-                                        <th style="border-bottom: 1px solid #ccc; padding: 8px;">Sr No.</th>
-                                        <th style="border-bottom: 1px solid #ccc; padding: 8px;">File Name</th>
-                                        <th style="border-bottom: 1px solid #ccc; padding: 8px;">Download</th>
-                                    </tr>
-                                </thead>
-                                <tbody>
-                        `;
-    
-                        data.files.forEach((file, index) => {
+                        data.files.forEach((file) => {
                             tableHTML += `
                                 <tr>
-                                    <td style="padding: 8px;">${index + 1}</td>
+                                    <td style="padding: 8px;">${srNo++}</td>
                                     <td style="padding: 8px;">${file.name}</td>
                                     <td style="padding: 8px;"><a href="${file.url}" download><i class="fa-solid fa-download"></i></a></td>
                                 </tr>
                             `;
                         });
-    
-                        tableHTML += `</tbody></table>`;
-    
-                        Swal.fire({
-                            title: 'Uploaded Files',
-                            html: tableHTML,
-                            width: '600px',
-                            confirmButtonText: 'Close'
-                        });
-                    } else {
-                        Swal.fire({
-                            icon: 'info',
-                            title: 'No Documents Uploaded',
-                            text: 'There are currently no uploaded documents.',
-                            confirmButtonText: 'Okay'
+                    }
+        
+                    // New files selected in input
+                    if (newFiles && newFiles.length > 0) {
+                        Array.from(newFiles).forEach((file) => {
+                            tableHTML += `
+                                <tr>
+                                    <td style="padding: 8px;">${srNo++}</td>
+                                    <td style="padding: 8px;">${file.name}</td>
+                                    <td style="padding: 8px;"><i class="fa-solid fa-file-circle-plus" title="File will be uploaded after saving"></i></td>
+                                </tr>
+                            `;
                         });
                     }
+        
+                    tableHTML += `</tbody></table>`;
+        
+                    Swal.fire({
+                        title: 'Uploaded + New Files',
+                        html: tableHTML,
+                        width: '600px',
+                        confirmButtonText: 'Close'
+                    });
                 },
-                error: function(xhr, status, error) {
+                error: function (xhr, status, error) {
                     console.error('AJAX Error:', error);
                     Swal.fire('Error', 'Something went wrong while fetching documents.', 'error');
                 }
             });
         }
+        
     
   </script>
 

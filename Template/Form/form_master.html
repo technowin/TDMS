@@ -63,46 +63,7 @@
     </div>
 
 <script>
-
-        document.getElementById("dropdown").addEventListener("change", function () {
-            let formId = this.value;
-            let btnSubmit = document.getElementById("btnSubmit");
-            let dynamicForm = document.getElementById("dynamic_form");
-            let formTitle = document.getElementById("form-title");
-    
-            // Hide the button initially
-            btnSubmit.hidden = true;
-    
-            // Reset form and title if nothing is selected
-            if (!formId) {
-                dynamicForm.innerHTML = "";
-                formTitle.textContent = "Create Form";
-                return;
-            }
-    
-            // Example: Populate form content based on selection (this can be improved)
-            if (formId === "1") {
-                dynamicForm.innerHTML = `
-                    <label>Field A:</label>
-                    <input type="text" name="field_a" />
-                `;
-            } else if (formId === "2") {
-                dynamicForm.innerHTML = `
-                    <label>Field B:</label>
-                    <input type="text" name="field_b" />
-                `;
-            } else {
-                dynamicForm.innerHTML = `<p>No form available.</p>`;
-            }
-    
-            // Update title and show button
-            let selectedOption = document.querySelector("#dropdown option:checked");
-            formTitle.textContent = selectedOption ? `Create Form - ${selectedOption.textContent}` : "Create Form";
-            btnSubmit.hidden = false;
-        });
-    </script>
-    
-    {% comment %} document.getElementById("dropdown").addEventListener("change", function () {
+    document.getElementById("dropdown").addEventListener("change", function () {
         let formId = this.value;
         let btnSubmit = document.getElementById("btnSubmit");
         let dynamicForm = document.getElementById("dynamic_form");
@@ -137,7 +98,7 @@
             formTitle.textContent = "Create Form"; // Reset title
             btnSubmit.hidden = true;
         }
-    }); {% endcomment %}
+    });
 </script>
 
 <script>
