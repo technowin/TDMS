@@ -96,31 +96,28 @@
                     <span class="slider"></span>
                 </label>
 
-                {% elif field.field_type == "file" %}
-                <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
-                    <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}"
-                           class="form-control custom-file-input" style="padding-right: 100px;" id="file_input_{{ field.id }}"
-                           {% if not field.file_uploaded %}
-                               {% for attr in field.attributes %} {{ attr }} {% endfor %}
+            {% elif field.field_type == "file" %}
+                {% comment %} <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control custom-file-input"
+                    {% for attr in field.attributes %} {{ attr }} {% endfor %}> {% endcomment %}
+                    <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
+                        <input type="file" accept="{{ field.accept }}"  name="field_{{ field.id }}"
+                               class="form-control custom-file-input" style="padding-right: 100px;" id="file_input_{{ field.id }}"
+                               {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                    
+                        <i class="fa-solid fa-eye eye-icon"
+                           {% if type == "create" %}
+                               onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
+                           {% else %}
+                               onclick="showScript({{ form_data_id }}, {{ field.id }})"
                            {% endif %}>
-            
-                    <i class="fa-solid fa-eye eye-icon"
-                       {% if type == "create" %}
-                           onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
-                       {% else %}
-                           onclick="showScript({{ form_data_id }}, {{ field.id }})"
-                       {% endif %}>
-                    </i>
-                </div>
-            
+                        </i>
+                    </div>
                     
             {% elif field.field_type == "file multiple" %}
                 <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
                     <input type="file" accept="{{ field.accept }}"name="field_{{ field.id }}" multiple
                            class="form-control custom-file-input"style="padding-right: 100px;" id="file_input_{{ field.id }}"
-                           {% if not field.file_uploaded %}
-                            {% for attr in field.attributes %} {{ attr }} {% endfor %}
-                        {% endif %}>
+                           {% for attr in field.attributes %} {{ attr }} {% endfor %}>
                 
                     <i class="fa-solid fa-eye eye-icon"
                        {% if type == "create" %}

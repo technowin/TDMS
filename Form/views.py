@@ -640,6 +640,10 @@ def form_master(request):
                             file_exists = FormFile.objects.filter(field_id=field["id"], form_data_id=form_data_id).exists()
                             field["file_uploaded"] = 1 if file_exists else 0
 
+                            # If file exists, remove "required" from attributes
+                            if file_exists and "required" in field["attributes"]:
+                                field["attributes"].remove("required")
+
                         # Set existing values if available
                         saved_value = values_dict.get(field["id"], "")
 
