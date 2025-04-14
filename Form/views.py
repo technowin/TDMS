@@ -816,48 +816,80 @@ def common_form_post(request):
 #                 )
 #                 field_value_map[field_id] = form_field_value
 
-#         # Handle file uploads
+#         form_file_ids = []
+
 #         for field_key, uploaded_files in request.FILES.lists():
-#             if field_key.startswith("field_"):
-#                 field_id = field_key.split("_")[-1].strip()
-#                 field = get_object_or_404(FormField, id=field_id)
+#             if not field_key.startswith("field_"):
+#                 continue
 
-#                 # Retrieve the corresponding FormFieldValues instance
-#                 form_field_value = field_value_map.get(field_id)
-#                 if not form_field_value:
-#                     continue
+#             field_id = field_key.split("_")[-1].strip()
+#             field = get_object_or_404(FormField, id=field_id)
 
-#                 # Define file directory
-#                 file_dir = os.path.join(settings.MEDIA_ROOT, form_name, created_by, form_data.req_no)
-#                 os.makedirs(file_dir, exist_ok=True)
+#             file_dir = os.path.join(settings.MEDIA_ROOT, form_name, created_by, form_data.req_no)
+#             os.makedirs(file_dir, exist_ok=True)
 
-#                 # Loop through files (whether single or multiple)
-#                 for uploaded_file in uploaded_files:
-#                     original_file_name, file_extension = os.path.splitext(uploaded_file.name.strip())
-#                     timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')  # microsecond to avoid clashes
-#                     saved_file_name = f"{original_file_name}_{timestamp}{file_extension}"
+#             is_multiple = field.field_type == "file multiple"
 
-#                     # Save file
-#                     fs = FileSystemStorage(location=file_dir)
-#                     saved_path = fs.save(saved_file_name, uploaded_file)
+#             for uploaded_file in uploaded_files:
+#                 uploaded_file_name = uploaded_file.name.strip()
+#                 original_file_name, file_extension = os.path.splitext(uploaded_file_name)
+#                 timestamp = timezone.now().strftime('%Y%m%d%H%M%S%f')
+#                 saved_file_name = f"{original_file_name}_{timestamp}{file_extension}"
+#                 save_path = os.path.join(file_dir, saved_file_name)
+#                 relative_file_path = os.path.join(form_name, created_by, form_data.req_no, saved_file_name)
 
-#                     # Generate file path
-#                     file_path = os.path.join(form_name, created_by, form_data.req_no, saved_file_name)
+#                 if is_multiple:
+#                     # Check if this file name already exists
+#                     existing_file = FormFile.objects.filter(
+#                         form_data=form_data,
+#                         field=field,
+#                         uploaded_name=uploaded_file_name
+#                     ).first()
 
-#                 # Insert into FormFile
+#                     if existing_file:
+#                         old_file_path = os.path.join(settings.MEDIA_ROOT, existing_file.file_path)
+#                         if os.path.exists(old_file_path):
+#                             os.remove(old_file_path)
+
+#                         with open(save_path, 'wb+') as destination:
+#                             for chunk in uploaded_file.chunks():
+#                                 destination.write(chunk)
+
+#                         existing_file.file_name = saved_file_name
+#                         existing_file.file_path = relative_file_path
+#                         existing_file.updated_by = user
+#                         existing_file.save()
+
+#                         continue
+
+#                 else:
+#                     # 🔥 Single file logic: Delete old one (if any) for this field + form_data
+#                     existing_files = FormFile.objects.filter(form_data=form_data, field=field)
+#                     for old_file in existing_files:
+#                         old_file_path = os.path.join(settings.MEDIA_ROOT, old_file.file_path)
+#                         if os.path.exists(old_file_path):
+#                             os.remove(old_file_path)
+#                         old_file.delete()
+
+#                 # Save new file
+#                 with open(save_path, 'wb+') as destination:
+#                     for chunk in uploaded_file.chunks():
+#                         destination.write(chunk)
+
 #                 form_file = FormFile.objects.create(
 #                     file_name=saved_file_name,
-#                     uploaded_name=uploaded_file.name.strip(),
-#                     file_id=form_field_value.id,  # Link with FormFieldValues
-#                     file_path=file_path,
+#                     uploaded_name=uploaded_file_name,
+#                     file_path=relative_file_path,
 #                     form_data=form_data,
 #                     form=form_data.form,
-#                     created_by= user,
-#                     updated_by = user,
+#                     created_by=user,
+#                     updated_by=user,
 #                     field=field
 #                 )
-#                form_field_value.value = ",".join(form_file_ids)
- #               form_field_value.save()
+
+#                 form_file_ids.append(str(form_file.id))
+#                 form_field_value.value = ",".join(form_file_ids)
+#                 form_field_value.save()
 
 
 #         messages.success(request, "Form data updated successfully!")
