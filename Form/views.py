@@ -923,6 +923,8 @@ def common_form_edit(request):
     
 
 
+from django.utils import timezone
+
 def handle_uploaded_files(request, form_name, created_by, form_data, user):
     try:
         for field_key, uploaded_files in request.FILES.lists():
@@ -932,7 +934,6 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
             field_id = field_key.split("_")[-1].strip()
             field = get_object_or_404(FormField, id=field_id)
 
-            # Define file save directory
             file_dir = os.path.join(settings.MEDIA_ROOT, form_name, created_by, form_data.req_no)
             os.makedirs(file_dir, exist_ok=True)
 
@@ -941,13 +942,13 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
             for uploaded_file in uploaded_files:
                 uploaded_file_name = uploaded_file.name.strip()
                 original_file_name, file_extension = os.path.splitext(uploaded_file_name)
-                timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
+                timestamp = timezone.now().strftime('%Y%m%d%H%M%S%f')
                 saved_file_name = f"{original_file_name}_{timestamp}{file_extension}"
                 save_path = os.path.join(file_dir, saved_file_name)
                 relative_file_path = os.path.join(form_name, created_by, form_data.req_no, saved_file_name)
 
                 if is_multiple:
-                    # Check if this file name already exists for this field+form_data
+                    # Check if this file name already exists
                     existing_file = FormFile.objects.filter(
                         form_data=form_data,
                         field=field,
@@ -955,26 +956,31 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
                     ).first()
 
                     if existing_file:
-                        # Remove old physical file
                         old_file_path = os.path.join(settings.MEDIA_ROOT, existing_file.file_path)
                         if os.path.exists(old_file_path):
                             os.remove(old_file_path)
 
-                        # Save new file
                         with open(save_path, 'wb+') as destination:
                             for chunk in uploaded_file.chunks():
                                 destination.write(chunk)
 
-                        # Update the existing DB row
                         existing_file.file_name = saved_file_name
                         existing_file.file_path = relative_file_path
                         existing_file.updated_by = user
-                        existing_file.updated_at = datetime.now()
                         existing_file.save()
 
-                        continue  # move to next uploaded_file
+                        continue
 
-                # If not found or single file upload, create new row
+                else:
+                    # 🔥 Single file logic: Delete old one (if any) for this field + form_data
+                    existing_files = FormFile.objects.filter(form_data=form_data, field=field)
+                    for old_file in existing_files:
+                        old_file_path = os.path.join(settings.MEDIA_ROOT, old_file.file_path)
+                        if os.path.exists(old_file_path):
+                            os.remove(old_file_path)
+                        old_file.delete()
+
+                # Save new file
                 with open(save_path, 'wb+') as destination:
                     for chunk in uploaded_file.chunks():
                         destination.write(chunk)
@@ -993,6 +999,7 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
     except Exception as e:
         traceback.print_exc()
         messages.error(request, "Oops...! Something went wrong!")
+
 
 
     
