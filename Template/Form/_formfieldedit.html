@@ -159,6 +159,7 @@
 <div class="row col-md-12 justify-content-center">
     <input type="hidden" id="clicked_action_id" name="clicked_action_id">
 
+    {% if action_fields %}
     {% for action in action_fields %}
     <div class="{% if action.type == 'button' %}col-md-2{% else %}col-md-3{% endif %} mt-1 text-center">
             <input type="hidden" name="action_field_id_{{ action.id }}" value="{{ action.action_id }}"> 
@@ -197,6 +198,20 @@
             {% endif %}
     </div>
     {% endfor %}
+    {% else %}
+    <!-- Show default Update button if no actions exist -->
+    <div class="col-md-2 mt-1 text-center">
+        <button type="submit"
+                class="btn btn-primary w-100 mt-4 submit-btn"
+                style="border-radius: 15px;"
+                data-button-type="Submit"
+                data-action-id="0">
+            Update
+        </button>
+    </div>
+{% endif %}
+
+
 </div>
 
 </form>
