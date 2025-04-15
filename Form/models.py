@@ -262,6 +262,17 @@ class ActionData(models.Model):
     class Meta:
         db_table = 'action_data'
 
+class MasterDropdownData(models.Model):
+    name = models.TextField(null=True, blank=True)
+    query = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'master_drodpown_data'
+
+
 
 
 

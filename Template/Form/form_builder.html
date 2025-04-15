@@ -75,6 +75,7 @@
     let dropdownOptions = JSON.parse('{{ dropdown_options|escapejs|safe }}');
     let subControls = JSON.parse('{{ sub_control|escapejs|safe }}');
     let regex = JSON.parse('{{ regex|escapejs|safe }}');
+    let master = JSON.parse('{{ master_dropdown|escapejs|safe }}')
   
 
     {% if form %}
@@ -86,7 +87,8 @@
             label: "Label Name " + (formFields.length + 1),
             type: "text",
             commonType: [],
-            options: []
+            options: [],
+            masterValue: ""
         };
         formFields.push(newField);
         renderFormBuilder();
@@ -102,7 +104,8 @@
             label: "Label Name " + (formFields.length + 1),
             type: "text",
             commonType: [],
-            options: []
+            options: [],
+            masterValue: ""
         };
         formFields.push(newField);
         renderFormBuilder();
@@ -119,7 +122,7 @@
     
         // Step 1: Save existing values before re-rendering
         formFields.forEach(field => {
-            debugger;
+            
             let existingElement = document.getElementById(`dynamic-element-${field.id}`);
             if (existingElement) {
                 let inputElement = existingElement.querySelector("input, select");
@@ -133,7 +136,7 @@
     
         formFields.forEach(field => {
             let fieldId = field.id;
-            debugger;
+            
             // Main Field Type Dropdown
             let dropdownHtml = `<select class="form-control select" onchange="updateField(${fieldId}, 'type', this.value)">`;
             dropdownOptions.forEach(option => {
@@ -155,14 +158,14 @@
             let subControlData = subControls.filter(sub => sub.field_type === field.type);
     
             if (subControlData.length > 0) {
-                debugger;
+                
             
                 let selectedValidation = Array.isArray(field.validation) && field.validation.length > 0
                     ? field.validation[0]
                     : { validation_value: "", id: "" };
             
                 if (field.type === "file") {
-                    debugger;
+                    
                     subControlHtml = `
                         <select class="form-control sub-control-dropdown"  id="dropdown"
                             onchange="updatefileField(${fieldId}, 'validation', this.value, this.options[this.selectedIndex].dataset.id)">
@@ -174,7 +177,7 @@
                         </select>
                     `;
                 } else if (field.type === "file multiple") {
-                    debugger;
+                    
                     subControlHtml = `
                     <select class="form-control sub-control-multiple-dropdown"  id="dropdown"
                         onchange="updatefileField(${fieldId}, 'validation', this.value, this.options[this.selectedIndex].dataset.id)">
@@ -185,7 +188,8 @@
                         }).join('')}
                     </select>
                 `;
-                }  else if (field.type === "text") {
+                }
+                 else if (field.type === "text") {
                     let selectedSubControl = subControls.find(control => control.control_value === selectedValidation.validation_type);
                 
                     subControlHtml += `
@@ -228,6 +232,23 @@
                 });
                 optionDropdownHtml += `</select>`;
             }
+            else if (field.type === "master dropdown") {
+                const selectedMasterId = field.options?.[0]?.toString() || "";
+                optionDropdownHtml = `
+                    <select 
+                        class="form-control select mb-2" 
+                        id="option-dropdown-${fieldId}" 
+                        name="masterDropdown-${fieldId}" 
+                        onchange="updateFields(${fieldId}, 'masterValue', this.value); fetchMasterOptions(this.value, '${fieldId}')">
+                        <option value="">Select Master</option>
+                        ${master.map(sub => 
+                            `<option value="${sub.id}" ${selectedMasterId === sub.id.toString() ? 'selected' : ''}>${sub.name}</option>`
+                        ).join('')}
+                    </select>
+                `;
+            }
+            
+            
     
             builder.innerHTML += `
                 <div class="col-md-2 mb-3">
@@ -256,6 +277,14 @@
             if (field.selectedValue) {
                 updateSubFieldAndGenerateElement(fieldId, field.selectedValue, field.subFieldValue);
             }
+            formFields.forEach(field => {
+                if (field.type === "master dropdown" && Array.isArray(field.options) && field.options.length > 0) {
+                    const selectedMasterId = field.options[0]; // Get selected master ID
+                    if (selectedMasterId) {
+                        fetchMasterOptions(selectedMasterId, field.id); // Trigger master options fetch
+                    }
+                }
+            });
         });
     
         // Initialize Selectize for Multiple Options
@@ -334,7 +363,7 @@
     }
     
     function updateSubField(fieldId, type, value, subControlId) {
-        debugger;
+        
         let fieldIndex = formFields.findIndex(f => f.id === fieldId);
         if (fieldIndex !== -1) {
             if (!formFields[fieldIndex].validation) {
@@ -367,7 +396,7 @@
             if (field.type === "select") {
                 inputHtml = `<select class="form-control select w-100" name="${fieldName}">`;
                 (field.options || []).forEach(option => {
-                    inputHtml += `<option value="${option}" ${field.value === option ? "selected" : ""}>${option}</option>`;
+                    inputHtml += `<option value="">Select</option> <option value="${option}" ${field.value === option ? "selected" : ""}>${option}</option>`;
                 });
                 inputHtml += `</select>`;
             } 
@@ -394,6 +423,15 @@
                 });
                 inputHtml += `</select>`;
             }
+            else if (field.type === "master dropdown") {
+                inputHtml = `
+                    <select name="${fieldName}" id="field_${field.id}" class="form-control select">
+                        <option value="">Select</option>
+                    </select>
+                `;
+            }
+            
+            
             else if (field.type === "textarea") {
                 inputHtml = `<textarea class="form-control custom-textarea" rows="5" cols="5" name="${fieldName}" style="height: 20px; "></textarea>`;
             }
@@ -507,7 +545,47 @@
             });
         });
     }
+
+    function syncFormValidationsBeforeSubmit() {
+        formFields.forEach(field => {
+            // For file and file multiple
+            if (field.type === "file" || field.type === "file multiple") {
+                const dropdown = document.querySelector(`#dropdown`);
+                if (dropdown) {
+                    const selectedOption = dropdown.options[dropdown.selectedIndex];
+                    const value = selectedOption.value;
+                    const id = selectedOption.dataset.id;
     
+                    if (value) {
+                        field.validation = [{ id: id, validation_value: value }];
+                    }
+                }
+            }
+    
+            // For text fields
+            if (field.type === "text") {
+                const dropdown = document.querySelector(`#text-dropdown-${field.id}`);
+                if (dropdown) {
+                    const selectedOption = dropdown.options[dropdown.selectedIndex];
+                    const value = selectedOption.value;
+                    const id = selectedOption.dataset.id;
+    
+                    if (value) {
+                        let dynamicInput = document.querySelector(`#max-length-${field.id}`) || document.querySelector(`#regex-${field.id}`);
+                        const inputValue = dynamicInput?.value || "";
+    
+                        field.validation = [{
+                            id: id,
+                            validation_type: value,
+                            validation_value: inputValue
+                        }];
+                    }
+                }
+            }
+        });
+    }
+
+   
 
     function updatefileField(fieldId, key, value, id) {
         let fieldIndex = formFields.findIndex(f => f.id === fieldId);
@@ -529,6 +607,15 @@
         renderFormBuilder();
         renderFormPreview();
     }
+
+
+    function updateFields(fieldId, key, value) {
+        const fieldIndex = formFields.findIndex(f => f.id === fieldId);
+        if (fieldIndex !== -1) {
+            formFields[fieldIndex][key] = value;
+        }
+    }
+    
     
     
     
@@ -562,9 +649,11 @@
         renderFormPreview();
     }
 
-    document.getElementById("main-form").addEventListener("submit", function() {
+    document.getElementById("main-form").addEventListener("submit", function () {
+        syncFormValidationsBeforeSubmit(); // 👈 Ensure untouched validations are captured
         document.getElementById("form-data-input").value = JSON.stringify(formFields);
     });
+    
 
 
     document.addEventListener("DOMContentLoaded", function() {
@@ -573,27 +662,66 @@
     });
 </script>
 
-
 <script>
 
-Sortable.create(builder, {
-    animation: 150,
-    ghostClass: 'sortable-ghost',
-    handle: '.form-builder-item', // optional
-    onEnd: function (evt) {
-        const items = builder.querySelectorAll('.form-builder-item');
-        const newOrder = Array.from(items).map(item => parseInt(item.getAttribute("data-id")));
-        
-        // Reorder formFields array based on newOrder
-        formFields.sort((a, b) => {
-            return newOrder.indexOf(a.id) - newOrder.indexOf(b.id);
-        });
+ 
 
-        // Optionally re-render after sorting
-        renderFormBuilder();
+    function fetchMasterOptions(query, fieldId) {
+        debugger;
+        $.ajax({
+            url: "{% url 'get_query_data' %}",
+            type: "POST",
+            data: {
+                'query': query,
+                'csrfmiddlewaretoken': '{{ csrf_token }}'
+            },
+            success: function (response) {
+                debugger;
+                let optionsHtml = `<option value="">Select</option>`;
+                const fieldIndex = formFields.findIndex(f => f.id === fieldId);
+    
+                if (Array.isArray(response)) {
+                    response.forEach((opt) => {
+                        optionsHtml += `<option value="${opt[0]}">${opt[1]}</option>`;
+                    });
+                }
+    
+                const previewDropdown = document.getElementById(`field_${fieldId}`);
+                if (previewDropdown) {
+                    debugger;
+                    previewDropdown.innerHTML = optionsHtml;
+    
+                    // Restore previously selected value if it exists
+                    const previousValue = formFields[fieldIndex]?.selectedValue || "";
+                    if (previousValue) {
+                        previewDropdown.value = previousValue;
+                    }
+    
+                    // ✅ Listen for changes
+                    previewDropdown.onchange = function () {
+                        const selectedVal = this.value;
+                        if (fieldIndex !== -1) {
+                            formFields[fieldIndex].selectedValue = selectedVal; // ✅ SAVE value
+                        }
+                    };
+                }
+    
+                // ✅ Save selected master query
+                if (fieldIndex !== -1) {
+                    formFields[fieldIndex].query = query;
+                }
+            },
+            error: function (xhr) {
+                console.error("AJAX error:", xhr.responseText);
+            }
+        });
     }
-});
+    
+    
+    
+    
 </script>
+
 
 <script>
 
@@ -619,7 +747,7 @@ Sortable.create(builder, {
     }
 
     function validateAndUpdateLabel(inputElement, fieldId) {
-        debugger;
+        
     let newLabel = inputElement.value.replace(/[^a-zA-Z0-9 ]/g, '').trim();
     
     // Check for duplicates (excluding current field)
@@ -638,8 +766,23 @@ Sortable.create(builder, {
     updateField(fieldId, 'label', newLabel);
 }
 
-    
+
+    document.getElementById("main-form").addEventListener("submit", function () {
+        debugger;
+        formFields.forEach(field => {
+            if (field.type === "master dropdown") {
+                const selectedDropdown = document.getElementById(`field_${field.id}`);
+                if (selectedDropdown) {
+                    field.selectedValue = selectedDropdown.value;
+                }
+            }
+        });
+        document.getElementById("form-data-input").value = JSON.stringify(formFields);
+    });
 </script>
+
+
+    
 
 
 {% if messages %}

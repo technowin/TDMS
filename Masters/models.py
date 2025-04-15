@@ -124,3 +124,47 @@ class Log(models.Model):
     class Meta:
         db_table = 'logs'
 
+class StateMaster(models.Model):
+    state_id = models.AutoField(primary_key=True)
+    state_name = models.CharField(max_length=100)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return self.state_name
+    
+    class Meta:
+        db_table = 'state_master'
+
+class CityMaster(models.Model):
+    city_id = models.AutoField(primary_key=True)
+    city_name = models.CharField(max_length=100)
+    state = models.ForeignKey(StateMaster, null=True, blank=True,on_delete=models.CASCADE, related_name='cities')
+    district = models.ForeignKey('Masters.DistrictMaster',null=True, blank=True, on_delete=models.CASCADE, related_name='districts_id')
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return self.city_name
+    
+    class Meta:
+        db_table = 'city_master'
+
+class DistrictMaster(models.Model):
+    district_id = models.AutoField(primary_key=True)
+    district_name = models.CharField(max_length=100)
+    state = models.ForeignKey(StateMaster,null=True, blank=True, on_delete=models.CASCADE, related_name='districts')
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+
+    def __str__(self):
+        return self.district_name
+    
+    class Meta:
+        db_table = 'district_master'

@@ -1,3 +1,4 @@
+from django.db import connection
 from django.shortcuts import render
 
 import json
@@ -74,13 +75,18 @@ def form_builder(request):
     sub_control = list(ValidationMaster.objects.values("id", "control_name", "control_value", "field_type"))
     regex = list(RegexPattern.objects.values("id", "input_type", "regex_pattern", "description"))  
     dropdown_options = list(ControlParameterMaster.objects.values("control_name", "control_value"))
+    master_dropdown = list(MasterDropdownData.objects.values("id", "name", "query"))
+    # for item in master_dropdown:
+    #     item["id"] = enc(json.dumps(item["id"]))
+
 
     if not form_id:  
         return render(request, "Form/form_builder.html", {
             "regex":json.dumps(regex),
             "dropdown_options": json.dumps(dropdown_options),
             "common_options": json.dumps(common_options),
-            "sub_control": json.dumps(sub_control)
+            "sub_control": json.dumps(sub_control),
+            "master_dropdown": json.dumps(master_dropdown)
         })
 
     try:
@@ -95,6 +101,7 @@ def form_builder(request):
             "dropdown_options": json.dumps(dropdown_options),
             "common_options": json.dumps(common_options),
             "sub_control": json.dumps(sub_control),
+            "master_dropdown": json.dumps(master_dropdown),
             "error": "Invalid form ID"
         })
 
@@ -131,7 +138,8 @@ def form_builder(request):
         "form_fields_json": form_fields_json,
         "dropdown_options": json.dumps(dropdown_options),
         "common_options": json.dumps(common_options),
-        "sub_control": json.dumps(sub_control)
+        "sub_control": json.dumps(sub_control),
+        "master_dropdown": json.dumps(master_dropdown)
     })
 
 def format_label(label):
@@ -164,6 +172,12 @@ def save_form(request):
 
             for  index,field in enumerate(form_data):
                
+                if field.get("type") == "master dropdown":
+                    value = field.get("masterValue","")
+                    # value = dec(value)
+                else:
+                    value=",".join(option.strip() for option in field.get("options", [])),
+
                 
                 formatted_label = format_label(field.get("label", ""))
 
@@ -172,7 +186,7 @@ def save_form(request):
                     label=formatted_label,  # Use formatted label here
                     field_type=field.get("type", ""),
                     attributes=field.get("attributes", ""),
-                    values=",".join(option.strip() for option in field.get("options", [])),
+                    values=value,
                     created_by=request.session.get('user_id', '').strip(),
                     order=index + 1
                 )
@@ -284,13 +298,19 @@ def update_form(request, form_id):
                 attributes_value = field.get("attributes", "")
 
                 formatted_label = format_label(field.get("label", ""))
+
+                if field.get("type") == "master dropdown":
+                    value = field.get("masterValue","")
+                    # value = dec(value)
+                else:
+                    value=",".join(option.strip() for option in field.get("options", [])),
                 
                 form_field = FormField.objects.create(
                     form=form,
                     label=formatted_label,
                     field_type=field.get("type", ""),
                     attributes=attributes_value,  
-                    values=",".join(option.strip() for option in field.get("options", [])),
+                    values=value,
                     order = index + 1,
                     created_by = user,
                     updated_by = user
@@ -1137,3 +1157,14 @@ def get_uploaded_files(request):
     except Exception as e:
         traceback.print_exc()
         return JsonResponse({'error': 'Something went wrong while fetching files'}, status=500)
+        
+def get_query_data(request):
+    if request.method == "POST":
+        try:
+            id = request.POST.get("query")
+            # id = dec(id)
+            query = get_object_or_404(MasterDropdownData, id= id).query
+            data = callproc("stp_get_query_data",[query])
+            return JsonResponse(data, safe=False)
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
