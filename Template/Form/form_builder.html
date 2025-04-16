@@ -396,7 +396,7 @@
             if (field.type === "select") {
                 inputHtml = `<select class="form-control select w-100" name="${fieldName}">`;
                 (field.options || []).forEach(option => {
-                    inputHtml += `<option value="">Select</option> <option value="${option}" ${field.value === option ? "selected" : ""}>${option}</option>`;
+                    inputHtml += `<option value="${option}" ${field.value === option ? "selected" : ""}>${option}</option>`;
                 });
                 inputHtml += `</select>`;
             } 
