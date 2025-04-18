@@ -752,52 +752,13 @@ def common_form_post(request):
 
 
                 # Insert into FormFieldValues first
-                form_field_value = FormFieldValues.objects.create(
+                FormFieldValues.objects.create(
                     form_data=form_data,form=form, field=field, value=input_value, created_by=created_by
                 )
-                field_value_map[field_id] = form_field_value
+               
 
 
-        for field_key, uploaded_files in request.FILES.lists():
-            if field_key.startswith("field_"):
-                field_id = field_key.split("_")[-1].strip()
-                field = get_object_or_404(FormField, id=field_id)
-
-                # Retrieve the corresponding FormFieldValues instance
-                form_field_value = field_value_map.get(field_id)
-                if not form_field_value:
-                    continue
-
-                # Define file directory
-                file_dir = os.path.join(MEDIA_ROOT, form_name, created_by, form_data.req_no)
-                os.makedirs(file_dir, exist_ok=True)
-
-                # Loop through files (whether single or multiple)
-                form_file_ids = []
-
-                for uploaded_file in uploaded_files:
-                    original_file_name, file_extension = os.path.splitext(uploaded_file.name.strip())
-                    timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
-                    saved_file_name = f"{original_file_name}_{timestamp}{file_extension}"
-
-                    # Save file
-                    fs = FileSystemStorage(location=file_dir)
-                    saved_path = fs.save(saved_file_name, uploaded_file)
-
-                    # Generate file path
-                    file_path = os.path.join(form_name, created_by, form_data.req_no, saved_file_name)
-
-                    # Create FormFile entry
-                    form_file = FormFile.objects.create(
-                        file_name=saved_file_name,
-                        uploaded_name=uploaded_file.name.strip(),
-                        file_id=form_field_value.id,
-                        file_path=file_path,
-                        created_by=user,
-                        form_data=form_data,
-                        form=form,
-                        field=field
-                    )
+        handle_uploaded_files(request, form_name, created_by, form_data, user)
 
 
         messages.success(request, "Form data saved successfully!")
