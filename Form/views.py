@@ -176,7 +176,7 @@ def save_form(request):
                     value = field.get("masterValue","")
                     # value = dec(value)
                 else:
-                    value=",".join(option.strip() for option in field.get("options", [])),
+                    value=",".join(option.strip() for option in field.get("options", []))
 
                 
                 formatted_label = format_label(field.get("label", ""))
@@ -212,7 +212,7 @@ def save_form(request):
 
 
                 # ✅ Save `file` validation (New Logic)
-                if field.get("type") == "file" and "validation" in field:
+                elif field.get("type") == "file" and "validation" in field:
                     file_validation_list = field["validation"]  # This is a list
 
                     if file_validation_list and isinstance(file_validation_list, list):
@@ -230,7 +230,7 @@ def save_form(request):
                             created_by = request.session.get('user_id', '').strip()
                         )
 
-                if field.get("type") == "file multiple" and "validation" in field:
+                elif field.get("type") == "file multiple" and "validation" in field:
                     file_validation_list = field["validation"]  # This is a list of validation dicts
 
                     if file_validation_list and isinstance(file_validation_list, list):
@@ -303,7 +303,7 @@ def update_form(request, form_id):
                     value = field.get("masterValue","")
                     # value = dec(value)
                 else:
-                    value=",".join(option.strip() for option in field.get("options", [])),
+                    value=",".join(option.strip() for option in field.get("options", []))
                 
                 form_field = FormField.objects.create(
                     form=form,
@@ -335,7 +335,7 @@ def update_form(request, form_id):
                                 updated_by = user
                                   # Save regex pattern or max_length
                             )
-                if field.get("type") == "file" and "validation" in field:
+                elif field.get("type") == "file" and "validation" in field:
                     file_validation_list = field["validation"]  # This is a list
 
                     if file_validation_list and isinstance(file_validation_list, list):
@@ -354,7 +354,7 @@ def update_form(request, form_id):
                             updated_by = user # Save only ".jpg, .jpeg, .png"
                         )
 
-                if field.get("type") == "file multiple" and "validation" in field:
+                elif field.get("type") == "file multiple" and "validation" in field:
                     file_validation_list = field["validation"]  # This is a list of validation dicts
 
                     if file_validation_list and isinstance(file_validation_list, list):
