@@ -11,7 +11,25 @@
 <!-- Selectize.js JS -->
 <script src="{% static 'js/selectize.min.js' %}"></script>
 
+<style>
 
+    .selectize-input {
+        border: 1px solid black !important; 
+        border-radius: 10px !important; 
+        font-size: 1em;
+        {% comment %} width: 60%; {% endcomment %}
+        min-height:38px;
+        max-height: auto; 
+        overflow-y: auto;
+        padding: 6px 10px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .selectize-dropdown {
+        overflow: hidden !important;
+      }
+</style>
 
 {% if type == "edit"%}
 <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;" >
