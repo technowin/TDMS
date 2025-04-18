@@ -24,7 +24,24 @@
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <!-- Selectize.js JS -->
 <script src="{% static 'js/selectize.min.js' %}"></script>
+<style>
 
+.selectize-input {
+    border: 1px solid black !important; 
+    border-radius: 10px !important; 
+    font-size: 1em;
+    min-height:38px;
+    max-height: auto; 
+    overflow-y: auto;
+    padding: 6px 10px;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .selectize-dropdown {
+    overflow: hidden !important;
+  }
+</style>
 
 <div class="mt-4">
     <form method="POST" action="{% if form %}{% url 'update_form' form.id %}{% else %}{% url 'save_form' %}{% endif %}" class="row col-md-12" id="main-form"

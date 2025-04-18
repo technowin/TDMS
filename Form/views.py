@@ -602,24 +602,38 @@ def form_master(request):
             fields = list(fields)
 
             for field in fields:
-                # Properly clean up values and attributes
+    # Clean up values and attributes
                 field["values"] = [v.strip() for v in field["values"].split(",")] if field.get("values") else []
                 field["attributes"] = [a.strip() for a in field["attributes"].split(",")] if field.get("attributes") else []
 
+                # Fetch validations
                 validations = FieldValidation.objects.filter(
                     field_id=field["id"], form_id=form_id
                 ).values("value")
                 field["validations"] = list(validations)
 
-                # Handle file/text accept fields
+                # File/text accept field handling
                 if field["field_type"] in ["file", "file multiple", "text"]:
                     file_validation = next((v for v in field["validations"]), None)
                     field["accept"] = file_validation["value"] if file_validation else ""
 
+                # Handle master dropdown (fetch dynamic values)
+                if field["field_type"] == "master dropdown" and field["values"]:
+                    dropdown_id = field["values"][0]
+                    try:
+                        master_data = MasterDropdownData.objects.get(id=dropdown_id)
+                        query = master_data.query
+                        result = callproc("stp_get_query_data", [query])
+
+                        # Format as list of dicts
+                        field["values"] = [{"id": row[0], "name": row[1]} for row in result]
+                    except MasterDropdownData.DoesNotExist:
+                        field["values"] = []
+
             context = {"fields": fields, "type": "master"}
             html = render_to_string("Form/_formfields.html", context)
-            data = {'html': html}
-            return JsonResponse(data, safe=False)
+            return JsonResponse({'html': html}, safe=False)
+
 
         
         else:
@@ -664,6 +678,7 @@ def form_master(request):
                             if file_exists and "required" in field["attributes"]:
                                 field["attributes"].remove("required")
 
+
                         # Set existing values if available
                         saved_value = values_dict.get(field["id"], "")
 
@@ -671,6 +686,18 @@ def form_master(request):
                             field["value"] = [val.strip() for val in saved_value.split(",") if val.strip()]
                         else:
                             field["value"] = saved_value
+
+                        if field["field_type"] == "master dropdown" and field["values"]:
+                            dropdown_id = field["values"][0]
+                            try:
+                                master_data = MasterDropdownData.objects.get(id=dropdown_id)
+                                query = master_data.query
+                                result = callproc("stp_get_query_data", [query])
+
+                                # Format as list of dicts
+                                field["values"] = [{"id": row[0], "name": row[1]} for row in result]
+                            except MasterDropdownData.DoesNotExist:
+                                field["values"] = []
 
                     # ✅ Fetch action fields (no validations needed)
                     action_fields = list(FormActionField.objects.filter(action_id=action_id).values(
@@ -753,7 +780,7 @@ def common_form_post(request):
 
                 # Insert into FormFieldValues first
                 FormFieldValues.objects.create(
-                    form_data=form_data,form=form, field=field, value=input_value, created_by=created_by
+                    form_data=form_data, field=field, value=input_value, created_by=created_by
                 )
                
 

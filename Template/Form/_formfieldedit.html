@@ -76,7 +76,7 @@
             <label class="fw-bold">{{ field.label }}</label>
             <input type="hidden" id = "type" name = "type" value ="{{type}}">
           
-            {% if field.field_type == "select" %}
+            {% if field.field_type == "select"  %}
                 <select class="form-control select" name="field_{{ field.id }}"
                     {% for attr in field.attributes %} {{ attr }} {% endfor %}>
                     <option value="" selected disabled>-- Select --</option>
@@ -84,6 +84,18 @@
                         <option value="{{ option }}" {% if option == field.value %} selected {% endif %}>{{ option }}</option>
                     {% endfor %}
                 </select>
+
+            {% elif field.field_type == "master dropdown" %}
+                <select class="form-control select" name="field_{{ field.id }}"
+                    {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                    <option value="" disabled {% if not field.value %} selected {% endif %}>Select</option>
+                    {% for option in field.values %}
+                        <option value="{{ option.id }}" {% if option.id|stringformat:"s" == field.value|stringformat:"s" %} selected {% endif %}>{{ option.name }}</option>
+                    {% endfor %}
+                </select>
+            
+            
+            
 
             {% elif field.field_type == "select multiple" %}
                 <select class="form-control select_multiple" name="field_{{ field.id }}" multiple
