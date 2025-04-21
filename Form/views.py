@@ -780,7 +780,7 @@ def common_form_post(request):
 
                 # Insert into FormFieldValues first
                 FormFieldValues.objects.create(
-                    form_data=form_data, field=field, value=input_value, created_by=created_by
+                    form_data=form_data,form=form, field=field, value=input_value, created_by=created_by
                 )
                
 
