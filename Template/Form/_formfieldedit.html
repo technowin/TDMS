@@ -558,10 +558,10 @@
 
 <script>
 
-
-
         document.querySelectorAll('.submit-btn').forEach(button => {
+            debugger;
             button.addEventListener('click', function (e) {
+                debugger;
                 const form = document.getElementById('dynamicForm');
                 const buttonType = this.getAttribute('data-button-type');
                 const actionId = this.getAttribute('data-action-id');
