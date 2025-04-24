@@ -735,23 +735,23 @@ def common_form_post(request):
         workflow_YN = request.POST.get('workflow_YN', '')
         
         # Get form ID
-        form_id_key = next((key for key in request.POST if key.startswith("form_id_")), None)
-        if not form_id_key:
-            return JsonResponse({"error": "Form ID not found"}, status=400)
+        # form_id_key = next((key for key in request.POST if key.startswith("form_id_")), None)
+        # if not form_id_key:
+        #     return JsonResponse({"error": "Form ID not found"}, status=400)
         
-        if type != 'master':
-            action_id_key = next((key for key in request.POST if key.startswith("action_field_id_")), None)
-            if not action_id_key:
-                return JsonResponse({"error": "Form ID not found"}, status=400)
-            
-        
+        # if type != 'master':
+        #     action_id_key = next((key for key in request.POST if key.startswith("action_field_id_")), None)
+        #     if not action_id_key:
+        #         return JsonResponse({"error": "Form ID not found"}, status=400)
 
-        form_id = request.POST.get(form_id_key, '').strip()
-        form = get_object_or_404(Form, id=form_id)
+        # form_id = request.POST.get("form_id")
+
+        # form_id = request.POST.get(form_id_key, '').strip()
+        form = get_object_or_404(Form, id=request.POST.get("form_id"))
 
         if type != 'master':
-            action_id = request.POST.get(action_id_key, '').strip()
-            action = get_object_or_404(FormAction,id = action_id )
+            # action_id = request.PSOT.get("action_id")action_id = request.POST.get(action_id_key, '').strip()
+            action = get_object_or_404(FormAction,id  = request.POST.get("action_id") )
 
         if type == 'master':
             form_data = FormData.objects.create(form=form)
