@@ -281,65 +281,227 @@ def download_xls(request):
     finally:
         return response
     
-def workflow_starts(request):
+def workflow_starts(request):  
     Db.closeConnection()
     m = Db.get_connection()
     cursor = m.cursor()
 
     if request.user.is_authenticated:
-        global user, role_id
         user = request.user.id    
-        role_id = str(request.user.role_id)  # Ensure it's a string for matching
+        role_id = str(request.user.role_id)
 
-    try:
-        workflow_para = "test_workflow7"
-        param = [workflow_para]
-        cursor.callproc("stp_checkRoleForWorkflow", param)
-        for result in cursor.stored_results():
-            raw_steps = result.fetchall()
+    workflow_para = "CIDCO File Scanning and DMS Flow"
+    param = [workflow_para]
 
-        # Filter steps that match the current role
-        filtered_steps = []
-        for row in raw_steps:
-            roles = [r.strip() for r in row[2].split(',')]
-            if role_id in roles:
-                filtered_steps.append({
-                    'id': row[0],
-                    'idEncrypt': enc(str(row[0])),
-                    'step_name': row[1],
-                    'role_ids': roles,
-                    'form_id': row[3],'but_type': row[4],'but_act': row[5]
-                })
+    # 1. Get ALL current requests and their steps
+    cursor.callproc("stp_getdataWorkflowIndex")
+    WFIndexdata_raw = []
+    for result in cursor.stored_results():
+        WFIndexdata_raw = result.fetchall()
 
-        # Only pass the first matched step for now
-        step_to_show = filtered_steps[0] if filtered_steps else None
+    latest_steps = {}
+    for item in WFIndexdata_raw:
+        req_num = item[0]        # request number
+        increment_id = item[6]   # increment_id column (adjust index if different)
+        if req_num not in latest_steps or increment_id > latest_steps[req_num][6]:
+            latest_steps[req_num] = item
+    WFIndexdata_raw = list(latest_steps.values())
 
-        return render(request, "Workflow/workflow_starts.html", {
-            "step": step_to_show
+    # 2. Get ALL steps from matrix (the workflow path)
+    cursor.callproc("stp_checkRoleForWorkflow", param)
+    workflow_steps = []
+    for result in cursor.stored_results():
+        raw_steps = result.fetchall()
+
+    for row in raw_steps:
+        workflow_steps.append({
+            'id': row[0],
+            'step_name': row[1],
+            'role_ids': [r.strip() for r in row[2].split(',')],
+            'form_id': row[3],
+            'but_type': row[4],
+            'but_act': row[5],
+            'status': row[6],
+            'step_id_flow': str(row[7]) if row[7] else None  
         })
 
-    except Exception as e:
-        print("error-" + str(e))
-        messages.error(request, "Some Error Occurred !!")
-        return render(request, "Workflow/workflow_starts.html", {
-            "step": None
-        })
-    finally:
-        cursor.close()        
-        m.close()
-        Db.closeConnection()
+    # Map of step_id to step info for quick lookup
+    step_roles_map = {
+        str(step['id']): step
+        for step in workflow_steps
+    }
+
+    # Build the final filtered + enriched WFIndexdata
+    WFIndexdata = [] 
+    
+    # for handling involves person
+    step_roles_map = {}
+    for step in workflow_steps:
+        step_roles_map[str(step['id'])] = step
+
+    for item in WFIndexdata_raw:
+        step_id_str = str(item[3])
+        
+        form_data_id= enc(str(item[7]))
+        
+        current_step_info = step_roles_map.get(step_id_str)
+
+        # Init vars
+        include_for_current_user = False
+        next_step_name = ''
+        next_step_id = None
+        
+        
+        if not current_step_info:
+            continue
+
+        current_step_flow = int(current_step_info['step_id_flow']) if current_step_info['step_id_flow'].isdigit() else None
+        if current_step_flow is None:
+            continue
+        
+        if role_id == '2':
+            operator_user_id = item[8]  # item[8] is operator column
+            if operator_user_id is None or operator_user_id != user:
+                continue  # Skip this row if it's not assigned to the current operator
+    
+        for step in workflow_steps:
+            step_flow = int(step['step_id_flow']) if step['step_id_flow'].isdigit() else None
+            if step_flow is not None and step_flow <= current_step_flow:
+                if role_id in step['role_ids']:
+                    include_for_current_user = True
+                    break
+                
+        next_flow_id = current_step_flow + 1
+        for step in workflow_steps:
+            if step.get('step_id_flow') and step['step_id_flow'].isdigit():
+                if int(step['step_id_flow']) == next_flow_id:
+                    next_step_name = step['step_name']
+                    next_step_id = enc(str(step['id']))
+
+                    if role_id in step['role_ids']:
+                        include_for_current_user = True  # Show to next step user too
+                    break
+                
+        user_prev_step = None
+        for step in workflow_steps:
+            if role_id in step['role_ids']:
+                user_prev_step = step
+                break
+
+        if include_for_current_user:
+            user_prev_step_id_val = user_prev_step['id'] if user_prev_step else ''
+            WFIndexdata.append({
+                "req_num": item[0],
+                "status": item[1],
+                "id_wfd": item[2],
+                "step_id": item[3],
+                "enc_id_wfd": enc(str(item[2])),
+                "created_by": item[4],
+                "created_at": item[5],
+                "increment_id": item[6],
+                "step_name": current_step_info['step_name'] if current_step_info else '',
+                "form_id": current_step_info['form_id'] if current_step_info else '',
+                "but_type": current_step_info['but_type'] if current_step_info else '',
+                "but_act": current_step_info['but_act'] if current_step_info else '',
+                "idEncrypt": enc(str(current_step_info['id'])) if current_step_info else '',
+                # "next_step_name": next_step_name,
+                # "next_step_id": next_step_id,
+               "form_data_id":form_data_id,
+               
+                "next_step_name": next_step_name if next_step_name else 'No next step',
+                "next_step_id": next_step_id,
+                "increment_idCheck": item[6] + 1,
+                # "user_prev_step_id": user_prev_step['id'] if user_prev_step else '',
+                "user_prev_step_id": enc(str(user_prev_step_id_val)) if user_prev_step_id_val != '' else '',
+                 "user_prev_step_Check":user_prev_step_id_val,
+                 
+                "user_prev_step_name": user_prev_step['step_name'] if user_prev_step else '',
+                "include_for_current_user": include_for_current_user
+            })
+                
+                
+    first_step = workflow_steps[0] if workflow_steps else None
+    show_top_button = False
+    top_button_context = {}
+
+    if first_step and role_id in first_step['role_ids']:
+        show_top_button = True
+        top_button_context = {
+            'step_name': first_step['step_name'],
+            'form_id': first_step['form_id'],
+            'but_type': first_step['but_type'],
+            'but_act': first_step['but_act'],
+            'id_firstStep': first_step['id'],
+            'encid_FS': enc(str(first_step['id']))
+               
+        }
+    if show_top_button == True:
+        firstStep = '1'
+    else:
+        firstStep = '0'
+    # flow_map = {int(step['step_id_flow']): step for step in workflow_steps if step['step_id_flow']}
+
+# Prepare final data to send to the template
+        
+
+    # Now pass WFIndexdata to your template
+    return render(request, "Workflow/workflow_starts.html", {
+        "WFIndexdata": WFIndexdata,'show_top_button': show_top_button,'firstStep': firstStep,
+    **top_button_context
+    })
+
+def get_formdataid(request):
+    Db.closeConnection()
+    m = Db.get_connection()
+    cursor = m.cursor()
+
+    if request.user.is_authenticated:
+        user = request.user.id    
+        role_id = str(request.user.role_id)
+        
+    id = request.GET.get("id")
+    req_num = request.GET.get("req_num")
+    step_id = request.GET.get("step_id")
+    param=[req_num,step_id]
+    cursor.callproc("stp_getFormDataIdForWorkflow", param)
+    workflow_steps = []
+    for result in cursor.stored_results():
+        form_data_id = result.fetchall()[0][0]
+    form=enc(str(form_data_id))
+    # return redirect('form_master', form=form)
+    url = reverse('form_master') + f'?form={form}'
+    return redirect(url)
+    
         
 def workflow_form_step(request):
+    Db.closeConnection()
+    m = Db.get_connection()
+    cursor = m.cursor()
+    
     id = request.GET.get("id")
-    id = dec(id)  
+    wfdetailsid = request.GET.get("wfdetailsID")
+    firstStep = request.GET.get("firstStep")
+    id = dec(id) 
+    # if wfdetailsid:
+    #     wfdetailsid = dec(wfdetailsid) 
 
+    
     if not id:
         return render(request, "Form/_formfields.html", {"fields": []})  # fallback or error
 
     try:
+        cursor.callproc("stp_getOperatorWorkflow")
+        WFoperator_dropdown = []
+        for result in cursor.stored_results():
+            WFoperator_dropdown = result.fetchall()
+            
         workflow = get_object_or_404(workflow_matrix, id=id)
         form_id = workflow.form_id
         action_id = workflow.button_type_id
+        role_id = workflow.role_id
+        action_detail_id = workflow.button_act_details
+        status_wfM = workflow.status
+        
 
         form  = get_object_or_404(Form,id = form_id)
 
@@ -383,17 +545,140 @@ def workflow_form_step(request):
                 file_validation = next((v for v in field["validations"]), None)
                 field["accept"] = file_validation["value"] if file_validation else ""
 
-        return render(request, "Form/_formfieldedit.html", {
-            "fields": fields,
-            "form":form,
-            "action_fields": action_fields,
-            "form_action_url": form_action_url
-        })
+        if wfdetailsid:
+            return render(request, "Form/_formfieldedit.html", {
+                "fields": fields,
+                "form":form,
+                "action_fields": action_fields,
+                "form_action_url": form_action_url,
+                "workflow": 1,"WFoperator_dropdown":WFoperator_dropdown,
+                "role_id":role_id,"action_detail_id":action_detail_id,"form_id":form_id,
+                "action_id":action_id,"step_id":id,"wfdetailsid":wfdetailsid,"status_wfM":status_wfM,"firstStep":firstStep,
+            })
+        else:
+            return render(request, "Form/_formfieldedit.html", {
+                "fields": fields,
+                "form":form,
+                "action_fields": action_fields,
+                "form_action_url": form_action_url,
+                "workflow": 1,"WFoperator_dropdown":WFoperator_dropdown,
+                "role_id":role_id,"action_detail_id":action_detail_id,"form_id":form_id,
+                "action_id":action_id,"step_id":id,"status_wfM":status_wfM,"firstStep":firstStep,
+            })
+            
 
     except Exception as e:
         traceback.print_exc()
         messages.error(request, "Oops...! Something went wrong!")
         return render(request, "Form/_formfields.html", {"fields": []})
+
+    finally:
+        cursor.close()
+        m.commit()
+        m.close()
+        Db.closeConnection()
+    # save to yuor workflow_details and call nect step in index
+    
+    # NOT USING THIS
+def workflowcommon_form_post(request):
+    user = request.session.get('user_id', '')
+    try:
+        if request.method != "POST":
+            return JsonResponse({"error": "Invalid request method"}, status=400)
+
+        created_by = request.session.get('user_id', '').strip()
+        form_name = request.POST.get('form_name', '').strip()
+
+        # Get form ID
+        form_id_key = next((key for key in request.POST if key.startswith("form_id_")), None)
+        if not form_id_key:
+            return JsonResponse({"error": "Form ID not found"}, status=400)
+
+        # form_id = request.POST.get(form_id_key, '').strip()
+        # form = get_object_or_404(Form, id=form_id)
+
+        # # Create FormData entry
+        # form_data = FormData.objects.create(form=form)
+        # form_data.req_no = f"REQNO-00{form_data.id}"
+        # form_data.created_by = user
+        # form_data.save()
+
+        # saved_values = []
+        # file_records = []
+        # field_value_map = {}  # Map to store field_id -> FormFieldValues instance
+
+        # # Process each field
+        # for key, value in request.POST.items():
+        #     if key.startswith("field_id_"):
+        #         field_id = value.strip()
+        #         field = get_object_or_404(FormField, id=field_id)
+
+        #         # Get actual input value
+        #         input_value = request.POST.get(f"field_{field_id}", "").strip()
+
+        #         # Insert into FormFieldValues first
+        #         form_field_value = FormFieldValues.objects.create(
+        #             form_data=form_data,form=form, field=field, value=input_value, created_by=created_by
+        #         )
+        #         field_value_map[field_id] = form_field_value
+
+
+        # for field_key, uploaded_files in request.FILES.lists():
+        #     if field_key.startswith("field_"):
+        #         field_id = field_key.split("_")[-1].strip()
+        #         field = get_object_or_404(FormField, id=field_id)
+
+        #         # Retrieve the corresponding FormFieldValues instance
+        #         form_field_value = field_value_map.get(field_id)
+        #         if not form_field_value:
+        #             continue
+
+        #         # Define file directory
+        #         file_dir = os.path.join(settings.MEDIA_ROOT, form_name, created_by, form_data.req_no)
+        #         os.makedirs(file_dir, exist_ok=True)
+
+        #         # Loop through files (whether single or multiple)
+        #         form_file_ids = []
+
+        #         for uploaded_file in uploaded_files:
+        #             original_file_name, file_extension = os.path.splitext(uploaded_file.name.strip())
+        #             timestamp = datetime.now().strftime('%Y%m%d%H%M%S%f')
+        #             saved_file_name = f"{original_file_name}_{timestamp}{file_extension}"
+
+        #             # Save file
+        #             fs = FileSystemStorage(location=file_dir)
+        #             saved_path = fs.save(saved_file_name, uploaded_file)
+
+        #             # Generate file path
+        #             file_path = os.path.join(form_name, created_by, form_data.req_no, saved_file_name)
+
+        #             # Create FormFile entry
+        #             form_file = FormFile.objects.create(
+        #                 file_name=saved_file_name,
+        #                 uploaded_name=uploaded_file.name.strip(),
+        #                 file_id=form_field_value.id,
+        #                 file_path=file_path,
+        #                 created_by=user,
+        #                 form_data=form_data,
+        #                 form=form,
+        #                 field=field
+        #             )
+
+
+        #             form_file_ids.append(str(form_file.id))
+
+        #         # Save comma-separated list of file IDs
+        #         form_field_value.value = ",".join(form_file_ids)
+        #         form_field_value.save()
+
+        messages.success(request, "Form data saved successfully!")
+
+    except Exception as e:
+        traceback.print_exc()
+        messages.error(request, 'Oops...! Something went wrong!')
+
+    finally:
+        return redirect('/masters?entity=form_master&type=i')
 
 
 

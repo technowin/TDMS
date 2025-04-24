@@ -9,63 +9,177 @@
 <link href="{% static 'css/uploadModal.css' %}" rel="stylesheet">
 <link rel="stylesheet" href="{% static 'css/tooltips.css' %}">
 
+
 <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
-<link rel="stylesheet" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.min.css">
-<script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+
+{% comment %} <link rel="stylesheet" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.min.css">
+<script src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script> {% endcomment %}
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.min.css">
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" /><link rel="stylesheet" type="text/css" href="{% static 'css/report.css' %}" />
+
+
 
 
 <input type="hidden" id="form_idH" name="form_idH" value={{form_id}}>
 <input type="hidden" id="butType_idH" name="butType_idH" value={{but_type}}>
 <input type="hidden" id="butAct_idH" name="butAct_idH" value={{but_act}}>
+<input type="hidden" id="firstStep " name="firstStep " value={{firstStep }}>
     <div class="card mb-4" style="padding: 10px;border: 2px solid #b3b3b3;border-radius: 15px;margin-left:0px;">
-    {% if step %}
+    {% comment %} {% if step %} {% endcomment %}
 
     <div class="text-center" style="margin-top:10px; margin-bottom: 10px">
-        <button class="btn btn-primary" style="margin-top:0px" onclick="startStep('{{ step.idEncrypt }}','{{ step.form_id }}', '{{ step.but_type }}', '{{ step.but_act }}')">
-            {{ step.step_name }}
-        </button>
+      {% if show_top_button  %}
+      <div class="text-center" style="margin-top:10px; margin-bottom: 10px"> 
+      <button class="btn btn-primary" style="margin-top:0px"
+        onclick="startStepFirst('{{ encid_FS }}','{{ form_id }}', '{{ but_type }}', '{{ but_act }}','{{ firstStep }}')">
+        {{ step_name }}
+    </button>
+</div>
+{% endif %}
     </div>
-    {% else %}
+    {% comment %} {% else %}
         <p class="text-center text-muted">No steps available for your role.</p>
-    {% endif %}
+    {% endif %} {% endcomment %}
 
 
-    <table id="workflowTable" class="display" style="width:100%; border-radius: 12px; overflow: hidden;">
+    <table id="dataTable" class="display" style="width:100%; border-radius: 12px; overflow: hidden;">
         <thead style="background-color:#a9c7fc;">
             <tr>
                 <th>Sr. No.</th>
-                <th>Step Name</th>
-                <th>Roles</th>
+                <th>Request No.</th>
+                <th>Status</th>
                 <th>Action</th>
             </tr>
+            <tr>
+                <th><select><option>All</option></select></th>
+                <th><select><option>All</option></select></th>
+                <th><select><option>All</option></select></th>
+                <th><select><option>All</option></select></th>
+                
+              </tr>
         </thead>
         <tbody>
-            {% for step in workflow_steps %}
-                {% if forloop.first %}
-                <tr>
-                    <td>{{ forloop.counter }}</td>
-                    <td>{{ step.step_name }}</td>
-                    <td>{{ step.role_ids|join:", " }}</td>
-                    <td>
-                        <a href="{% url 'your_form_view' step.id %}" class="btn btn-sm btn-primary">Step {{ forloop.counter }}</a>
-                    </td>
-                </tr>
+          {% for item in WFIndexdata %}
+          <tr>
+              <td>{{ forloop.counter }}</td>
+              <td> 
+                <span class="badge badge-pill badge-secondary" style="font-size: 16px;background-color:#085984;">{{ item.req_num }}</span>
+              </td>
+              <td>{{ item.status }}</td>
+              <td>
+                
+                {% if item.include_for_current_user %}
+                    {% if item.user_prev_step_Check != item.increment_idCheck %}
+                    <img 
+                    src="{% static 'img/eye-open.png' %}" 
+                    alt="View" 
+                    style="width: 30px; height: 30px; cursor: pointer;" 
+                    onclick="startStepView('{{ item.form_data_id }}','{{ item.req_num }}','{{ item.user_prev_step_Check }}')"
+                  />
+                    
+
+
+                  {% else %}
+
+                    {% comment %} {% if item.next_step_name != 'No next step' %} {% endcomment %}
+                    <button class="btn btn-primary" style="background-color: #2e59d9"
+                        onclick="startStep('{{ item.user_prev_step_id }}', '{{ item.form_id }}', '{{ item.but_type }}', '{{ item.but_act }}', '{{ item.enc_id_wfd }}')">
+                        {{ item.user_prev_step_name }}
+                    </button>
+
+                    {% endif %}
+                    {% comment %} {% else %}
+                    <span class="text-muted">No next step</span>
+                    {% endif %} {% endcomment %}
+                {% else %}
+                    <!-- Display the correct current step name for the user -->
+                    <span class="text-muted">{{ item.step_name }}</span>
                 {% endif %}
-            {% endfor %}
+              </td>
+          </tr>
+      {% endfor %}
+
         </tbody>
     </table>
 </div>
 
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<link rel="stylesheet" href="https://cdn.datatables.net/1.13.6/css/jquery.dataTables.min.css" />
+<script type="text/javascript">
+    $(document).ready(function () {
+      $("#dataTable").DataTable({
+        //order: [[0, 'desc']],
+        "ordering": false,
+        initComplete: function () {
+          this.api()
+            .columns()
+            .every(function () {
+              var column = this;
+              var select = $(
+                '<select style="width:100%;border-radius: 10px;background-color:whitesmoke ;color: black;"><option value="">All</option></select>'
+              )
+                .appendTo($(column.header()).empty())
+                .on("change", function () {
+                  var val = $.fn.dataTable.util.escapeRegex($(this).val());
+                  column.search(val ? "^" + val + "$" : "", true, false).draw();
+                });
+              column
+                .data()
+                .unique()
+                .sort()
+                .each(function (d, j) {
+                  var ce = d;
+                  if (
+                    ce.includes("<a") ||
+                    ce.includes("span") ||
+                    ce.includes("<input") ||
+                    ce.includes("select") ||
+                    ce.includes("textarea")
+                  ) {
+                  } else {
+                    select.append('<option value="' + d + '">' + d + "</option>");
+                  }
+                });
+            });
+        },
+        pageLength: 10,
+        lengthMenu: [
+          [5, 10, 25, 50, 100, 200, 300, 400, 500, -1],
+          [5, 10, 25, 50, 100, 200, 300, 400, 500, "All"],
+        ],
+      });
+    });
+  </script>
 
 
-<script>
-    function startStep(id,stepId, actionId, formId) {
-        const url = `/workflow_form_step/?id=${id}&step_id=${stepId}&action_id=${actionId}&form_id=${formId}`;
+  <script>
+    function startStepFirst(id,stepId, actionId, formId,firstStep) {
+      debugger;
+        const url = `/workflow_form_step/?id=${id}&step_id=${stepId}&action_id=${actionId}&form_id=${formId}&firstStep=${firstStep}`;
         window.location.href = url;
     }
+</script>  
+<script>
+    function startStep(id,stepId, actionId, formId, WFdetailsID) {
+      debugger;
+        const url = `/workflow_form_step/?id=${id}&step_id=${stepId}&action_id=${actionId}&form_id=${formId}&wfdetailsID=${WFdetailsID}`;
+        window.location.href = url;
+    }
+</script>
+<script>
+  function startStepView(id,req_num,step_id) {
+    debugger;
+      const url = `/get_formdataid/?id=${id}&req_num=${req_num}&step_id=${step_id}`;
+      window.location.href = url;
+
+      //from this dat aget formd_data_id and that form_data_id send to like `/form_master/?form=${id}`;
+  }
 </script>
 <script>
     $(document).ready(function () {
@@ -77,7 +191,17 @@
         });
     });
 </script>
-
+{% if messages %}
+<script>
+    {% for message in messages %}
+        Swal.fire({
+            icon: '{{ message.tags }}',  // success, error, etc.
+            title: '{{ message.tags|title }}',
+            text: '{{ message }}'
+        });
+    {% endfor %}
+</script>
+{% endif %}
 
 
 {% endblock %}

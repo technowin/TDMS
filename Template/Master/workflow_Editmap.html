@@ -202,7 +202,9 @@
         <div class="form-group">
             <label for="actionDropdown">Action Type</label>
             <select class="form-select" id="actionDropdown" required>
-                {% for button in ButAct_dropdown %}
+                
+
+            {% for button in wfEditCreate_dropdown %}
                 <option value="{{ button.0 }}" {% if button.0 == workflow_details.button_act_details %}selected{% endif %}>
                     {{ button.1 }}
                 </option>
@@ -247,8 +249,8 @@
             plugins: ["remove_button"],
             delimiter: ",",
             placeholder: "Select Role",
-            persist: false,
-            create: true
+            persist: false
+            
         });
     });
     </script>
@@ -276,7 +278,7 @@
 
 
 <!-- Form submission handling -->
-<script>
+{% comment %} <script>
     document.getElementById("buttonTypeDropdown").addEventListener("change", function () {
         let buttonTypeId = this.value;
         let actionDropdown = document.getElementById("actionDropdown");
@@ -300,11 +302,8 @@
         }
     });
 
-    {% comment %} document.getElementById("workflowForm").addEventListener("submit", function (event) {
-        event.preventDefault();
-        alert("Form submitted successfully!");
-    }); {% endcomment %}
-</script>
+    
+</script> {% endcomment %}
 
 <script> 
     $(document).ready(function () {

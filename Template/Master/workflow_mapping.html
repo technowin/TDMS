@@ -278,7 +278,11 @@
             <label for="actionDropdown">Action Type</label>
             <select class="form-select" id="actionDropdown" required>
                 <option value="">Select</option>
+                {% for item in wfEditCreate_dropdown %}
+                        <option value="{{ item.0 }}">{{ item.1 }}</option>
+                    {% endfor %}
             </select>
+
         </div>
 
         <div class="form-group">
@@ -324,8 +328,8 @@
             plugins: ["remove_button"],
             delimiter: ",",
             placeholder: "Select Role",
-            persist: false,
-            create: true
+            persist: false
+            
         });
     });
     </script>
@@ -343,7 +347,7 @@
     });
 </script>
 <!-- Form submission handling -->
-<script>
+{% comment %} <script>
     document.getElementById("buttonTypeDropdown").addEventListener("change", function () {
         let buttonTypeId = this.value;
         let actionDropdown = document.getElementById("actionDropdown");
@@ -367,18 +371,43 @@
         }
     });
 
-    {% comment %} document.getElementById("workflowForm").addEventListener("submit", function (event) {
-        event.preventDefault();
-        alert("Form submitted successfully!");
-    }); {% endcomment %}
-</script>
+    
+</script> {% endcomment %}
 
 <script> 
+    let selectizeInstance;
+    let initialOptions = [];
+
     $(document).ready(function () {
-        debugger;
+        selectizeInstance = $('#workflowDropdown').selectize({
+            create: true,
+            sortField: 'text',
+            maxOptions: 10,
+            dropdownParent: 'body'
+        })[0].selectize;
+
+        // Store original options' normalized text
+        initialOptions = Object.values(selectizeInstance.options).map(opt =>
+            opt.text.toLowerCase().trim().replace(/\s+/g, ' ')
+        );
+
         $("#workflowForm").on("submit", function (e) {
-            e.preventDefault(); // Prevent normal form submission
-            debugger;
+            e.preventDefault();
+
+            const selectedValue = selectizeInstance.getValue();
+            const selectedOption = selectizeInstance.options[selectedValue];
+            const isCustom = !selectedOption; // means it's a new one, not from original list
+
+            const normalizedEnteredText = selectedValue.toLowerCase().trim().replace(/\s+/g, ' ');
+
+            if (isCustom && initialOptions.includes(normalizedEnteredText)) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Duplicate Workflow Name',
+                    text: 'This workflow name already exists. Please choose a different name or select it from the dropdown.'
+                });
+                return;
+            }
 
             let workflowDropdown = $("#workflowDropdown").val();
         let stepName = $("#stepName").val();

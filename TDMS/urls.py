@@ -110,6 +110,8 @@ urlpatterns = [
     path('workflow_Editmap/', workflow_Editmap, name='workflow_Editmap'),
     path('workflow_starts/', workflow_starts, name='workflow_starts'),
     path('workflow_form_step/', workflow_form_step, name='workflow_form_step'),
+    path('workflowcommon_form_post/', workflowcommon_form_post, name='workflowcommon_form_post'),
+    path('get_formdataid/', get_formdataid, name='get_formdataid'),
 
 ]
 

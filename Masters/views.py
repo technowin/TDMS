@@ -205,11 +205,15 @@ def workflow_mapping(request):
             cursor.callproc("stp_getRoleDD")
             for result in cursor.stored_results():
                 role_dropdown = list(result.fetchall())
+            cursor.callproc("stp_getEditCreateWFDD")
+            for result in cursor.stored_results():
+                wfEditCreate_dropdown = list(result.fetchall())
             # cursor.callproc("stp_getEditCrtForMapping")
             # for result in cursor.stored_results():
             #     EditCrt_dropdown = list(result.fetchall())
             getformdata = {'form_dropdown':form_dropdown,'ButType_dropdown':ButType_dropdown,
-                           'ButAct_dropdown':ButAct_dropdown,'workflow_dropdown':workflow_dropdown,'role_dropdown':role_dropdown,}
+                           'ButAct_dropdown':ButAct_dropdown,'workflow_dropdown':workflow_dropdown,'role_dropdown':role_dropdown,
+                           "wfEditCreate_dropdown":wfEditCreate_dropdown,}
             return render(request, "Master/workflow_mapping.html",getformdata)
         
     except Exception as e:
@@ -253,7 +257,14 @@ def submit_workflow(request):
         button_type = request.POST.get("buttonTypeDropdown")
         action = request.POST.get("actionDropdown")
         customRoleDropdown = request.POST.get("roles")
-        param=(workflow_name,step_name,form_name,button_type,action,user,customRoleDropdown)
+        paramWN = [workflow_name]
+        cursor.callproc("stp_getcountStepCountWF",paramWN)
+        for result in cursor.stored_results():
+            step_id_flow1 = list(result.fetchall())[0][0]
+        step_id_flow2 = step_id_flow1+1
+        step_id_flow = step_id_flow2
+            
+        param=(workflow_name,step_name,form_name,button_type,action,user,customRoleDropdown,step_id_flow)
         cursor.callproc("stp_insertIntoWorkflow_matrix",param)   
         m.commit()  
         # return JsonResponse({"message": "Workflow submitted successfully!"}, status=200)
@@ -304,7 +315,9 @@ def workflow_Editmap(request):
             cursor.callproc("stp_getRoleDD")
             for result in cursor.stored_results():
                 role_dropdown = list(result.fetchall())
-                    
+            cursor.callproc("stp_getEditCreateWFDD")
+            for result in cursor.stored_results():
+                wfEditCreate_dropdown = list(result.fetchall())        
             cursor.callproc("stp_getworkflowEdit", param)
             workflow_data = []
             for result in cursor.stored_results():
@@ -333,6 +346,7 @@ def workflow_Editmap(request):
                     "workflow_dropdown": workflow_dropdown,
                     "workflow_details": workflow_details,
                     "role_dropdown":role_dropdown,
+                    "wfEditCreate_dropdown":wfEditCreate_dropdown,
                     "workflow_id":workflow_idIncrypt,
                 }
 
@@ -347,6 +361,7 @@ def workflow_Editmap(request):
             button_type = request.POST.get("buttonTypeDropdown")
             action = request.POST.get("actionDropdown")
             roles = request.POST.get("roles")
+            
 
             param = (workflow_name, step_name, form_name, button_type, action, workflow_idDecryp,user,roles)
             cursor.callproc("stp_updateWorkflow_matrix", param)

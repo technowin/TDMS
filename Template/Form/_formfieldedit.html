@@ -51,6 +51,20 @@
             <input type="hidden"  id="form_data_id" name="form_data_id" value="{{form_data_id}}">
             <input type="hidden" id="form_id" name="form_id_{{ field.id }}" value="{{ field.form_id }}">
             <input type="hidden" id="field_id" name="field_id_{{ field.id }}" value="{{ field.id }}">
+            
+            <input type="hidden" id="workflow_YN" name="workflow_YN" value="{{ workflow }}">
+            <input type="hidden" id="role_id" name="role_id" value="{{ role_id }}">
+            <input type="hidden" id="action_detail_id" name="action_detail_id" value="{{ action_detail_id }}">
+            <input type="hidden" id="form_id" name="form_id" value="{{ form_id }}">
+            <input type="hidden" id="action_id" name="action_id" value="{{ action_id }}">
+            <input type="hidden" id="step_id" name="step_id" value="{{ step_id }}">
+            <input type="hidden" id="wfdetailsid" name="wfdetailsid" value="{{ wfdetailsid }}">
+            <input type="hidden" id="status_wfM" name="status_wfM" value="{{ status_wfM }}">
+            
+
+            <input type="hidden" id="custom_dropdownOpr" name="custom_dropdownOpr">
+            <input type="hidden" id="firstStep" name="firstStep" value="{{ firstStep }}">
+
             <label class="fw-bold">{{ field.label }}</label>
             <input type="hidden" value ="{{type}}">
             
@@ -188,6 +202,33 @@
     </div>
     {% endfor %}
 </div>
+
+{% comment %} added for operator dropdown {% endcomment %}
+
+<div id="workflowPopup" style="display: none; position: fixed; top: 50%; left: 50%; 
+    transform: translate(-50%, -50%); z-index: 9999; background: white; padding: 20px; 
+    box-shadow: 0px 0px 10px rgba(0,0,0,0.5); border-radius: 8px;">
+
+    <label for="custom_dropdownOpr">Select Operator:</label>
+    <select name="custom_dropdownOpr" id="custom_dropdownOpr" class="form-control">
+        <option value="">--Select--</option>
+        {% for item in WFoperator_dropdown %}
+            <option value="{{ item.0 }}">{{ item.1 }}</option>
+        {% endfor %}
+    </select>
+
+    <br>
+    <div style="margin-top: 15px; text-align: right;">
+        <button id="confirmSubmitBtn" class="btn btn-primary">Confirm</button>
+        <button id="cancelPopupBtn" class="btn btn-secondary">Cancel</button>
+    </div>
+
+</div>
+
+<div id="popupOverlay" style="display: none; position: fixed; top: 0; left: 0; 
+    width: 100vw; height: 30vh; background: rgba(0,0,0,0.3); z-index: 9990;"></div>
+
+{% comment %} ends here {% endcomment %}
 
 </form>
 
@@ -329,14 +370,55 @@
 <script>
 
         document.querySelectorAll('.submit-btn').forEach(button => {
+            debugger;
             button.addEventListener('click', function (e) {
                 const form = document.getElementById('dynamicForm');
                 const buttonType = this.getAttribute('data-button-type');
-    
-                if (buttonType === 'Submit') {
+
+                const workflow_YN = document.getElementById('workflow_YN');
+                //const dropdownContainer = document.getElementById('workflowDropdownContainer');
+                const confirmSubmitBtn = document.getElementById('confirmSubmitBtn'); 
+                const cancelPopupBtn = document.getElementById('cancelPopupBtn');
+                const firstStep = document.getElementById('firstStep');
+                
+                const popup = document.getElementById('workflowPopup');
+                const overlay = document.getElementById('popupOverlay');
+                const operatorDropdown = document.getElementById('custom_dropdownOpr');
+
+                if (buttonType === 'Submit' && parseInt(workflow_YN.value) === 1 && parseInt(firstStep.value) === 1) {
+                    debugger;
+                    
+                    e.preventDefault();
+
+                    const popup = document.getElementById('workflowPopup');
+                    const overlay = document.getElementById('popupOverlay');
+
+                    // ✅ Show popup and overlay
+                    popup.style.display = 'block';
+                    overlay.style.display = 'block';
+                    operatorDropdown.setAttribute('required', true);
+
+                    confirmSubmitBtn.onclick = function () {
+                        form.action = "{% url 'common_form_post' %}";
+                        
+                    };
+        
+                    // Cancel button inside popup
+                    cancelPopupBtn.onclick = function () {
+                        workflowPopup.style.display = 'none';
+                        popupOverlay.style.display = 'none';
+                    };
+
+                }
+                else if (buttonType === 'Submit') {
+                    operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_post' %}";
+                    
+
                 } else if (buttonType === 'Action') {
+                    operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_action' %}";
+                   
                 }
     
                 // optional: if you want to submit the form manually
