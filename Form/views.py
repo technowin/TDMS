@@ -744,7 +744,7 @@ def common_form_post(request):
         #     if not action_id_key:
         #         return JsonResponse({"error": "Form ID not found"}, status=400)
 
-        # form_id = request.POST.get("form_id")
+        form_id = request.POST.get("form_id")
 
         # form_id = request.POST.get(form_id_key, '').strip()
         form = get_object_or_404(Form, id=request.POST.get("form_id"))
@@ -1074,6 +1074,8 @@ def form_preview(request):
             "matrix_id":id,
             "fields": fields,
             "form":form,
+            "form_id":form_id,
+            "action_id":action_id,
             "action_fields": action_fields,
             "type":"create"
         })

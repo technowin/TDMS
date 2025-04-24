@@ -43,8 +43,8 @@
     <div class="col-md-3 mb-3">
         <input type="hidden" name="form_name" value="{{ form.name }}">
         <input type="hidden"  id="form_data_id" name="form_data_id" value="{{form_data_id}}">
-        <input type="hidden" id="form_id" name="form_id_{{ field.id }}" value="{{ field.form_id }}">
-        <input type="hidden" id="action_id" name="action_id_{{ field.id }}" value="{{ field.action_id }}">
+        <input type="hidden" id="form_id" name="form_id" value="{{ field.form_id }}">
+        <input type="hidden" id="action_id" name="action_id" value="{{ field.action_id }}">
         <input type="hidden" id="field_id" name="field_id_{{ field.id }}" value="{{ field.id }}">
         <label class="fw-bold">{{ field.label }}</label>
         <input type="hidden" id = "type" name = "type" value ="{{type}}">

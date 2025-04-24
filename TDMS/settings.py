@@ -23,12 +23,12 @@ SECRET_KEY = config("DB_SECRET_KEY")
 fernet = Fernet(SECRET_KEY)
 DECRYPTED_PASSWORD = fernet.decrypt(ENCRYPTED_PASSWORD.encode()).decode()
 
-ALLOWED_HOSTS = ['15.207.169.98']
+# ALLOWED_HOSTS = ['15.207.169.98']
 # ALLOWED_HOSTS = ['127.0.0.1']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
-# DEBUG = True   
+# DEBUG = False
+DEBUG = True   
 
 DATABASES = {
     'default': {
@@ -37,8 +37,8 @@ DATABASES = {
         'NAME': 'tdms',      # Replace with your database name
         'USER': 'root',      # Replace with your database user
         'PASSWORD': DECRYPTED_PASSWORD,  # Replace with your database password
-        # 'HOST': '15.207.169.98',       # IP FOR TEST
-        'HOST': '127.0.0.1',       # IP FOR LOCAL VM
+        'HOST': '15.207.169.98',       # IP FOR TEST
+        # 'HOST': '127.0.0.1',       # IP FOR LOCAL VM
         'PORT': '3306',            
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
@@ -49,8 +49,8 @@ DATABASES = {
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# MEDIA_ROOT = os.path.join(BASE_DIR, 'D:/Python Projects/Documents/')
-MEDIA_ROOT = os.path.join(BASE_DIR, '/home/ubuntu/Documents/')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'D:/Python Projects/Documents/')
+# MEDIA_ROOT = os.path.join(BASE_DIR, '/home/ubuntu/Documents/')
 MEDIA_URL = '/media/'
 
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
@@ -155,8 +155,8 @@ LOGGING = {
         'file': {
             'level': 'WARNING',
             'class': 'logging.FileHandler',
-            # 'filename': os.path.join(BASE_DIR, 'D:/Python Projects/TDMS logs', 'django.log'),  
-            'filename': os.path.join(BASE_DIR, '/home/ubuntu/TDMS logs', 'django.log'),  
+            'filename': os.path.join(BASE_DIR, 'D:/Python Projects/TDMS logs', 'django.log'),  
+            # 'filename': os.path.join(BASE_DIR, '/home/ubuntu/TDMS logs', 'django.log'),  
         },
     },
     'loggers': {
