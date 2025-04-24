@@ -348,6 +348,7 @@ def workflow_Editmap(request):
                     "role_dropdown":role_dropdown,
                     "wfEditCreate_dropdown":wfEditCreate_dropdown,
                     "workflow_id":workflow_idIncrypt,
+                    "wfEditCreate_dropdown":wfEditCreate_dropdown,
                 }
 
             return render(request, "Master/workflow_Editmap.html", getformdata)

@@ -187,7 +187,7 @@ function renderFormBuilder() {
         });
         dropdownHtml += `</select>`;
 
-        let fieldHtml = ""; // Declare this only once
+        let fieldHtml = "";
 
         if (field.type === "button") {
             debugger;
@@ -220,8 +220,6 @@ function renderFormBuilder() {
                     </select>
                 </div>
 
-
-
                 <div class="col-md-2 mb-3">
                     <label>Select Status</label>
                     <input class="form-control" type="text" value="${field.status || ''}" placeholder="Enter Status" onchange="updateField(${fieldId}, 'status', this.value)">
@@ -233,7 +231,9 @@ function renderFormBuilder() {
                     ${dropdownHtml}
                 </div>
                 <div class="col-md-2 mb-3">
-                    <input class="form-control" type="text" value="${field.label || ''}" onchange="this.value = this.value.replace(/[^a-zA-Z0-9 ]/g, ''); "updateField(${fieldId}, 'label', this.value)">
+                    <input class="form-control" type="text" 
+                        value="${field.label}" 
+                        onchange="validateAndUpdateLabel(this, ${fieldId})">
                 </div>
             `;
 
@@ -284,9 +284,30 @@ function renderFormBuilder() {
     });
 }
 
+function validateAndUpdateLabel(inputElement, fieldId) {
+    debugger;
+let newLabel = inputElement.value.replace(/[^a-zA-Z0-9 ]/g, '').trim();
+
+// Check for duplicates (excluding current field)
+let isDuplicate = formFields.some(field => field.id !== fieldId && field.label.toLowerCase() === newLabel.toLowerCase());
+
+if (isDuplicate) {
+    Swal.fire({
+        icon: 'error',
+        title: 'Duplicate Label',
+        text: `A field with the label "${newLabel}" already exists.`,
+    });
+    inputElement.value = ""; // Clear the input
+    return;
+}
+
+updateField(fieldId, 'label', newLabel);
+}
+
 
 
 function renderFormPreview() {
+    debugger;
     let preview = document.getElementById("dynamic-form");
     preview.innerHTML = "";
     

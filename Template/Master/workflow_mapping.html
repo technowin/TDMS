@@ -278,6 +278,7 @@
             <label for="actionDropdown">Action Type</label>
             <select class="form-select" id="actionDropdown" required>
                 <option value="">Select</option>
+                
                 {% for item in wfEditCreate_dropdown %}
                         <option value="{{ item.0 }}">{{ item.1 }}</option>
                     {% endfor %}

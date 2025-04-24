@@ -13,6 +13,16 @@ from pathlib import Path
 import os
 from datetime import timedelta
 
+from decouple import config
+from cryptography.fernet import Fernet
+
+ENCRYPTED_PASSWORD = config("DB_ENCRYPTED_PASSWORD")
+SECRET_KEY = config("DB_SECRET_KEY")
+
+# Decrypt
+fernet = Fernet(SECRET_KEY)
+DECRYPTED_PASSWORD = fernet.decrypt(ENCRYPTED_PASSWORD.encode()).decode()
+
 ALLOWED_HOSTS = ['15.207.169.98']
 # ALLOWED_HOSTS = ['127.0.0.1']
 
@@ -26,7 +36,7 @@ DATABASES = {
         'ENGINE': 'mysql.connector.django',
         'NAME': 'tdms',      # Replace with your database name
         'USER': 'root',      # Replace with your database user
-        'PASSWORD': 'Mysql_MH-047319',  # Replace with your database password
+        'PASSWORD': DECRYPTED_PASSWORD,  # Replace with your database password
         # 'HOST': '15.207.169.98',       # IP FOR TEST
         'HOST': '127.0.0.1',       # IP FOR LOCAL VM
         'PORT': '3306',            

@@ -219,10 +219,10 @@ class FormFile(models.Model):
     file_name = models.TextField(null=True, blank=True)
     uploaded_name = models.TextField(null=True, blank=True)
     file_path = models.TextField(null=True, blank=True)
-    file = models.ForeignKey('Form.FormFieldValues',null=True, blank=True, on_delete=models.CASCADE, related_name='file_id')
-    form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_filr_id')
-    field = models.ForeignKey('Form.FormField',null=True, blank=True, on_delete=models.CASCADE, related_name='field_file_id')
-    form_data = models.ForeignKey('Form.FormData',null=True, blank=True, on_delete=models.CASCADE, related_name='form_data_id')
+    file = models.ForeignKey('Form.FormFieldValues',null=True, blank=True, on_delete=models.SET_NULL, related_name='file_id')
+    form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.SET_NULL, related_name='form_filr_id')
+    field = models.ForeignKey('Form.FormField',null=True, blank=True,  on_delete=models.SET_NULL, related_name='field_file_id')
+    form_data = models.ForeignKey('Form.FormData',null=True, blank=True,  on_delete=models.SET_NULL, related_name='form_data_id')
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
@@ -254,12 +254,24 @@ class AttributeMaster(models.Model):
 class ActionData(models.Model):
     value = models.TextField(null=True, blank=True)
     form_data = models.ForeignKey('Form.FormData',null=True, blank=True, on_delete=models.CASCADE, related_name='action_data_id')
+    field = models.ForeignKey('Form.FormActionField',null=True, blank=True, on_delete=models.CASCADE, related_name='action_field_id')
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     updated_by =  models.TextField(null=True, blank=True)
     class Meta:
         db_table = 'action_data'
+
+class MasterDropdownData(models.Model):
+    name = models.TextField(null=True, blank=True)
+    query = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'master_drodpown_data'
+
 
 
 

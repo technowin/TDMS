@@ -56,49 +56,57 @@
             <div id="dynamic_form" class="col-md-12 mt-3"></div>
 
             <div class="d-flex justify-content-center mt-3">
-                <button id="btnSubmit" type="submit" class="btn btn-primary" hidden>Submit</button>
+                <button id="btnSubmit" type="submit" class="btn btn-primary">Submit</button>
             </div>
         </form>
 
     </div>
 
 <script>
-    document.getElementById("dropdown").addEventListener("change", function () {
-        let formId = this.value;
-        let btnSubmit = document.getElementById("btnSubmit");
-        let dynamicForm = document.getElementById("dynamic_form");
-        let formTitle = document.getElementById("form-title"); // Get the header element
+    $(document).ready(function () {
+        $('#dropdown').on('change', function () {
+            debugger;
+            let formId = $(this).val();
+            let Submit = $('#btnSubmit');
+            let $dynamicForm = $('#dynamic_form');
+            let $formTitle = $('#form-title');
+            
+            // Hide submit button initially
+            Submit.hide();
+    
+            if (formId) {
+                $.ajax({
+                    type: 'POST',
+                    url: "{% url 'form_master' %}",
+                    data: {
+                        'form': formId,
+                        'csrfmiddlewaretoken': '{{ csrf_token }}'
+                    },
+                    success: function (data) {
+                        debugger;
+                        $dynamicForm.html(data.html);
 
-        // Hide the button initially
-        btnSubmit.hidden = true;
-
-        if (formId) {
-            fetch("{% url 'form_master' %}", {
-                method: "POST",
-                headers: { "X-CSRFToken": "{{ csrf_token }}" },
-                body: new URLSearchParams({ form: formId })
-            })
-            .then(response => response.text())
-            .then(data => {
-                dynamicForm.innerHTML = data;
-
-                // Update form title dynamically
-                let selectedOption = document.querySelector("#dropdown option:checked");
-                formTitle.textContent = selectedOption ? `Create Form - ${selectedOption.textContent}` : "Create Form";
-
-                // Show button only if form is loaded
-                btnSubmit.hidden = data.trim() === "";
-            })
-            .catch(error => {
-                console.error("Error:", error);
-                btnSubmit.hidden = true; // Keep hidden on error
-            });
-        } else {
-            dynamicForm.innerHTML = ""; // Clear form if no selection
-            formTitle.textContent = "Create Form"; // Reset title
-            btnSubmit.hidden = true;
-        }
+                        let selectedText = $('#dropdown option:selected').text();
+                        $formTitle.text(`Create Form - ${selectedText}`);
+                        Submit.show();
+                        
+                    },
+                    error: function (xhr, status, error) {
+                        console.error("AJAX Error:", error);
+                        Submit.hide();
+                        $dynamicForm.html(""); // Optional: clear form area on error
+                        $formTitle.text("Create Form");
+                    }
+                });
+            } else {
+                $dynamicForm.html("");
+                $formTitle.text("Create Form");
+                $btnSubmit.hide();
+            }
+        });
     });
+    
+    
 </script>
 
 <script>

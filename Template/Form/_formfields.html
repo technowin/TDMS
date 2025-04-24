@@ -2,10 +2,33 @@
 
 {% block content %}
 {% load static %}
-{% csrf_token %}
+
+<link href="{% static 'css/masters.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/table.css' %}" rel="stylesheet" type="text/css" >
+<link href="{% static 'css/activebtn.css' %}" rel="stylesheet" type="text/css" >
+
+<link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script>
 
 <style>
-  
+
+    .selectize-input {
+        border: 1px solid black !important; 
+        border-radius: 10px !important; 
+        font-size: 1em;
+        {% comment %} width: 60%; {% endcomment %}
+        min-height:38px;
+        max-height: auto; 
+        overflow-y: auto;
+        padding: 6px 10px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .selectize-dropdown {
+        overflow: hidden !important;
+      }
 </style>
 
 {% if type == "edit"%}
@@ -18,10 +41,22 @@
     {% endif %}
 
     <div class="col-md-3 mb-3">
-        <input type="hidden" name="form_name" value="{{ field.form_id__name }}">
-        <input type="hidden" name="form_id_{{ field.id }}" value="{{ field.form_id }}">
-        <input type="hidden" name="field_id_{{ field.id }}" value="{{ field.id }}">
+        <input type="hidden" name="form_name" value="{{ form.name }}">
+        <input type="hidden"  id="form_data_id" name="form_data_id" value="{{form_data_id}}">
+        <input type="hidden" id="form_id" name="form_id_{{ field.id }}" value="{{ field.form_id }}">
+        <input type="hidden" id="action_id" name="action_id_{{ field.id }}" value="{{ field.action_id }}">
+        <input type="hidden" id="field_id" name="field_id_{{ field.id }}" value="{{ field.id }}">
         <label class="fw-bold">{{ field.label }}</label>
+        <input type="hidden" id = "type" name = "type" value ="{{type}}">
+      
+        {% comment %} {% if field.field_type == "select" %}
+            <select class="form-control select" name="field_{{ field.id }}"
+                {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                <option value="" selected disabled>Select</option>
+                {% for option in field.values %}
+                    <option value="{{ option }}" {% if option == field.value %} selected {% endif %}>{{ option }}</option>
+                {% endfor %}
+            </select> {% endcomment %}
 
         {% if field.field_type == "select" %}
             <select class="form-control select" name="field_{{ field.id }}"
@@ -32,8 +67,20 @@
                 {% endfor %}
             </select>
 
+        {% elif field.field_type == "master dropdown" %}
+            <select class="form-control select" name="field_{{ field.id }}"
+                {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                <option value="" selected disabled>Select</option>
+                {% for option in field.values %}
+                    <option value="{{ option.id }}">{{ option.name }}</option>
+                {% endfor %}
+
+            </select>
+        
+        
+
         {% elif field.field_type == "select multiple" %}
-            <select class="form-control select select_multiple" id="multiple" name="field_{{ field.id }}" multiple
+            <select class="form-control select_multiple" id="multiple" name="field_{{ field.id }}" multiple
                 {% for attr in field.attributes %} {{ attr }} {% endfor %}>
                 {% for option in field.values %}
                     <option value="{{ option }}">{{ option }}</option>
@@ -62,40 +109,47 @@
             </label>
 
         {% elif field.field_type == "file" %}
-        <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
-            <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control custom-file-input"  style="padding-right: 100px;"
-                   {% for attr in field.attributes %} {{ attr }} {% endfor %}>
-
-                   <i class="fa-solid fa-eye eye-icon" 
-                    onclick="showScript({{ form_data_id }}, {{ field.id }})"></i>
-
-          </div>
-            
-
-        {% comment %} {% elif field.field_type == "file" %}
-            <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control custom-file-input"
+            {% comment %} <input type="file" accept="{{ field.accept }}" name="field_{{ field.id }}" class="form-control custom-file-input"
                 {% for attr in field.attributes %} {{ attr }} {% endfor %}> {% endcomment %}
-
+                <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
+                    <input type="file" accept="{{ field.accept }}"  name="field_{{ field.id }}"
+                           class="form-control custom-file-input" style="padding-right: 100px;" id="file_input_{{ field.id }}"
+                           {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                
+                    <i class="fa-solid fa-eye eye-icon"
+                           onclick="showFile(document.getElementById('file_input_{{ field.id }}'))">
+                    </i>
+                </div>
+                
         {% elif field.field_type == "file multiple" %}
-        <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
-            <input type="file" accept="{{ field.accept }}" multiple name="field_{{ field.id }}" class="form-control custom-file-input"  style="padding-right: 100px;"
-                   {% for attr in field.attributes %} {{ attr }} {% endfor %}>
-
-                   <i class="fa-solid fa-eye eye-icon" 
-                    onclick="showScript({{ form_data_id }}, {{ field.id }})"></i>
-
-          </div>
+            <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
+                <input type="file" accept="{{ field.accept }}"name="field_{{ field.id }}" multiple
+                       class="form-control custom-file-input"style="padding-right: 100px;" id="file_input_{{ field.id }}"
+                       {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+            
+                <i class="fa-solid fa-eye eye-icon"
+                       onclick="showFile(document.getElementById('file_input_{{ field.id }}'))">
+                </i>
+            </div>
+                  
 
         {% elif field.field_type == "textarea" %}
-            <textarea class="form-control custom-textarea" name="field_{{ field.id }}"
+            <textarea class="form-control custom-textarea" name="field_{{ field.id }}" rows="1" value={{ field.value }}
                 {% for attr in field.attributes %} {{ attr }} {% endfor %}>{{ field.value }}</textarea>
-
+        
+        {% elif field.field_type == "text" %}
+            <input type="text" class="form-control" name="field_{{ field.id }}"  value="{{ field.value }}"
+                {% if field.accept %} maxlength="{{ field.accept }}" {% endif %} 
+                placeholder="{% if field.accept %}Enter up to {{ field.accept }} characters{% else %}Enter text{% endif %}"
+                {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+            
+                
         {% else %}
             <input type="{{ field.field_type }}" class="form-control" name="field_{{ field.id }}" value="{{ field.value }}"
                 {% for attr in field.attributes %} {{ attr }} {% endfor %}>
         {% endif %}
 
-
+    
     </div>
 {% endfor %}
 
@@ -107,34 +161,96 @@
 {% endif%}
 
 
+
+<script>
+    $(document).ready(function() {
+        $('.select_multiple').selectize({
+            plugins: ['remove_button'],
+            delimiter: ',',
+            placeholder: "Select Options",
+            persist: false,
+            create: false,
+            selectOnTab: false, 
+            maxItems: null,
+            onInitialize: function() {
+                var control = this;
+                control.clear();
+            }
+        });
+    });
+
+</script>
+
 <script>
 
-        document.addEventListener('DOMContentLoaded', function () {
-            const fileInput = document.getElementById('fileInput_{{ field.id }}');
-            const fileNameText = document.getElementById('fileName_{{ field.id }}');
-            const previewBtn = document.getElementById('previewBtn_{{ field.id }}');
+    function showFile(input) {
+        debugger;
+        const files = input.files;
     
-            // Show file name after selecting
-            fileInput.addEventListener('change', function () {
-                if (fileInput.files.length > 0) {
-                    fileNameText.textContent = fileInput.files[0].name;
-                } else {
-                    fileNameText.textContent = 'No file chosen';
-                }
+        if (!files || files.length === 0) {
+            Swal.fire({
+                icon: 'info',
+                title: 'No Files Selected',
+                text: 'Please select files to view them.',
+                confirmButtonText: 'Okay'
             });
+            return;
+        }
     
-            // Show file on eye icon click
-            previewBtn.addEventListener('click', function () {
-                if (fileInput.files.length > 0) {
-                    const fileURL = URL.createObjectURL(fileInput.files[0]);
-                    window.open(fileURL, '_blank');
-                } else {
-                    alert('No file selected to preview.');
-                }
-            });
+        let tableHTML = `
+            <table style="width:100%; text-align:left; border-collapse: collapse;">
+                <thead>
+                    <tr>
+                        <th style="border-bottom: 1px solid #ccc; padding: 8px;">Sr No.</th>
+                        <th style="border-bottom: 1px solid #ccc; padding: 8px;">File Name</th>
+                    </tr>
+                </thead>
+                <tbody>
+        `;
+    
+        Array.from(files).forEach((file, index) => {
+            tableHTML += `
+                <tr>
+                    <td style="padding: 8px;">${index + 1}</td>
+                    <td style="padding: 8px;">${file.name}</td>
+                </tr>
+            `;
         });
     
+        tableHTML += `</tbody></table>`;
+    
+        Swal.fire({
+            title: 'Selected Files',
+            html: tableHTML,
+            width: '600px',
+            confirmButtonText: 'Close'
+        });
+    }
+    
+    function removeNewFile(rowId, index) {
+        document.getElementById(rowId)?.remove();
+        if (newFiles) {
+            newFiles.splice(index, 1); // remove the file from array
+        }
+    
+        // Optional: if all files removed, show "No files available"
+        if (newFiles.length === 0 && (!data.files || data.files.length === 0)) {
+            const tableBody = document.getElementById("your-table-body-id");
+            tableBody.innerHTML = `
+                <tr>
+                    <td colspan="4" style="padding: 8px; text-align: center; color: gray;">
+                        No files available
+                    </td>
+                </tr>
+            `;
+        }
+    }
+    
+
+  
 </script>
+
+
 
 {% if messages %}
 {% for message in messages %}
