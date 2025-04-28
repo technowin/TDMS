@@ -81,6 +81,10 @@
                 <div id="form-builder" class="row col-md-12 mt-3"></div>
             </div>
         </div>
+       
+    {% comment %} </div> {% endcomment %}
+    {% comment %} <br>
+    <div class="row" > {% endcomment %}
 
         <div class="col-md-4">
             <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px;">
@@ -282,41 +286,90 @@
                     </select>
                 `;
             }
-            else if (field.type === "generative") {
-                // Show all field labels except current one
-                const dropdownOptions = allFieldLabels
-                    .filter(f => f.id !== field.id)
-                    .map(option =>
-                        `<option value="${option.id}" ${field.genDropdown == option.id ? 'selected' : ''}>${option.label}</option>`
-                    ).join('');
-            
-                optionDropdownHtml = `
+           //else if (field.type === "generative") {
+           //    // Show all field labels except current one
+           //    const dropdownOptions = allFieldLabels
+           //        .filter(f => f.id !== field.id)
+           //        .map(option =>
+           //            `<option value="${option.id}" ${field.genDropdown == option.id ? 'selected' : ''}>${option.label}</option>`
+           //        ).join('');
+           //
+           //    optionDropdownHtml = `
 
-                <div class="row g-0">
-                    <div class="col-md-2 p-1">
-                        <input type="text" class="form-control" placeholder="Prefix" title="Enter a prefix" name="prefix-${fieldId}" id="prefix-${fieldId}" value="${field.genText1 || ''}" oninput="updateGenerativePreview('${fieldId}')"/>
-                    </div>
+           //    <div class="row g-0">
+           //        <div class="col-md-2 p-1">
+           //            <input type="text" class="form-control" placeholder="Prefix" title="Enter a prefix" name="prefix-${fieldId}" id="prefix-${fieldId}" value="${field.genText1 || ''}" oninput="updateGenerativePreview('${fieldId}')"/>
+           //        </div>
 
-                    <div class="col-md-6 p-1">
-                        <select class="form-control field_dropdown" oninput="updateGenerativePreview('${fieldId}')"
-                        multiple name="fielddropdown-${fieldId}" id="fielddropdown-${fieldId}"title="Select a field from the dropdown">
-                        <option value="">Select Field</option>${dropdownOptions}
-                        </select>
-                    </div>
+           //        <div class="col-md-6 p-1">
+           //            <select class="form-control field_dropdown" oninput="updateGenerativePreview('${fieldId}')"
+           //            multiple name="fielddropdown-${fieldId}" id="fielddropdown-${fieldId}"title="Select a field from the dropdown">
+           //            <option value="">Select Field</option>${dropdownOptions}
+           //            </select>
+           //        </div>
 
-                    <div class="col-md-2 p-1">
-                        <input type="text" class="form-control" oninput="updateGenerativePreview('${fieldId}')" placeholder="0-9" name="zeroincrement1-${fieldId}" id="zeroincrement1-${fieldId}" 
-                        value="${field.genText2 || ''}" 
-                        minlength="1" maxlength="1" title="Enter number of Zero" />
-                    </div>
+           //        <div class="col-md-2 p-1">
+           //            <input type="text" class="form-control" oninput="updateGenerativePreview('${fieldId}')" placeholder="0-9" name="zeroincrement1-${fieldId}" id="zeroincrement1-${fieldId}" 
+           //            value="${field.genText2 || ''}" 
+           //            minlength="1" maxlength="1" title="Enter number of Zero" />
+           //        </div>
 
-                    <div class="col-md-2 p-1">
-                        <input type="number" class="form-control" oninput="updateGenerativePreview('${fieldId}')" placeholder="Value" name="zeroincrement2-${fieldId}" id="zeroincrement2-${fieldId}"  value="${field.genText2 || ''}"  title="Enter Increment number" />
-                    </div>
+           //        <div class="col-md-2 p-1">
+           //            <input type="number" class="form-control" oninput="updateGenerativePreview('${fieldId}')" placeholder="Value" name="zeroincrement2-${fieldId}" id="zeroincrement2-${fieldId}"  value="${field.genText2 || ''}"  title="Enter Increment number" />
+           //        </div>
+           //    </div>
+
+           //    `;
+           //}
+           else if (field.type === "generative") {
+            // Get selected field IDs from generative (converted to array of numbers)
+            const selectedFieldIds = field.generative.length > 0 
+                ? (field.generative[0].selected_field || '').split(',').map(id => parseInt(id.trim()))
+                : [];
+        
+            // Build the dropdown options
+            const dropdownOptions = allFieldLabels
+                .map(option => {
+                    const isSelected = selectedFieldIds.includes(option.id);
+                    return `<option value="${option.id}" ${isSelected ? 'selected' : ''}>${option.label}</option>`;
+                }).join('');
+        
+            // Extract prefix, no_of_zero, increment
+            const prefix = field.generative.length > 0 ? (field.generative[0].prefix || '') : '';
+            const noOfZero = field.generative.length > 0 ? (field.generative[0].no_of_zero || '') : '';
+            const increment = field.generative.length > 0 ? (field.generative[0].increment || '') : '';
+        
+            // Create the HTML
+            optionDropdownHtml = `
+            <div class="row g-0">
+                <div class="col-md-2 p-1">
+                    <input type="text" class="form-control" placeholder="Prefix" title="Enter a prefix" name="prefix-${fieldId}" id="prefix-${fieldId}" value="${prefix}" oninput="updateGenerativePreview('${fieldId}')"/>
                 </div>
-
-                `;
-            }
+        
+                <div class="col-md-6 p-1">
+                    <select class="form-control field_dropdown" oninput="updateGenerativePreview('${fieldId}')"
+                    multiple name="fielddropdown-${fieldId}" id="fielddropdown-${fieldId}" title="Select a field from the dropdown">
+                    ${dropdownOptions}
+                    </select>
+                </div>
+        
+                <div class="col-md-2 p-1">
+                    <input type="text" class="form-control" oninput="updateGenerativePreview('${fieldId}')" placeholder="0-9" name="zeroincrement1-${fieldId}" id="zeroincrement1-${fieldId}" 
+                    value="${noOfZero}" 
+                    minlength="1" maxlength="1" title="Enter number of Zero" />
+                </div>
+        
+                <div class="col-md-2 p-1">
+                    <input type="number" class="form-control" oninput="updateGenerativePreview('${fieldId}')" placeholder="Value" name="zeroincrement2-${fieldId}" id="zeroincrement2-${fieldId}" value="${increment}"  title="Enter Increment number" />
+                </div>
+            </div>
+            `;
+        }
+        
+        
+        
+        
+        
             
             
     
@@ -438,7 +491,7 @@
             field.prefix = prefix;
             field.field_name = selectedLabels;    // Save label names
             field.field_id = selectedValues; // If needed
-            field.suffix = zeroCountStr;
+            field.no_of_zero = zeroCountStr;
             field.increment = incNum;
             field.generatefield = previewValue;    // Full preview string
         }

@@ -109,30 +109,39 @@ def form_builder(request):
 
     # Organizing validations in a dictionary {field_id: [{validation_type, validation_value}]}
     validation_dict = {}
+    try:
 
-    for validation in validations:
-        field_id = validation.field.id
+        for validation in validations:
+            field_id = validation.field.id
 
-        if field_id not in validation_dict:
-            validation_dict[field_id] = []
+            if field_id not in validation_dict:
+                validation_dict[field_id] = []
 
-        validation_dict[field_id].append({
-            "validation_type": validation.sub_master.control_value,  # Assuming 'control_value' holds validation type
-            "validation_value": validation.value
-        })
+            validation_entry = {
+                "validation_type": validation.sub_master.control_value,  # Assuming 'control_value' holds the validation type
+                "validation_value": validation.value
+            }
 
-    generative_dict = {}
+        validation_dict[field_id].append(validation_entry)
 
-    for generate in generative:
-        field_id = generate.field.id
+    except Exception as e:
+        tb = traceback.extract_tb(e.__traceback__)
+        fun = tb[0].name
 
-        if field_id not in generative_dict:
-            generative_dict[field_id] = []
+    # generative_dict = {}
 
-        generative_dict[field_id].append({
-            "pre": validation.sub_master.control_value,  # Assuming 'control_value' holds validation type
-            "validation_value": validation.value
-        })
+    # for generate in generative:
+    #     field_id = generate.field.id
+
+    #     if field_id not in generative_dict:
+    #         generative_dict[field_id] = []
+
+    #     generative_dict[field_id].append({
+    #         "prefix": generate.prefix,  # Assuming 'control_value' holds validation type
+    #         "selected_field": generate.selected_field_id, 
+    #         "no_of_zero": generate.no_of_zero, 
+    #         "increment": generate.increment, 
+    #     })
 
     # Convert fields and their validation rules to JSON
     form_fields_json = json.dumps([
@@ -143,7 +152,7 @@ def form_builder(request):
             "options": field.values.split(",") if field.values else [],
             "attributes": field.attributes,
             "validation": validation_dict.get(field.id, []),
-            "generative": field.generative # Attach validation rules
+            # "generative": generative_dict.get(field.id, []) # Attach validation rules
         }
         for field in fields
     ])
@@ -228,15 +237,15 @@ def save_form(request):
 
                 if field.get("type") == "generative":
                     prefix = field.get("prefix", "")
-                    field_names = field.get("field_name", [])  # list of labels
-                    suffix = field.get("suffix", "")
+                    field_ids = field.get("field_name", [])  # list of labels
+                    no_of_zero = field.get("no_of_zero", "")
                     increment = field.get("increment", "")
 
                     # Save to model
                     FormGenerativeField.objects.create(
                         prefix=prefix,
-                        field_name=",".join(field_names),
-                        suffix=suffix,
+                        selected_field_id=",".join(field_ids),
+                        no_of_zero=no_of_zero,
                         increment=increment,
                         form=form,
                         field=get_object_or_404(FormField, id=field_id)
@@ -350,6 +359,23 @@ def update_form(request, form_id):
                 )
 
                 field_id = form_field.id
+
+                if field.get("type") == "generative":
+                    prefix = field.get("prefix", "")
+                    field_ids = field.get("field_name", []) 
+                    no_of_zero = field.get("no_of_zero", "")
+                    increment = field.get("increment", "")
+
+                    # Save to model
+                    FormGenerativeField.objects.create(
+                        prefix=prefix,
+                        selected_field_id=",".join(field_ids),
+                        no_of_zero=no_of_zero,
+                        increment=increment,
+                        form=form,
+                        field=get_object_or_404(FormField, id=field_id)
+                    )
+                    
 
                 # ✅ Ensure 'subValues' exists
                 if "validation" in field and isinstance(field["validation"], list):
