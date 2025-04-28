@@ -825,8 +825,8 @@ def common_form_post(request):
 
 
         handle_uploaded_files(request, form_name, created_by, form_data, user)
-
-
+        
+        callproc('create_dynamic_form_views')
         messages.success(request, "Form data saved successfully!")
         if workflow_YN == '1':
             wfdetailsid = request.POST.get('wfdetailsid', '')
