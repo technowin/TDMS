@@ -235,6 +235,8 @@ def form_builder(request):
             "increment": generate.increment,
         })
 
+    fields = fields.order_by('order')  
+
     form_fields_json = json.dumps([
         {
             "id": field.id,
@@ -558,6 +560,7 @@ def form_action_builder(request):
             "dropdown_options": json.dumps(dropdown_options),
             "error": "Invalid form ID"
         })
+
 
     form_fields_json = json.dumps([
         {

@@ -10,6 +10,11 @@
 
  <link rel="stylesheet" type="text/css" href="{% static 'css/tooltips.css' %}" />
 
+ <!-- Font Awesome -->
+ <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" 
+ integrity="sha512-...fullhash..." crossorigin="anonymous" referrerpolicy="no-referrer" />
+
+
  <script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
  <!-- Include DataTables CSS -->
  <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.min.css">
@@ -19,6 +24,7 @@
  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+ <link href="{% static 'vendor/fontawesome-free/css/all.min.css' %}" rel="stylesheet" type="text/css">
 
  <script src="https://cdn.jsdelivr.net/npm/@popperjs/core@2.11.6/dist/umd/popper.min.js"></script>
 <script src="https://stackpath.bootstrapcdn.com/bootstrap/5.1.3/js/bootstrap.min.js"></script>
@@ -27,6 +33,9 @@
 <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
 <!-- Selectize.js JS -->
 <script src="{% static 'js/selectize.min.js' %}"></script>
+
+
+
 <style>
 
 
@@ -45,7 +54,69 @@
   .selectize-dropdown {
     overflow: hidden !important;
   }
+
+  #livePreviewButton {
+    transition: all 0.3s ease;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+    padding: 10px 20px; /* nice padding */
+    min-width: 150px; /* initial width */
+    text-align: center;
+}
+
+/* On hover */
+#livePreviewButton:hover {
+    transform: scale(1.1);
+    box-shadow: 0 0 20px 5px rgba(0, 123, 255, 0.7);
+    background-color: #0d6efd;
+    color: white;
+    min-width: 250px; /* wider on hover */
+}
+
+
 </style>
+
+<div class="modal fade" id="livePreviewModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog  modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="livePreviewModalLabel">Live Preview</h2>
+                    {% comment %} <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"><i class="fa-regular fa-xmark-large"></i></button> {% endcomment %}
+                  </div>   
+                  <div class="modal-body">
+                    <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px;">
+                        {% comment %} <h2 style="text-align:center; font-weight:600; color:black">Live Preview</h2> {% endcomment %}
+                        <form id="dynamic-form" class="row col-md-12"></form>
+                    </div>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
+                  </div>
+            </div>
+        </div>
+    </div>
+
+{% comment %} <div class="modal fade" id="livePreviewModal" tabindex="-1" aria-labelledby="livePreviewModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-xl">
+      <div class="modal-content">
+        
+        <div class="modal-header">
+          <h5 class="modal-title" id="livePreviewModalLabel">Live Preview</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>   
+        <div class="modal-body">
+          <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px;">
+              <form id="dynamic-form" class="row col-md-12"></form>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+        </div>
+  
+      </div>
+    </div>
+  </div>
+   {% endcomment %}
 
 <div class="mt-4">
     <form method="POST" action="{% if form %}{% url 'update_form' form.id %}{% else %}{% url 'save_form' %}{% endif %}" class="row col-md-12" id="main-form"
@@ -63,16 +134,25 @@
 
         <input type="hidden" name="form_data" id="form-data-input">
 
-        <div class="col-md-4 mt-3">
+
+
+        <div class="col-md-2 mt-3">
             <button type="submit" class="btn btn-primary mt-3">{% if form %}Update {% else %}Save {% endif %}Form</button>
         </div>
+
+        <div class="col-md-2 mt-3">
+            <button type="button" class="btn btn-secondary mt-3" data-toggle="modal" data-target="#livePreviewModal">
+                Live Preview
+            </button>
+        </div>
+        
 
 
     </form>
 
     <br> 
     <div class="row" >
-        <div class="col-md-8">
+        <div class="col-md-12">
             <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px;">
                 <h2 style="text-align:center; font-weight:600; color:black">
                     {% if form %} Edit {% else %}Create {% endif %}Form  &nbsp;&nbsp;&nbsp;
@@ -86,12 +166,12 @@
     {% comment %} <br>
     <div class="row" > {% endcomment %}
 
-        <div class="col-md-4">
+        {% comment %} <div class="col-md-6">
             <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px;">
                 <h2 style="text-align:center; font-weight:600; color:black">Live Preview</h2>
                 <form id="dynamic-form" class="row col-md-12"></form>
             </div>
-        </div>
+        </div> {% endcomment %}
     </div>
 </div>
 
@@ -321,76 +401,42 @@
 
                `;
            }
-      //   else if (field.type === "generative") {
-      //    // Get selected field IDs from generative (converted to array of numbers)
-      //    const selectedFieldIds = field.generative.length > 0 
-      //        ? (field.generative[0].selected_field || '').split(',').map(id => parseInt(id.trim()))
-      //        : [];
-      //
-      //    // Build the dropdown options
-      //    const dropdownOptions = allFieldLabels
-      //        .map(option => {
-      //            const isSelected = selectedFieldIds.includes(option.id);
-      //            return `<option value="${option.id}" ${isSelected ? 'selected' : ''}>${option.label}</option>`;
-      //        }).join('');
-      //
-      //    // Extract prefix, no_of_zero, increment
-      //    const prefix = field.generative.length > 0 ? (field.generative[0].prefix || '') : '';
-      //    const noOfZero = field.generative.length > 0 ? (field.generative[0].no_of_zero || '') : '';
-      //    const increment = field.generative.length > 0 ? (field.generative[0].increment || '') : '';
-      //
-      //    // Create the HTML
-      //    optionDropdownHtml = `
-      //    <div class="row g-0">
-      //        <div class="col-md-2 p-1">
-      //            <input type="text" class="form-control" placeholder="Prefix" title="Enter a prefix" name="prefix-${fieldId}" id="prefix-${fieldId}" value="${prefix}" oninput="updateGenerativePreview('${fieldId}')"/>
-      //        </div>
-      //
-      //        <div class="col-md-6 p-1">
-      //            <select class="form-control field_dropdown" oninput="updateGenerativePreview('${fieldId}')"
-      //            multiple name="fielddropdown-${fieldId}" id="fielddropdown-${fieldId}" title="Select a field from the dropdown">
-      //            ${dropdownOptions}
-      //            </select>
-      //        </div>
-      //
-      //        <div class="col-md-2 p-1">
-      //            <input type="text" class="form-control" oninput="updateGenerativePreview('${fieldId}')" placeholder="0-9" name="zeroincrement1-${fieldId}" id="zeroincrement1-${fieldId}" 
-      //            value="${noOfZero}" 
-      //            minlength="1" maxlength="1" title="Enter number of Zero" />
-      //        </div>
-      //
-      //        <div class="col-md-2 p-1">
-      //            <input type="number" class="form-control" oninput="updateGenerativePreview('${fieldId}')" placeholder="Value" name="zeroincrement2-${fieldId}" id="zeroincrement2-${fieldId}" value="${increment}"  title="Enter Increment number" />
-      //        </div>
-      //    </div>
-      //    `;
-      //}
-        
     
         
-            builder.innerHTML += `
-            <div class="row col-md-12">
-                <div class="col-md-2 mb-3">
-                    <input class="form-control" type="text" 
-                        value="${field.label}" 
-                        onchange="validateAndUpdateLabel(this, ${fieldId})">
-                </div>
-                <div class="col-md-2 mb-3">
-                    ${dropdownHtml}
-                </div>
-                <div class="col-md-2 mb-3">
-                    ${commonDropdownHtml}
-                </div>
-                <div class="col-md-4 mb-3">
-                    ${subControlHtml || optionDropdownHtml}
-                </div>
-                <div class="col-md-1 mt-2">
+           let colSize = 'col-md-5'; // default
+
+          // if (field.type === 'radio' || field.type === 'select' || field.type === 'select_multiple') {
+          //     colSize = 'col-md-5';
+          // } else if (field.type === 'generative') {
+          //     colSize = 'col-md-5';
+          // }
+           
+           // Now use colSize dynamically 👇
+           builder.innerHTML += `
+               <div class="row col-md-12">
+                   <div class="col-md-2 mb-3">
+                       <input class="form-control" type="text" 
+                           value="${field.label}" 
+                           onchange="validateAndUpdateLabel(this, ${fieldId})">
+                   </div>
+                   <div class="col-md-2 mb-3">
+                       ${dropdownHtml}
+                   </div>
+                   <div class="col-md-2 mb-3">
+                       ${commonDropdownHtml}
+                   </div>
+                   <div class="${colSize} mb-3">
+                       ${subControlHtml || optionDropdownHtml}
+                   </div>
+                  <div class="col-md-1 mt-2">
                     <span onclick="removeField(${fieldId})" style="cursor: pointer;">
                         <i class="fa-solid fa-trash" style="color: #dc3545; font-size: 1.5rem;"></i>
                     </span>
                 </div>
-                </div>
-            `;
+
+               </div>
+           `;
+           
 
     
             // Step 3: Restore selected sub-controls
@@ -697,7 +743,7 @@
             }
             
             let fieldContainer = document.createElement("div");
-            const colClass = (field.type === "file" || field.type === "file multiple") ? "col-md-12" : "col-md-6";
+            const colClass =  "col-md-3";
             fieldContainer.classList.add(colClass, "mb-3", "d-flex", "flex-column");
             
             fieldContainer.innerHTML = `
