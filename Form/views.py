@@ -627,6 +627,7 @@ def form_master(request):
 
         if request.method == "POST":
             form_id = request.POST.get("form")
+            form = get_object_or_404(Form,id = form_id)
             
             fields = FormField.objects.filter(form_id=form_id).values(
                 "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name"
@@ -663,7 +664,7 @@ def form_master(request):
                     except MasterDropdownData.DoesNotExist:
                         field["values"] = []
 
-            context = {"fields": fields, "type": "master"}
+            context = {"fields": fields, "type": "master","form_name":form}
             html = render_to_string("Form/_formfields.html", context)
             return JsonResponse({'html': html}, safe=False)
 
@@ -789,7 +790,7 @@ def common_form_post(request):
             form_data = FormData.objects.create(form=form)
         else:
             form_data = FormData.objects.create(form=form,action=action)
-        form_data.req_no = f"REQNO-00{form_data.id}"
+        form_data.req_no = f"UNIQ-NO-00{form_data.id}"
         form_data.created_by = user
         form_data.save()
         
