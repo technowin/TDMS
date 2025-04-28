@@ -272,6 +272,21 @@ class MasterDropdownData(models.Model):
     class Meta:
         db_table = 'master_drodpown_data'
 
+class FormGenerativeField(models.Model):
+    prefix = models.TextField(null=True, blank=True)
+    field_name = models.TextField(null=True, blank=True)
+    suffix = models.TextField(null=True, blank=True)
+    increment = models.TextField(null=True, blank=True)
+    form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_genrative_id')
+    field = models.ForeignKey('Form.FormField',null=True, blank=True, on_delete=models.CASCADE, related_name='field_genrative_id')
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'form_generative_field'
+
+
 
 
 
