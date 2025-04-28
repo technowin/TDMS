@@ -274,8 +274,8 @@ class MasterDropdownData(models.Model):
 
 class FormGenerativeField(models.Model):
     prefix = models.TextField(null=True, blank=True)
-    field_name = models.TextField(null=True, blank=True)
-    suffix = models.TextField(null=True, blank=True)
+    selected_field_id = models.TextField(null=True, blank=True)
+    no_of_zero = models.TextField(null=True, blank=True)
     increment = models.TextField(null=True, blank=True)
     form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_genrative_id')
     field = models.ForeignKey('Form.FormField',null=True, blank=True, on_delete=models.CASCADE, related_name='field_genrative_id')
