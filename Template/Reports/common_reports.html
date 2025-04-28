@@ -84,9 +84,18 @@
     <div class="row " id="headertitle" style="margin-bottom:14px">
         <input type="hidden" id = "Entity1" name = "Entity" value = "{{ entity }}" />
         <input type="hidden" id = "CountFilterId" name = "testFilterId" value = "0" />
-        <div class="col-5 no-gutters padding-1">
+        <div class="col-4 no-gutters padding-1">
             <h3 class=" nav-link active" style=" color:#4e73df; font-size: 25px; font-family: 'Bungee'; text-shadow: 0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 4px 0 #b9b9b9, 0 5px 0 #aaa, 0 6px 1px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.3), 0 3px 5px rgba(0,0,0,.2), 0 5px 10px rgba(0,0,0,.25), 0 10px 10px rgba(0,0,0,.2), 0 20px 20px rgba(0,0,0,.15), 0 30px 20px rgba(0,0,0,.1); ">{{ title }}</h3>
             <h3 class=" nav-link active" style=" color:#4e73df; font-size: 14px;"><b>{{ note }}</b></h3>
+        </div>
+        <div class="col-2 padding-1 padding-0" >
+            <div class="form-outline inputcssf" >
+                <select name="forms" id="forms" class="forms" style="border-radius: 10px; padding: 1.5%; width: 100%;"  required onchange="change12(this.id)">
+                    {% for item1 in forms %}
+                        <option style="border-radius: 10px; padding: 0.5%; width: 100%"  value="{{ item1.0 }}" {% if item1.0 == entity %}selected{% endif %}> {{ item1.1 }} </option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
         <div class="col-2 no-gutters padding-0">
             <div class="form-outline inputcss" hover-tooltip="select or add saved report"  tooltip-position="top">
@@ -111,7 +120,7 @@
                 <button type="submit" value="save" class="btn btn-info button_r" id="delete_filters_id"><i class="fa fa-trash"></i></button>
             </div>
         </div>
-        <div class="col-2 padding-1 padding-0" >
+        <div class="col-1 padding-1 padding-0" >
           
         </div>
         <div class="col-1 padding-1 padding-0" >
@@ -268,7 +277,13 @@
 <script src="https://cdn.datatables.net/fixedcolumns/4.1.0/js/dataTables.fixedColumns.min.js"></script>
 <script src="https://cdn.datatables.net/select/1.4.0/js/dataTables.select.min.js"></script>
 <script src="{% static 'js/selectize-bootstrap-4-style-master/dist/js/selectize/standalone/selectize.min.js' %}"></script>
-
+<script>
+    document.getElementById('forms').addEventListener('change', function() {
+        var selectedEntity = this.value;
+        // Redirect to URL with entity as parameter
+        window.location.href = '/common_html?entity=' + encodeURIComponent(selectedEntity);
+    });
+    </script>
 <script type="text/javascript">
 
     $(document).ready(function () {
