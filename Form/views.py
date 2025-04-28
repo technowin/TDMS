@@ -381,7 +381,7 @@ def save_form(request):
                             )
 
 
-
+            callproc('create_dynamic_form_views')
             messages.success(request, "Form and fields saved successfully!!")
             new_url = f'/masters?entity=form&type=i'
             return redirect(new_url) 
@@ -523,7 +523,7 @@ def update_form(request, form_id):
                             created_by = user,
                             updated_by = user
                         )
-
+            callproc('create_dynamic_form_views')
             messages.success(request, "Form updated successfully!!")
             return redirect('/masters?entity=form&type=i')
     except Exception as e:
