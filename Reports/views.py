@@ -62,6 +62,7 @@ def common_html(request):
             user = request.user.id
             entity =request.GET.get('entity', '')  
             if request.method=="GET":
+                forms = callproc("stp_get_forms")          
                 filter_name = callproc("stp_get_filter_names",[entity])          
                 column_name = callproc("stp_get_column_names",[entity])        
                 result = callproc("stp_get_report_title", [entity])
@@ -76,7 +77,7 @@ def common_html(request):
         callproc("stp_error_log",[fun,str(e),request.user.id])  
         messages.error(request, 'Oops...! Something went wrong!')
     finally:
-        return render(request,'Reports/common_reports.html', {'filter_name':filter_name,'column_name':column_name,'saved_names':saved_names,'entity':entity,'title':title,'note':note})
+        return render(request,'Reports/common_reports.html', {'forms':forms,'filter_name':filter_name,'column_name':column_name,'saved_names':saved_names,'entity':entity,'title':title,'note':note})
     
 @login_required      
 def get_filter(request):
