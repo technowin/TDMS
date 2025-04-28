@@ -69,21 +69,117 @@ def get_dublicate_name(request):
         return JsonResponse({'exists': exists})
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
+# def form_builder(request):
+#     form_id = request.GET.get('form_id')
+#     # common_options = list(CommonMaster.objects.filter(type='attribute').values("id", "control_value"))
+#     common_options = list(AttributeMaster.objects.values("id","control_name", "control_value",))
+#     sub_control = list(ValidationMaster.objects.values("id", "control_name", "control_value", "field_type"))
+#     regex = list(RegexPattern.objects.values("id", "input_type", "regex_pattern", "description"))
+#     dropdown_options = list(ControlParameterMaster.objects.values("control_name", "control_value"))
+#     master_dropdown = list(MasterDropdownData.objects.values("id", "name", "query"))
+#     # for item in master_dropdown:
+#     #     item["id"] = enc(json.dumps(item["id"]))
+
+
+#     if not form_id:  
+#         return render(request, "Form/form_builder.html", {
+#             "regex":json.dumps(regex),
+#             "dropdown_options": json.dumps(dropdown_options),
+#             "common_options": json.dumps(common_options),
+#             "sub_control": json.dumps(sub_control),
+#             "master_dropdown": json.dumps(master_dropdown)
+#         })
+
+#     try:
+#         form_id = dec(form_id)  # Decrypt form_id
+#         form = get_object_or_404(Form, id=form_id)  # Get form or return 404
+#         fields = FormField.objects.filter(form_id=form_id)
+#         validations = FieldValidation.objects.filter(form_id=form_id)
+#         generative = FormGenerativeField.objects.filter(form_id=form_id)
+#     except Exception as e:
+#         print(f"Error fetching form data: {e}")  # Debugging
+#         return render(request, "Form/form_builder.html", {
+#             "regex":json.dumps(regex),
+#             "dropdown_options": json.dumps(dropdown_options),
+#             "common_options": json.dumps(common_options),
+#             "sub_control": json.dumps(sub_control),
+#             "master_dropdown": json.dumps(master_dropdown),
+#             "error": "Invalid form ID"
+#         })
+
+#     # Organizing validations in a dictionary {field_id: [{validation_type, validation_value}]}
+#     validation_dict = {}
+#     try:
+#         for validation in validations:
+#             field_id = validation.field.id
+
+#             if field_id not in validation_dict:
+#                 validation_dict[field_id] = []
+
+#             validation_entry = {
+#                 "validation_type": validation.sub_master.control_value,
+#                 "validation_value": validation.value
+#             }
+#             validation_dict[field_id].append(validation_entry)
+
+#     except Exception as e:
+#         print(f"Error processing validations: {e}")
+#         traceback.print_exc()
+
+#     generative_dict = {}
+#     for generate in generative:
+#         field_id = generate.field.id
+
+#         if field_id not in generative_dict:
+#             generative_dict[field_id] = []
+
+#         generative_dict[field_id].append({
+#             "prefix": generate.prefix,
+#             "selected_field": generate.selected_field_id,
+#             "no_of_zero": generate.no_of_zero,
+#             "increment": generate.increment,
+#         })
+
+#     # Convert fields and their validation rules to JSON
+#     form_fields_json = json.dumps([
+#         {
+#             "id": field.id,
+#             "label": field.label,
+#             "type": field.field_type,
+#             "options": field.values.split(",") if field.values else [],
+#             "attributes": field.attributes,
+#             "validation": validation_dict.get(field.id, []),
+#             "generative": generative_dict.get(field.id, []) # Attach validation rules
+#         }
+#         for field in fields
+#     ])
+
+#     return render(request, "Form/form_builder.html", {
+#         "form": form,
+#         "regex":json.dumps(regex),
+#         "form_fields_json": form_fields_json,
+#         "dropdown_options": json.dumps(dropdown_options),
+#         "common_options": json.dumps(common_options),
+#         "sub_control": json.dumps(sub_control),
+#         "master_dropdown": json.dumps(master_dropdown)
+#     })
+
+import json
+import traceback
+from django.shortcuts import render, get_object_or_404
+
 def form_builder(request):
     form_id = request.GET.get('form_id')
-    # common_options = list(CommonMaster.objects.filter(type='attribute').values("id", "control_value"))
-    common_options = list(AttributeMaster.objects.values("id","control_name", "control_value",))
+
+    common_options = list(AttributeMaster.objects.values("id", "control_name", "control_value"))
     sub_control = list(ValidationMaster.objects.values("id", "control_name", "control_value", "field_type"))
     regex = list(RegexPattern.objects.values("id", "input_type", "regex_pattern", "description"))
     dropdown_options = list(ControlParameterMaster.objects.values("control_name", "control_value"))
     master_dropdown = list(MasterDropdownData.objects.values("id", "name", "query"))
-    # for item in master_dropdown:
-    #     item["id"] = enc(json.dumps(item["id"]))
 
-
-    if not form_id:  
+    if not form_id:
         return render(request, "Form/form_builder.html", {
-            "regex":json.dumps(regex),
+            "regex": json.dumps(regex),
             "dropdown_options": json.dumps(dropdown_options),
             "common_options": json.dumps(common_options),
             "sub_control": json.dumps(sub_control),
@@ -92,14 +188,14 @@ def form_builder(request):
 
     try:
         form_id = dec(form_id)  # Decrypt form_id
-        form = get_object_or_404(Form, id=form_id)  # Get form or return 404
+        form = get_object_or_404(Form, id=form_id)
         fields = FormField.objects.filter(form_id=form_id)
         validations = FieldValidation.objects.filter(form_id=form_id)
         generative = FormGenerativeField.objects.filter(form_id=form_id)
     except Exception as e:
-        print(f"Error fetching form data: {e}")  # Debugging
+        print(f"Error fetching form data: {e}")
         return render(request, "Form/form_builder.html", {
-            "regex":json.dumps(regex),
+            "regex": json.dumps(regex),
             "dropdown_options": json.dumps(dropdown_options),
             "common_options": json.dumps(common_options),
             "sub_control": json.dumps(sub_control),
@@ -107,10 +203,8 @@ def form_builder(request):
             "error": "Invalid form ID"
         })
 
-    # Organizing validations in a dictionary {field_id: [{validation_type, validation_value}]}
     validation_dict = {}
     try:
-
         for validation in validations:
             field_id = validation.field.id
 
@@ -118,54 +212,52 @@ def form_builder(request):
                 validation_dict[field_id] = []
 
             validation_entry = {
-                "validation_type": validation.sub_master.control_value,  # Assuming 'control_value' holds the validation type
+                "validation_type": validation.sub_master.control_value,
                 "validation_value": validation.value
             }
-
-        validation_dict[field_id].append(validation_entry)
+            validation_dict[field_id].append(validation_entry)
 
     except Exception as e:
-        tb = traceback.extract_tb(e.__traceback__)
-        fun = tb[0].name
+        print(f"Error processing validations: {e}")
+        traceback.print_exc()
 
-    # generative_dict = {}
+    generative_dict = {}
+    for generate in generative:
+        field_id = generate.field.id
 
-    # for generate in generative:
-    #     field_id = generate.field.id
+        if field_id not in generative_dict:
+            generative_dict[field_id] = []
 
-    #     if field_id not in generative_dict:
-    #         generative_dict[field_id] = []
+        generative_dict[field_id].append({
+            "prefix": generate.prefix,
+            "selected_field": generate.selected_field_id,
+            "no_of_zero": generate.no_of_zero,
+            "increment": generate.increment,
+        })
 
-    #     generative_dict[field_id].append({
-    #         "prefix": generate.prefix,  # Assuming 'control_value' holds validation type
-    #         "selected_field": generate.selected_field_id, 
-    #         "no_of_zero": generate.no_of_zero, 
-    #         "increment": generate.increment, 
-    #     })
-
-    # Convert fields and their validation rules to JSON
     form_fields_json = json.dumps([
         {
             "id": field.id,
             "label": field.label,
             "type": field.field_type,
             "options": field.values.split(",") if field.values else [],
-            "attributes": field.attributes,
+            "attributes": field.attributes if field.attributes else {},
             "validation": validation_dict.get(field.id, []),
-            # "generative": generative_dict.get(field.id, []) # Attach validation rules
+            "generative": generative_dict.get(field.id, [])
         }
         for field in fields
     ])
 
     return render(request, "Form/form_builder.html", {
         "form": form,
-        "regex":json.dumps(regex),
+        "regex": json.dumps(regex),
         "form_fields_json": form_fields_json,
         "dropdown_options": json.dumps(dropdown_options),
         "common_options": json.dumps(common_options),
         "sub_control": json.dumps(sub_control),
         "master_dropdown": json.dumps(master_dropdown)
     })
+
 
 def format_label(label):
     """Format label to have proper capitalization."""
