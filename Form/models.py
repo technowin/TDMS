@@ -204,9 +204,9 @@ class FormActionField(models.Model):
         db_table = 'form_action_field'
 
 class FormFieldValues(models.Model):
-    form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.SET_NULL, related_name='form_data')
-    form_data = models.ForeignKey('Form.FormData',null=True, blank=True, on_delete=models.SET_NULL, related_name='form_value_id')
-    field = models.ForeignKey('Form.FormField',null=True, blank=True, on_delete=models.SET_NULL, related_name='field_value_id')
+    form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_data')
+    form_data = models.ForeignKey('Form.FormData',null=True, blank=True, on_delete=models.CASCADE, related_name='form_value_id')
+    field = models.ForeignKey('Form.FormField',null=True, blank=True, on_delete=models.CASCADE, related_name='field_value_id')
     value = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
@@ -219,10 +219,10 @@ class FormFile(models.Model):
     file_name = models.TextField(null=True, blank=True)
     uploaded_name = models.TextField(null=True, blank=True)
     file_path = models.TextField(null=True, blank=True)
-    file = models.ForeignKey('Form.FormFieldValues',null=True, blank=True, on_delete=models.SET_NULL, related_name='file_id')
-    form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.SET_NULL, related_name='form_filr_id')
-    field = models.ForeignKey('Form.FormField',null=True, blank=True,  on_delete=models.SET_NULL, related_name='field_file_id')
-    form_data = models.ForeignKey('Form.FormData',null=True, blank=True,  on_delete=models.SET_NULL, related_name='form_data_id')
+    file = models.ForeignKey('Form.FormFieldValues',null=True, blank=True, on_delete=models.CASCADE, related_name='file_id')
+    form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_filr_id')
+    field = models.ForeignKey('Form.FormField',null=True, blank=True,  on_delete=models.CASCADE, related_name='field_file_id')
+    form_data = models.ForeignKey('Form.FormData',null=True, blank=True,  on_delete=models.CASCADE, related_name='form_data_id')
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
