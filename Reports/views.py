@@ -62,7 +62,9 @@ def common_html(request):
             entity =request.GET.get('entity', '')  
             title,note ='',''
             if request.method=="GET":
-                forms = callproc("stp_get_forms")          
+                forms = callproc("stp_get_forms") 
+                if entity == '' or None:
+                   entity =  forms[0][0]         
                 filter_name = callproc("stp_get_filter_names",[entity])          
                 column_name = callproc("stp_get_column_names",[entity])        
                 result = callproc("stp_get_report_title", [entity])
@@ -455,7 +457,7 @@ def report_xlsx(request):
                 worksheet = workbook.add_worksheet(str(entity))
             
                 # Inserting the logo with a reduced size, ensuring it doesn't overlap
-                worksheet.insert_image('A1', 'static/images/IBS logo.png', {'x_offset': 1, 'y_offset': 1, 'x_scale': 0.04, 'y_scale': 0.04})  # Reduced size
+                worksheet.insert_image('A1', 'static/images/technologo.png', {'x_offset': 1, 'y_offset': 1, 'x_scale': 0.04, 'y_scale': 0.04})  # Reduced size
             
                 # Header Format
                 header_format = workbook.add_format({'align': 'center', 'bold': True, 'font_size': 14})
@@ -471,7 +473,7 @@ def report_xlsx(request):
                 worksheet.write(5, 0, headers, filter_format)
             
                 # Header Row Format (Column Names)
-                header_format = workbook.add_format({'bold': True, 'bg_color': '#80A95C', 'font_color': 'black'})
+                header_format = workbook.add_format({'bold': True, 'bg_color': '#A7C4FF', 'font_color': 'black'})
                 for i, column_name in enumerate(column_list):
                     worksheet.write(6, i, column_name, header_format)
             
