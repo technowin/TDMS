@@ -473,7 +473,7 @@ def report_xlsx(request):
                 worksheet.write(5, 0, headers, filter_format)
             
                 # Header Row Format (Column Names)
-                header_format = workbook.add_format({'bold': True, 'bg_color': '#A7C4FF', 'font_color': 'black'})
+                header_format = workbook.add_format({'bold': True, 'bg_color': '#7f9cf0', 'font_color': 'black'})
                 for i, column_name in enumerate(column_list):
                     worksheet.write(6, i, column_name, header_format)
             
