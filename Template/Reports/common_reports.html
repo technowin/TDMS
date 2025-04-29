@@ -77,10 +77,30 @@
     .Btns:active {
       transform: translate(2px ,2px);
     }
+
+    .selectize-input {
+      border: 1px solid black !important; 
+      border-radius: 10px !important; 
+      width: 80%;
+      min-height: 40px;
+      max-height: auto;
+      overflow-y: auto;
+      padding: 6px 10px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .selectize-dropdown {
+      overflow: hidden !important;
+    }
+    
   </style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/js/selectize.min.js" integrity="sha512-IOebNkvA/HZjMM7MxL0NYeLYEalloZ8ckak+NDtOViP7oiYzG5vn6WVXyrJDiJPhl4yRdmNAG49iuLmhkUdVsQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/selectize@0.12.6/dist/css/selectize.default.css" />
+
 <div class=" card ">
+    
     <div class="row " id="headertitle" style="margin-bottom:14px">
         <input type="hidden" id = "Entity1" name = "Entity" value = "{{ entity }}" />
         <input type="hidden" id = "CountFilterId" name = "testFilterId" value = "0" />

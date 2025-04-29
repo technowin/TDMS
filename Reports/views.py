@@ -40,7 +40,6 @@ from reportlab.lib import colors
 from reportlab.lib.pagesizes import letter, landscape
 from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Image, Paragraph
 from reportlab.lib.styles import getSampleStyleSheet
-import google.generativeai as genai
 from rest_framework import serializers
 from rest_framework import status
 from rest_framework.response import Response
@@ -61,14 +60,25 @@ def common_html(request):
             global user
             user = request.user.id
             entity =request.GET.get('entity', '')  
+            title,note ='',''
             if request.method=="GET":
-                forms = callproc("stp_get_forms")          
+                forms = callproc("stp_get_forms") 
+                if entity == '' or None:
+                   entity =  forms[0][0]         
                 filter_name = callproc("stp_get_filter_names",[entity])          
                 column_name = callproc("stp_get_column_names",[entity])        
                 result = callproc("stp_get_report_title", [entity])
                 if result and result[0]:
-                    for items in result[0]:
-                        title, note = items
+                    items = result[0] 
+                    if isinstance(items, tuple):
+                        if len(items) == 2:
+                            title, note = items
+                        elif len(items) == 1:
+                            title = items[0]
+                            note = ''
+                    else:
+                        title = items
+                        note = ''
                 saved_names = callproc("stp_get_saved_filters",[entity,user])        
 
     except Exception as e:
@@ -104,6 +114,8 @@ def get_filter(request):
         messages.error(request, 'Oops...! Something went wrong!')
     finally:
         return JsonResponse(drop_down, safe=False)
+    
+
     
 def common_dict(unit):
     return {
@@ -200,15 +212,15 @@ def common_fun(columnName,filterid,SubFilterId,sft,entity,user):
         mandatory_arr= []
         result_data = callproc("stp_get_report_filters", [entity])
         if result_data and result_data[0]:
-            for row in result_data[0]:
+            for row in result_data:
                 report_filters.append(list(row))
         result_data =callproc("stp_get_report_columns", [entity])
         if result_data and result_data[0]:
-            for row in result_data[0]:
+            for row in result_data:
                 report_columns.append(list(row))
         result_data = callproc("stp_get_column_join", [entity])
         if result_data and result_data[0]:
-            for row in result_data[0]:
+            for row in result_data:
                 column_join_list.append(list(row))
         result_data = callproc("stp_get_mandatory", [entity])
         mandf = ''
@@ -270,13 +282,6 @@ def common_fun(columnName,filterid,SubFilterId,sft,entity,user):
         
         column_name = callproc("stp_get_dispay_names",[entity])        
         
-        result_data = callproc("get_user_role_map",[user])   
-        company = '' 
-        worksite = ''
-        if result_data and result_data[0]:  
-            for items in result_data[0]:  
-                company = items[0]  
-                worksite = items[1]
                 
         if columnName == '': 
             column_name_arr = [col[0] for col in column_name] 
@@ -308,24 +313,9 @@ def common_fun(columnName,filterid,SubFilterId,sft,entity,user):
                     where_clause = " where " + where_clause1[z]
                 else:
                     where_clause += " and " + where_clause1[z]
-                    
-        if not where_clause:
-            where_extra = " where "
-        else: where_extra = " and "
-        
-        if entity in ['em']:
-            where_extra += "worksite in (" + str(worksite) + ")"
-        elif entity in ['cm']:
-            where_extra += "company_id in (" + str(company) + ")"
-        elif entity in ['sm']:
-            where_extra += "t1.company_id in (" + str(company) + ") and site_name in (" + str(worksite) + ")"
-        elif entity in ['r']:
-            where_extra += "t1.company_id in (" + str(company) + ") and worksite in (" + str(worksite) + ")"
-        elif entity in ['nr']:
-            where_extra += "t2.company_id in (" + str(company) + ") and t3.worksite in (" + str(worksite) + ")"
                             
-            if join_query1[z] not in join_clause:
-                join_clause += join_query1[z]
+        if join_query1[z] not in join_clause:
+            join_clause += join_query1[z]
 
         sql_query = "Select " + columns + " " + from_clause + " " + join_clause + " " + where_clause + " " + where_extra + " " + group_by + " " + order_by
         
@@ -344,7 +334,7 @@ def common_fun(columnName,filterid,SubFilterId,sft,entity,user):
         if ch == 0:
             result_data = callproc("stp_get_execute_report_query", [sql_query])
             if result_data and result_data[0]:
-                for row in result_data[0]:
+                for row in result_data:
                     data_list.append(list(row))
       
         display_name_list = list(display_name_arr)
@@ -411,7 +401,7 @@ def report_pdf(request):
                 result_data = callproc("stp_get_report_title", [entity])
                 title = ''
                 if result_data and result_data[0]:
-                    for items in result_data[0]:  
+                    for items in result_data:  
                         title = items[0]
                         
                 html_string = render_to_string('Reports/report_template.html', {
@@ -459,32 +449,48 @@ def report_xlsx(request):
                 result_data = callproc("stp_get_report_title", [entity])
                 title = ''
                 if result_data and result_data[0]:
-                    for items in result_data[0]:  
+                    for items in result_data:  
                         title = items[0]
 
                 output = io.BytesIO()
                 workbook = xlsxwriter.Workbook(output)
                 worksheet = workbook.add_worksheet(str(entity))
-
-                worksheet.insert_image('A1', 'static/images/TDMS-logo0.png', {'x_offset': 10, 'y_offset': 10, 'x_scale': 0.5, 'y_scale': 0.5})
-
+            
+                # Inserting the logo with a reduced size, ensuring it doesn't overlap
+                worksheet.insert_image('A1', 'static/images/technologo.png', {'x_offset': 1, 'y_offset': 1, 'x_scale': 0.04, 'y_scale': 0.04})  # Reduced size
+            
+                # Header Format
                 header_format = workbook.add_format({'align': 'center', 'bold': True, 'font_size': 14})
+                
+                # Data Format
                 data_format = workbook.add_format({'border': 1})
-                worksheet.merge_range('A4:{}'.format(chr(65+len(column_list)-1)+'2'), title, header_format)
-
+            
+                # Merge header cell for the title
+                worksheet.merge_range('A4:{}'.format(chr(65 + len(column_list) - 1) + '2'), title, header_format)
+            
+                # Add the header row
                 filter_format = workbook.add_format({'bold': True})
                 worksheet.write(5, 0, headers, filter_format)
-
-                header_format = workbook.add_format({'bold': True, 'bg_color': '#DD8C8D', 'font_color': 'black'})
+            
+                # Header Row Format (Column Names)
+                header_format = workbook.add_format({'bold': True, 'bg_color': '#A7C4FF', 'font_color': 'black'})
                 for i, column_name in enumerate(column_list):
                     worksheet.write(6, i, column_name, header_format)
-
+            
+                # Write the data rows
                 for row_num, row_data in enumerate(data_list, start=7):
                     for col_num, col_data in enumerate(row_data):
-                        worksheet.write(row_num, col_num, col_data,data_format)
+                        worksheet.write(row_num, col_num, str(col_data), data_format)
+            
+                # Auto-adjust columns based on content length (Auto width)
+                for col_num in range(len(column_list)):
+                    worksheet.set_column(col_num, col_num, max(len(str(cell)) for cell in [row[col_num] for row in data_list] + [column_list[col_num]]))
+            
                 workbook.close()
+            
+                # Prepare the response to send the generated Excel file
                 response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
-                response['Content-Disposition'] = 'attachment; filename="' + str(title) + '.xlsx"'
+                response['Content-Disposition'] = f'attachment; filename="{title}.xlsx"'
                 output.seek(0)
                 response.write(output.read())
     except Exception as e:
@@ -565,7 +571,7 @@ def saved_filters(request):
                 result_data  = callproc("stp_get_saved_report_filters",[saved_id,entity,user])
                 filters, sub_filters, selected_columns, f_count, display_name, sql_query = ('',) * 6  # Initialize variables
                 if result_data and result_data[0]: 
-                    for items in result_data[0]: 
+                    for items in result_data: 
                         filters, sub_filters, selected_columns, f_count, display_name, sql_query = items 
 
                 display_name_arr = display_name.split(',')
@@ -585,7 +591,7 @@ def saved_filters(request):
                 data_list= []
                 result_data  = callproc("stp_get_execute_report_query", [sql_query])
                 if result_data and result_data[0]:
-                    for row in result_data[0]:
+                    for row in result_data:
                         data_list.append(list(row))
 
                 if len(data_list) > 0:

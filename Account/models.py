@@ -75,6 +75,5 @@ class common_model(models.Model):
     id1 =models.CharField(max_length=255)
     def __str__(self):
         return self.id1    
-    class Meta:
-        abstract = True
+
 
