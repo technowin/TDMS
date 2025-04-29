@@ -85,7 +85,8 @@ urlpatterns = [
     path('save_filters', save_filters, name='save_filters'),
     path('delete_filters', delete_filters, name='delete_filters'),
     path('saved_filters', saved_filters, name='saved_filters'),
-    
+    path('download/<str:file_id>/', dl_file, name='dl_file'),
+
     # Menu Management
     path("menu_admin",menu_admin, name="menu_admin"),
     path("menu_master",menu_master, name="menu_master"),
