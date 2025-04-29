@@ -326,7 +326,7 @@ def save_form(request):
                     )
 
 
-            # callproc('create_dynamic_form_views')
+            callproc('create_dynamic_form_views')
             messages.success(request, "Form and fields saved successfully!!")
             new_url = f'/masters?entity=form&type=i'
             return redirect(new_url) 
@@ -443,8 +443,6 @@ def update_form(request, form_id):
                         file_validation_value = file_validation.get("validation_value", "")  # Extract ".jpg, .jpeg, .png"
                         sub_master_id = file_validation.get("id", None)  # Extract "2"
 
-                        # Create FieldValidation record
-                        # Delete existing validations for this field and form
                         FieldValidation.objects.filter(field_id=field_id, form_id=form.id).delete()
 
                         # Then insert new validation
@@ -469,6 +467,7 @@ def update_form(request, form_id):
 
 
                 for gen_field in generative_fields:
+                    FormGenerativeField.objects.filter(form_id=form.id).delete()
                     
                     prefix = gen_field["prefix"]
                     if isinstance(prefix, (list, tuple)):
@@ -479,7 +478,6 @@ def update_form(request, form_id):
                         label__in=gen_field["field_ids"]
                     ).values_list("id", flat=True)
 
-                    FormGenerativeField.objects.filter(field_id=field_id, form_id=form.id).delete()
 
                     FormGenerativeField.objects.create(
                         prefix=gen_field["prefix"],
@@ -491,7 +489,7 @@ def update_form(request, form_id):
                     )
                     
 
-            # callproc('create_dynamic_form_views')
+            callproc('create_dynamic_form_views')
             messages.success(request, "Form updated successfully!!")
             return redirect('/masters?entity=form&type=i')
     except Exception as e:
@@ -1042,7 +1040,7 @@ def common_form_edit(request):
         handle_uploaded_files(request, form_name, created_by, form_data, user)
         handle_generative_fields(form, form_data, created_by)
 
-        # callproc('create_dynamic_form_views')
+        callproc('create_dynamic_form_views')
         messages.success(request, "Form data updated successfully!")
 
     except Exception as e:
@@ -1141,7 +1139,6 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
                         existing_file.file_path = relative_file_path
                         existing_file.updated_by = user
                         existing_file.save()
-
                         continue
 
                 else:
