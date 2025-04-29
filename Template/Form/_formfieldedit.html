@@ -179,6 +179,14 @@
             {% elif field.field_type == "textarea" %}
                 <textarea class="form-control custom-textarea" name="field_{{ field.id }}" rows="1" value={{ field.value }}
                     {% for attr in field.attributes %} {{ attr }} {% endfor %}>{{ field.value }}</textarea>
+
+            {% elif field.field_type == "generative" %}
+                <input type="text" class="form-control" disabled name="field_{{ field.id }}" value="{{ field.value }}" placeholder="This Field is System Generated"
+                    {% for attr in field.attributes %} {{ attr }} {% endfor %} />
+        
+            {% elif field.field_type == "number" %}
+                <input type="number" class="form-control" name="field_{{ field.id }}" value="{{ field.value }}" placeholder="Enter Numeric Value"
+                    {% for attr in field.attributes %} {{ attr }} {% endfor %} />
             
             {% elif field.field_type == "text" %}
                 <input type="text" class="form-control" name="field_{{ field.id }}"  value="{{ field.value }}"
