@@ -49,15 +49,6 @@
         <label class="fw-bold">{{ field.label }}</label>
         <input type="hidden" id = "type" name = "type" value ="{{type}}">
       
-        {% comment %} {% if field.field_type == "select" %}
-            <select class="form-control select" name="field_{{ field.id }}"
-                {% for attr in field.attributes %} {{ attr }} {% endfor %}>
-                <option value="" selected disabled>Select</option>
-                {% for option in field.values %}
-                    <option value="{{ option }}" {% if option == field.value %} selected {% endif %}>{{ option }}</option>
-                {% endfor %}
-            </select> {% endcomment %}
-
         {% if field.field_type == "select" %}
             <select class="form-control select" name="field_{{ field.id }}"
                 {% for attr in field.attributes %} {{ attr }} {% endfor %}>
@@ -66,6 +57,11 @@
                     <option value="{{ option }}" {% if option == field.value %} selected {% endif %}>{{ option }}</option>
                 {% endfor %}
             </select>
+
+
+       
+
+
 
         {% elif field.field_type == "master dropdown" %}
             <select class="form-control select" name="field_{{ field.id }}"
@@ -136,6 +132,16 @@
         {% elif field.field_type == "textarea" %}
             <textarea class="form-control custom-textarea" name="field_{{ field.id }}" rows="1" value={{ field.value }}
                 {% for attr in field.attributes %} {{ attr }} {% endfor %}>{{ field.value }}</textarea>
+
+        {% elif field.field_type == "generative" %}
+            <input type="text" class="form-control" disabled name="field_{{ field.id }}" value="{{ field.value }}" placeholder="This Field is System Generated"
+                {% for attr in field.attributes %} {{ attr }} {% endfor %} />
+
+        {% elif field.field_type == "number" %}
+            <input type="number" class="form-control" name="field_{{ field.id }}" value="{{ field.value }}" placeholder="Enter Numeric Value"
+                {% for attr in field.attributes %} {{ attr }} {% endfor %} />
+        
+    
         
         {% elif field.field_type == "text" %}
             <input type="text" class="form-control" name="field_{{ field.id }}"  value="{{ field.value }}"
