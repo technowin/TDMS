@@ -70,14 +70,14 @@
         <div class="col-md-3 mb-3">
             <input type="hidden" name="form_name" value="{{ form.name }}">
             <input type="hidden"  id="form_data_id" name="form_data_id" value="{{form_data_id}}">
-            <input type="hidden" id="form_id" name="form_id_{{ field.id }}" value="{{ field.form_id }}">
+            {% comment %} <input type="hidden" id="form_id" name="form_id_{{ field.id }}" value="{{ field.form_id }}"> {% endcomment %}
             <input type="hidden" id="action_id" name="action_id_{{ field.id }}" value="{{ field.action_id }}">
             <input type="hidden" id="field_id" name="field_id_{{ field.id }}" value="{{ field.id }}">
             
             <input type="hidden" id="workflow_YN" name="workflow_YN" value="{{ workflow }}">
             <input type="hidden" id="role_id" name="role_id" value="{{ role_id }}">
             <input type="hidden" id="action_detail_id" name="action_detail_id" value="{{ action_detail_id }}">
-            <input type="hidden" id="form_id" name="form_id" value="{{ form_id }}">
+            <input type="hidden" id="form_id" name="form_id" value="{{ form.id }}">
             <input type="hidden" id="action_id" name="action_id" value="{{ action_id }}">
             <input type="hidden" id="step_id" name="step_id" value="{{ step_id }}">
             <input type="hidden" id="wfdetailsid" name="wfdetailsid" value="{{ wfdetailsid }}">

@@ -264,7 +264,12 @@
             dropdownHtml += `</select>`;
     
             // Common Dropdown (Multiple Selection)
-            let selectedIds = field.attributes ? field.attributes.split(",").map(id => id.trim()) : [];
+            //let selectedIds = field.attributes ? field.attributes.split(",").map(id => id.trim()) : [];
+            let selectedIds = (typeof field.attributes === 'string' && field.attributes.trim() !== '')
+                ? field.attributes.split(',').map(id => id.trim())
+                : [];
+
+            
             let commonDropdownHtml = `<select id="common-dropdown-${field.id}" class="form-control common-select" multiple>`;
             commonOptions.forEach(option => {
                 let isSelected = selectedIds.includes(option.control_value.toString()) ? "selected" : "";
@@ -382,20 +387,20 @@
                    </div>
 
                    <div class="col-md-6 p-1">
-                       <select class="form-control field_dropdown" oninput="updateGenerativePreview('${fieldId}')"
+                       <select class="form-control field_dropdown" onchange="updateGenerativePreview('${fieldId}')"
                        multiple name="fielddropdown-${fieldId}" id="fielddropdown-${fieldId}"title="Select a field from the dropdown">
                        <option value="">Select Field</option>${dropdownOptions}
                        </select>
                    </div>
 
                    <div class="col-md-2 p-1">
-                       <input type="text" class="form-control" oninput="updateGenerativePreview('${fieldId}')" placeholder="0-9" name="zeroincrement1-${fieldId}" id="zeroincrement1-${fieldId}" 
+                       <input type="text" class="form-control"  oninput="updateGenerativePreview('${fieldId}')" placeholder="0-9" name="zeroincrement1-${fieldId}" id="zeroincrement1-${fieldId}" 
                        value="${field.genText2 || ''}" 
-                       minlength="1" maxlength="1" title="Enter number of Zero" />
+                       minlength="1" maxlength="1" inputmode="numeric" pattern="[0-9]*" title="Enter number of Zero" />
                    </div>
 
                    <div class="col-md-2 p-1">
-                       <input type="number" class="form-control" oninput="updateGenerativePreview('${fieldId}')" placeholder="Value" name="zeroincrement2-${fieldId}" id="zeroincrement2-${fieldId}"  value="${field.genText2 || ''}"  title="Enter Increment number" />
+                       <input type="number" class="form-control" pattern="[0-9]*" oninput="updateGenerativePreview('${fieldId}')" placeholder="Value" name="zeroincrement2-${fieldId}" id="zeroincrement2-${fieldId}"  value="${field.genText2 || ''}"  title="Enter Increment number" />
                    </div>
                </div>
 
@@ -403,7 +408,7 @@
            }
     
         
-           let colSize = 'col-md-5'; // default
+           let colSize = 'col-md-4'; // default
 
           // if (field.type === 'radio' || field.type === 'select' || field.type === 'select_multiple') {
           //     colSize = 'col-md-5';
@@ -422,7 +427,7 @@
                    <div class="col-md-2 mb-3">
                        ${dropdownHtml}
                    </div>
-                   <div class="col-md-2 mb-3">
+                   <div class="col-md-3 mb-3">
                        ${commonDropdownHtml}
                    </div>
                    <div class="${colSize} mb-3">
@@ -454,18 +459,52 @@
         });
     
         // Initialize Selectize for Multiple Options
-        $(".common-select").each(function () {
-            let fieldId = $(this).attr("id").split("-").pop();
-            let field = formFields.find(f => f.id == fieldId);
-            let selectedIds = field.attributes ? field.attributes.split(",").map(id => id.trim()) : [];
+     // $(".common-select").each(function () {
+     //     let fieldId = $(this).attr("id").split("-").pop();
+     //     let field = formFields.find(f => f.id == fieldId);
+     //     let selectedIds = field.attributes ? field.attributes.split(",").map(id => id.trim()) : [];
     
-            let selectInstance = $(this).selectize({
+     //     let selectInstance = $(this).selectize({
+     //         plugins: ["remove_button"],
+     //         delimiter: ",",
+     //         placeholder: "Select attributes",
+     //         persist: false,
+     //         create: false,
+     //         items: selectedIds, 
+     //         onChange: function (value) {
+     //             let fieldIndex = formFields.findIndex(f => f.id == fieldId);
+     //             if (fieldIndex !== -1) {
+     //                 formFields[fieldIndex].attributes = value.join(",");
+     //             }
+     //         }
+     //     });
+    
+     //     let selectizeControl = selectInstance[0].selectize;
+     //     selectizeControl.setValue(selectedIds);
+     // });
+        $(".common-select").each(function () {
+            let $select = $(this);
+            let fieldId = $select.attr("id").split("-").pop();
+            let field = formFields.find(f => f.id == fieldId);
+        
+            let selectedIds = (typeof field.attributes === 'string' && field.attributes.trim() !== '')
+                ? field.attributes.split(',').map(id => id.trim())
+                : [];
+        
+            // Get all option values for this select
+            let optionValues = $select.find("option").map(function () {
+                return $(this).val();
+            }).get();
+        
+            // Only keep values that actually exist in the dropdown
+            selectedIds = selectedIds.filter(id => optionValues.includes(id));
+        
+            let selectInstance = $select.selectize({
                 plugins: ["remove_button"],
                 delimiter: ",",
                 placeholder: "Select attributes",
                 persist: false,
                 create: false,
-                items: selectedIds, 
                 onChange: function (value) {
                     let fieldIndex = formFields.findIndex(f => f.id == fieldId);
                     if (fieldIndex !== -1) {
@@ -473,10 +512,10 @@
                     }
                 }
             });
-    
-            let selectizeControl = selectInstance[0].selectize;
-            selectizeControl.setValue(selectedIds);
+        
+            selectInstance[0].selectize.setValue(selectedIds);
         });
+    
 
         document.querySelectorAll(".field_dropdown").forEach(select => {
             $(select).selectize({
