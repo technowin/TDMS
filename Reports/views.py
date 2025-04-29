@@ -1,11 +1,13 @@
+from django.conf import settings
 from django.shortcuts import render
 
 # Create your views here.
 import string
-from django.http import JsonResponse
+from django.http import Http404, JsonResponse
 from django.shortcuts import render,redirect
 from django.contrib.auth.decorators import login_required
 import requests
+from Form.models import FormFile
 from Reports.models import *
 from Account.models import *
 import Db 
@@ -32,6 +34,8 @@ from django.shortcuts import render, get_object_or_404
 from django.http import HttpResponse
 from flask import Flask, render_template
 from django.shortcuts import render
+
+from TDMS.settings import MEDIA_ROOT
 app = Flask(__name__)
 # Create your views here.
 
@@ -51,6 +55,7 @@ from django.template.loader import get_template
 import traceback
 from Account.db_utils import callproc
 from django.utils import timezone
+from TDMS.encryption import *
 # Report section
 @login_required
 def common_html(request):
@@ -334,8 +339,7 @@ def common_fun(columnName,filterid,SubFilterId,sft,entity,user):
         if ch == 0:
             result_data = callproc("stp_get_execute_report_query", [sql_query])
             if result_data and result_data[0]:
-                for row in result_data:
-                    data_list.append(list(row))
+                data_list = preprocess_data_list(result_data)
       
         display_name_list = list(display_name_arr)
 
@@ -366,7 +370,43 @@ def common_fun(columnName,filterid,SubFilterId,sft,entity,user):
         callproc("stp_error_log",[fun,str(e),user])  
     finally:
           return data
-      
+
+def dl_file(request, file_id):
+    try:
+        form_file = FormFile.objects.get(id=dec(file_id))
+        file_path = os.path.join(MEDIA_ROOT, form_file.file_path)
+        if not os.path.exists(file_path):
+            raise Http404("File not found.")
+        return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=form_file.uploaded_name)
+    except FormFile.DoesNotExist:
+        raise Http404("File not found.")
+    
+def preprocess_data_list(result_data):
+    data_list = []
+    for row in result_data:
+        processed_row = []
+        for value in row:
+            if isinstance(value, str) and 'tdmsformfiles_' in value:
+                file_links = []
+                file_ids = [v.replace('tdmsformfiles_', '') for v in value.split(',') if v.startswith('tdmsformfiles_')]
+                for file_id in file_ids:
+                    try:
+                        form_file = FormFile.objects.get(id=file_id)
+                        file_path = os.path.join(MEDIA_ROOT, form_file.file_path)
+                        file_exists = os.path.exists(file_path)
+                        file_links.append({
+                            'file_name': form_file.uploaded_name,
+                            'exists': file_exists,
+                            'id': enc(str(file_id)),
+                        })
+                    except FormFile.DoesNotExist:
+                        continue
+                processed_row.append({'file_links': file_links})
+            else:
+                processed_row.append(value)
+        data_list.append(processed_row)
+    return data_list
+
 def render_to_pdf(html):
     result = BytesIO()
     pdf = pisa.pisaDocument(BytesIO(html.encode("UTF-8")), result)

@@ -22,7 +22,26 @@
              {% for row in rows %}
              <tr>
                {% for value in row %}
-               <td>{{ value }}</td>
+                  <td>
+                   {% if value.file_links %}
+                       {% for file in value.file_links %}
+                           <div>
+                               {{ file.file_name }}
+                               {% if file.exists %}
+                                   <a href="{% url 'dl_file' file.id %}" class="btn btn-sm btn-outline-primary" title="Download">
+                                       <i class="fa fa-download"></i>
+                                   </a>
+                               {% else %}
+                                   <button class="btn btn-sm btn-outline-secondary" disabled title="File not found">
+                                       <i class="fa fa-download"></i>
+                                   </button>
+                               {% endif %}
+                           </div>
+                       {% endfor %}
+                   {% else %}
+                       {{ value }}
+                   {% endif %}
+                 </td>
                {% endfor %}
              </tr>
              {% endfor %}
