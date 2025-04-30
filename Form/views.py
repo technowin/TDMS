@@ -1057,7 +1057,8 @@ def common_form_edit(request):
 
         # ✅ File upload logic goes here
         handle_uploaded_files(request, form_name, created_by, form_data, user)
-        handle_generative_fields(form, form_data, created_by)
+        if field.field_type == "generative":
+            handle_generative_fields(form, form_data, created_by)
 
         callproc('create_dynamic_form_views')
         messages.success(request, "Form data updated successfully!")
