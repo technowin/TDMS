@@ -648,6 +648,9 @@
                 }else if (buttonType === 'Submit' && parseInt(editORcreate.value) === 1) {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_post' %}";
+                }else if (buttonType === 'Action' && parseInt(editORcreate.value) === 3) {
+                    operatorDropdown.removeAttribute('required');
+                    form.action = "{% url 'common_form_action' %}";
                 }
     
                 
