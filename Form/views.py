@@ -371,6 +371,15 @@ def update_form(request, form_id):
             updated_by = request.session.get('user_id', '').strip()
             form.save()
             index = 0
+            # existing_field_ids = set(FormField.objects.filter(form=form).values_list("id", flat=True))
+            # incoming_field_ids = set()
+
+            existing_field_ids = set(FormField.objects.filter(form=form).values_list("id", flat=True))
+            incoming_field_ids = set()
+
+            for field in form_data:
+                if field.get("id"):
+                    incoming_field_ids.add(int(field["id"]))
 
             generative_fields = [] 
 
@@ -512,7 +521,10 @@ def update_form(request, form_id):
                         form=form,
                         field=gen_field["form_field"]
                     )
-                    
+                removed_field_ids = existing_field_ids - incoming_field_ids
+                if removed_field_ids:
+                    FormField.objects.filter(id__in=removed_field_ids).delete()
+           
 
             callproc('create_dynamic_form_views')
             messages.success(request, "Form updated successfully!!")
@@ -935,7 +947,8 @@ def common_form_post(request):
                 )
                
         handle_uploaded_files(request, form_name, created_by, form_data, user)
-        handle_generative_fields(form, form_data, created_by)
+        if field.field_type == "generative":
+            handle_generative_fields(form, form_data, created_by)
 
         callproc('create_dynamic_form_views')
         messages.success(request, "Form data saved successfully!")
@@ -1644,3 +1657,20 @@ def get_query_data(request):
             return JsonResponse(data, safe=False)
         except Exception as e:
             return JsonResponse({"error": str(e)}, status=400)
+        
+def check_field_before_delete(request):
+    if request.method == "POST":
+        field_id = request.POST.get("field_id")
+
+        if  not field_id:
+            return JsonResponse({"success": False, "error": "Missing form or field ID."})
+
+        data_exists = FormFieldValues.objects.filter(field_id=field_id).exists()
+
+        if data_exists:
+            return JsonResponse({"exists": True})  # Indicates data is present; can't delete
+        else:
+            return JsonResponse({"success": True})
+
+    return JsonResponse({"success": False, "error": "Invalid request method."})
+

@@ -47,6 +47,7 @@ urlpatterns = [
     path('download_file/',download_file, name='download_file'),
     path('delete-file/', delete_file, name='delete_file'),
     path('get_query_data/', get_query_data, name='get_query_data'),
+    path('check_field_before_delete/', check_field_before_delete, name='check_field_before_delete'),
 
 
     # Account

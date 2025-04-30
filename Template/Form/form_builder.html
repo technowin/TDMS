@@ -124,27 +124,6 @@
         </div>
     </div>
 
-{% comment %} <div class="modal fade" id="livePreviewModal" tabindex="-1" aria-labelledby="livePreviewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-xl">
-      <div class="modal-content">
-        
-        <div class="modal-header">
-          <h5 class="modal-title" id="livePreviewModalLabel">Live Preview</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>   
-        <div class="modal-body">
-          <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px;">
-              <form id="dynamic-form" class="row col-md-12"></form>
-          </div>
-        </div>
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-        </div>
-  
-      </div>
-    </div>
-  </div>
-   {% endcomment %}
 
 <div class="mt-4">
     <form method="POST" action="{% if form %}{% url 'update_form' form.id %}{% else %}{% url 'save_form' %}{% endif %}" class="row col-md-12" id="main-form"
@@ -924,12 +903,55 @@
 
     
 
-    function removeField(id) {
-        formFields = formFields.filter(f => f.id !== id);
-        updateAllFieldLabels();
-        renderFormBuilder();
-        renderFormPreview();
-    }
+    {% if form %}
+        function removeField(id) {
+    
+            $.ajax({
+                url: "{% url 'check_field_before_delete' %}",
+                type: "POST",
+                data: {
+                    'field_id': id,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    if (response.exists) {
+                        Swal.fire({
+                            icon: "warning",
+                            title: "Can't Delete",
+                            text: "This field has existing data and cannot be deleted."
+                        });
+                    } else if (response.success) {
+                        formFields = formFields.filter(f => f.id !== id);
+                        updateAllFieldLabels();
+                        renderFormBuilder();
+                        renderFormPreview();
+
+                    } else {
+                        Swal.fire({
+                            icon: "error",
+                            title: "Error",
+                            text: "Unexpected response. Please try again."
+                        });
+                    }
+                },
+                error: function(xhr, status, error) {
+                    Swal.fire({
+                        icon: "error",
+                        title: "Server Error",
+                        text: "Something went wrong on the server."
+                    });
+                }
+            });
+        }
+        {% else %}
+
+        function removeField(id) {
+            formFields = formFields.filter(f => f.id !== id);
+            updateAllFieldLabels();
+            renderFormBuilder();
+            renderFormPreview();
+        }
+        {% endif %}
 
     document.getElementById("main-form").addEventListener("submit", function () {
         debugger;
