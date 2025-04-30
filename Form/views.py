@@ -1030,31 +1030,28 @@ def common_form_edit(request):
         created_by = request.session.get("user_id", "").strip()
         form_name = request.POST.get("form_name", "").strip()
 
+        FormFieldValues.objects.filter(form_data_id = form_data_id).delete()
+
         # Re-create all non-file fields
         for key, value in request.POST.items():
             if key.startswith("field_id_"):
-                field_id = key.replace("field_id_", "").strip()
+                field_id = value.strip()
                 field = get_object_or_404(FormField, id=field_id)
 
+
                 if field.field_type == "select multiple":
-                    selected_values = request.POST.getlist(key)
+                    selected_values = request.POST.getlist(f"field_{field_id}")
                     input_value = ','.join([val.strip() for val in selected_values if val.strip()])
                 else:
-                    input_value = value.strip()
-                
+                    input_value = request.POST.get(f"field_{field_id}", "").strip()
+
+
                 if field.field_type == "generative":
                     continue
 
-                # Update if exists, else create
-                FormFieldValues.objects.update_or_create(
-                    form_data=form_data,
-                    field=field,
-                    form=form,
-                    defaults={
-                        "value": input_value,
-                        "created_by": created_by,
-                        "updated_by": created_by
-                    }
+                
+                FormFieldValues.objects.create(
+                    form_data=form_data,form=form, field=field, value=input_value, created_by=created_by
                 )
 
 

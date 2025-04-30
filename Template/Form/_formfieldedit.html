@@ -180,30 +180,44 @@
                       
                      
 
-            {% elif field.field_type == "textarea" %}
-                <textarea class="form-control custom-textarea" name="field_{{ field.id }}" rows="1" value={{ field.value }}
-                    {% for attr in field.attributes %} {{ attr }} {% endfor {% if readonlyWF == '1' %} readonly {% endif %}{% if viewStepWFSeq == '3' %} readonly {% endif %}>{{ field.value }}</textarea>
-
+                {% elif field.field_type == "textarea" %}
+                <textarea class="form-control custom-textarea"
+                          name="field_{{ field.id }}"
+                          rows="1"
+                          {% for attr in field.attributes %}{{ attr }} {% endfor %}
+                          {% if readonlyWF == '1' or viewStepWFSeq == '3' %}readonly{% endif %}>{{ field.value }}</textarea>
+            
             {% elif field.field_type == "generative" %}
-                <input type="text" class="form-control" disabled name="field_{{ field.id }}" value="{{ field.value }}" placeholder="This Field is System Generated"
-                    {% for attr in field.attributes %} {{ attr }} {% endfor %} />
-        
+                <input type="text" class="form-control" disabled
+                       name="field_{{ field.id }}"
+                       value="{{ field.value }}"
+                       placeholder="This Field is System Generated"
+                       {% for attr in field.attributes %}{{ attr }} {% endfor %}/>
+            
             {% elif field.field_type == "number" %}
-                <input type="number" class="form-control" name="field_{{ field.id }}" value="{{ field.value }}" placeholder="Enter Numeric Value"
-                    {% for attr in field.attributes %} {{ attr }} {% endfor %} />
-                    
+                <input type="number" class="form-control"
+                       name="field_{{ field.id }}"
+                       value="{{ field.value }}"
+                       placeholder="Enter Numeric Value"
+                       {% for attr in field.attributes %}{{ attr }} {% endfor %}/>
             
             {% elif field.field_type == "text" %}
-                <input type="text" class="form-control" name="field_{{ field.id }}"  value="{{ field.value }}"
-                    {% if field.accept %} maxlength="{{ field.accept }}" {% endif %}{% if readonlyWF == '1' %} readonly {% endif %}{% if viewStepWFSeq == '3' %} readonly {% endif %}
-                    placeholder="{% if field.accept %}Enter up to {{ field.accept }} characters{% else %}Enter text{% endif %}"
-                    {% for attr in field.attributes %} {{ attr }} {% endfor %}>
-                
-                    
+                <input type="text" class="form-control"
+                       name="field_{{ field.id }}"
+                       value="{{ field.value }}"
+                       {% if field.accept %}maxlength="{{ field.accept }}" {% endif %}
+                       {% if readonlyWF == '1' or viewStepWFSeq == '3' %}readonly{% endif %}
+                       placeholder="{% if field.accept %}Enter up to {{ field.accept }} characters{% else %}Enter text{% endif %}"
+                       {% for attr in field.attributes %}{{ attr }} {% endfor %}/>
+            
             {% else %}
-                <input type="{{ field.field_type }}" class="form-control" name="field_{{ field.id }}" value="{{ field.value }}"
-                    {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' %} readonly {% endif %}{% if viewStepWFSeq == '3' %} readonly {% endif %}>
+                <input type="{{ field.field_type }}" class="form-control"
+                       name="field_{{ field.id }}"
+                       value="{{ field.value }}"
+                       {% for attr in field.attributes %}{{ attr }} {% endfor %}
+                       {% if readonlyWF == '1' or viewStepWFSeq == '3' %}readonly{% endif %}/>
             {% endif %}
+            
 
         
         </div>
