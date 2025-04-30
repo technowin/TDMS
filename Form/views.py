@@ -763,7 +763,15 @@ def form_master(request):
         else:
         
             form_data_id = request.GET.get("form")
-
+            button_type_id = request.GET.get("button_type_id")
+            workflow_YN = request.GET.get('workflow_YN', '')
+            step_id = request.GET.get('step_id', '')
+            form_id_wf = request.GET.get('form_idWF', '')
+            role_id = request.GET.get('role_id', '')
+            wfdetailsID = request.GET.get('wfdetailsID', '')
+            readonlyWF = request.GET.get('readonlyWF', '')
+            viewStepWF = request.GET.get('viewStepWF', '')
+            
             if form_data_id:
                 form_data_id = dec(form_data_id)
                 form_instance = FormData.objects.filter(id=form_data_id).values("id","form_id", "action_id").first()
@@ -771,7 +779,11 @@ def form_master(request):
                 if form_instance:
                     form_id = form_instance["form_id"]
                     form = get_object_or_404(Form,id = form_id)
-                    action_id = form_instance["action_id"]
+                    if button_type_id == None:
+                        action_id = form_instance["action_id"]
+                    else: 
+                        action_id =button_type_id
+                    # action_id = get_object_or_404(workflow_matrix,form_id=form_id).button_type_id
                     
                     fields = FormField.objects.filter(form_id=form_id).values(
                         "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name"
@@ -832,8 +844,11 @@ def form_master(request):
 
                     for af in action_fields:
                         af["dropdown_values"] = af["dropdown_values"].split(",") if af.get("dropdown_values") else []
-
-                    return render(request, "Form/_formfieldedit.html", {"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id})
+                    if workflow_YN == '1E':
+                        return render(request, "Form/_formfieldedit.html", {"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"workflow":workflow_YN,
+                                    "step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF})
+                    else:
+                        return render(request, "Form/_formfieldedit.html", {"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"readonlyWF":readonlyWF,"viewStepWFSeq":'0'})
             else:
                 type = request.GET.get("type")
                 form = Form.objects.all()
@@ -940,7 +955,8 @@ def common_form_post(request):
                 step_id=request.POST.get('step_id', ''),
                 operator=request.POST.get('custom_dropdownOpr', ''),
                 user_id=user,
-                created_by=user
+                created_by=user,
+                created_at=now()
                 
                 )
 
@@ -957,7 +973,7 @@ def common_form_post(request):
                     status=workflow_detail.status,
                     user_id=workflow_detail.user_id,
                     req_id=workflow_detail.req_id,
-                    
+                    form_id=request.POST.get('form_id', ''),
                     created_by=user,
                     # created_by=workflow_detail.updated_by,
                     created_at=workflow_detail.updated_at
@@ -973,6 +989,7 @@ def common_form_post(request):
                     user_id=workflow_detail.user_id,
                     req_id=workflow_detail.req_id,
                     operator=request.POST.get('custom_dropdownOpr', ''),
+                    form_id=request.POST.get('form_id', ''),
                     created_by=user,
                     # created_by=workflow_detail.updated_by,
                     created_at=workflow_detail.updated_at
@@ -994,6 +1011,8 @@ def common_form_post(request):
 def common_form_edit(request):
 
     user = request.session.get('user_id', '')
+    workflow_YN = request.POST.get("workflow_YN")
+    
     try:
         if request.method != "POST":
             return JsonResponse({"error": "Invalid request method"}, status=400)
@@ -1045,13 +1064,98 @@ def common_form_edit(request):
 
         callproc('create_dynamic_form_views')
         messages.success(request, "Form data updated successfully!")
+        if workflow_YN == '1E':
+        
+            wfdetailsid = request.POST.get('wfdetailsid', '')
+            step_id = request.POST.get('step_id', '')
+            if wfdetailsid and wfdetailsid != 'undefined':
+                wfdetailsid=dec(wfdetailsid)
+            else:
+                wfdetailsid = None  
+            
+            if step_id:
+                matrix_entry = workflow_matrix.objects.filter(id=step_id).first()
+                if matrix_entry:
+                    status_from_matrix = matrix_entry.status  # adjust field name if needed
+                    
+            if wfdetailsid and workflow_details.objects.filter(id=wfdetailsid).exists():
+                # Update existing record
+                workflow_detail = workflow_details.objects.get(id=wfdetailsid)
+                workflow_detail.form_data_id = form_data_id
+                workflow_detail.role_id = request.POST.get('role_id', '')
+                workflow_detail.action_details_id = request.POST.get('action_detail_id', '')
+                workflow_detail.increment_id += 1
+                workflow_detail.step_id = request.POST.get('step_id', '')
+                workflow_detail.status = status_from_matrix or ''
+                workflow_detail.user_id = user
+                workflow_detail.updated_by = user  # Or use `modified_by` if applicable
+                workflow_detail.updated_at = now()
+                workflow_detail.save()    
+            else:    
+                workflow_detail = workflow_details.objects.create(
+                form_data_id=form_data_id,
+                role_id=request.POST.get('role_id', ''),
+                action_details_id=request.POST.get('action_detail_id', ''),
+                increment_id=1,
+                # form_id=request.POST.get('form_id', ''),
+                # action_id=request.POST.get('action_id', ''),
+                status = status_from_matrix or '',
+                step_id=request.POST.get('step_id', ''),
+                operator=request.POST.get('custom_dropdownOpr', ''),
+                user_id=user,
+                created_by=user,
+                created_at=now()
+                
+                )
+
+            # Now set and save req_id using the generated ID
+            workflow_detail.req_id = f"REQNO-00{workflow_detail.id}"
+            workflow_detail.save()
+            if wfdetailsid and workflow_details.objects.filter(id=wfdetailsid).exists():
+                history_workflow_details.objects.create(
+                    form_data_id=workflow_detail.form_data_id,
+                    role_id=workflow_detail.role_id,
+                    action_details_id=workflow_detail.action_details_id,
+                    increment_id=workflow_detail.increment_id,
+                    step_id=workflow_detail.step_id,
+                    status=workflow_detail.status,
+                    user_id=workflow_detail.user_id,
+                    req_id=workflow_detail.req_id,
+                    form_id=request.POST.get('form_id', ''),
+                    created_by=user,
+                    # created_by=workflow_detail.updated_by,
+                    created_at=workflow_detail.updated_at
+                )
+            else:
+                history_workflow_details.objects.create(
+                    form_data_id=workflow_detail.form_data_id,
+                    role_id=workflow_detail.role_id,
+                    action_details_id=workflow_detail.action_details_id,
+                    increment_id=workflow_detail.increment_id,
+                    step_id=workflow_detail.step_id,
+                    status=workflow_detail.status,
+                    user_id=workflow_detail.user_id,
+                    req_id=workflow_detail.req_id,
+                    operator=request.POST.get('custom_dropdownOpr', ''),
+                    form_id=request.POST.get('form_id', ''),
+                    created_by=user,
+                    # created_by=workflow_detail.updated_by,
+                    created_at=workflow_detail.updated_at
+                )
+            
+            messages.success(request, "Workflow data saved successfully!")
 
     except Exception as e:
         traceback.print_exc()
         messages.error(request, "Oops...! Something went wrong!")
 
     finally:
-        return redirect("/masters?entity=form_master&type=i")
+        #return redirect("/masters?entity=form_master&type=i")
+        if workflow_YN == '1E':
+            return redirect('workflow_starts')
+        else:
+            return redirect("/masters?entity=form_master&type=i")
+
     
 def handle_generative_fields(form, form_data, created_by):
     generative_fields = FormField.objects.filter(form=form, field_type="generative")

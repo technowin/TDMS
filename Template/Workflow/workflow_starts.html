@@ -30,6 +30,7 @@
 <input type="hidden" id="butType_idH" name="butType_idH" value={{but_type}}>
 <input type="hidden" id="butAct_idH" name="butAct_idH" value={{but_act}}>
 <input type="hidden" id="firstStep " name="firstStep " value={{firstStep }}>
+
     <div class="card mb-4" style="padding: 10px;border: 2px solid #b3b3b3;border-radius: 15px;margin-left:0px;">
     {% comment %} {% if step %} {% endcomment %}
 
@@ -88,10 +89,20 @@
                   {% else %}
 
                     {% comment %} {% if item.next_step_name != 'No next step' %} {% endcomment %}
-                    <button class="btn btn-primary" style="background-color: #2e59d9"
-                        onclick="startStep('{{ item.user_prev_step_id }}', '{{ item.form_id }}', '{{ item.but_type }}', '{{ item.but_act }}', '{{ item.enc_id_wfd }}')">
-                        {{ item.user_prev_step_name }}
-                    </button>
+
+                     {% if item.editORcreate == 1 %} 
+                      <button class="btn btn-primary" style="background-color: #2e59d9"
+                          onclick="startStep('{{ item.user_prev_step_id }}', '{{ item.form_id }}', '{{ item.but_type }}', '{{ item.but_act }}', '{{ item.enc_id_wfd }}','{{item.editORcreate}}')">
+                          {{ item.user_prev_step_name }}
+                      </button>
+
+                      {% elif item.editORcreate == 2 or item.editORcreate == 3 %}
+
+                      <button class="btn btn-primary" style="background-color: #2e59d9"
+                          onclick="startStepEdit('{{ item.form_data_id }}','{{ item.req_num }}','{{ item.user_prev_step_Check }}','{{item.form_id}}','{{ item.enc_id_wfd }}','{{ item.editORcreate }}')">
+                          {{ item.user_prev_step_name }}
+                      </button>
+                    {% endif %} 
 
                     {% endif %}
                     {% comment %} {% else %}
@@ -166,9 +177,9 @@
     }
 </script>  
 <script>
-    function startStep(id,stepId, actionId, formId, WFdetailsID) {
+    function startStep(id,stepId, actionId, formId, WFdetailsID,editORcreate) {
       debugger;
-        const url = `/workflow_form_step/?id=${id}&step_id=${stepId}&action_id=${actionId}&form_id=${formId}&wfdetailsID=${WFdetailsID}`;
+        const url = `/workflow_form_step/?id=${id}&step_id=${stepId}&action_id=${actionId}&form_id=${formId}&wfdetailsID=${WFdetailsID}&editORcreate=${editORcreate}`;
         window.location.href = url;
     }
 </script>
@@ -176,6 +187,15 @@
   function startStepView(id,req_num,step_id) {
     debugger;
       const url = `/get_formdataid/?id=${id}&req_num=${req_num}&step_id=${step_id}`;
+      window.location.href = url;
+
+      //from this dat aget formd_data_id and that form_data_id send to like `/form_master/?form=${id}`;
+  }
+</script>
+<script>
+  function startStepEdit(id,req_num,step_id,form_id,WFdetailsID,editORcreate) {
+    debugger;
+      const url = `/get_formdataidEdit/?id=${id}&req_num=${req_num}&step_id=${step_id}&form_id=${form_id}&wfdetailsID=${WFdetailsID}&editORcreate=${editORcreate}`;
       window.location.href = url;
 
       //from this dat aget formd_data_id and that form_data_id send to like `/form_master/?form=${id}`;

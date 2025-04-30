@@ -321,6 +321,7 @@ def workflow_starts(request):
             'form_id': row[3],
             'but_type': row[4],
             'but_act': row[5],
+           
             'status': row[6],
             'step_id_flow': str(row[7]) if row[7] else None  
         })
@@ -341,6 +342,17 @@ def workflow_starts(request):
 
     for item in WFIndexdata_raw:
         step_id_str = str(item[3])
+        
+        # to get edit or create
+        req_num = item[0]        
+        detail = workflow_details.objects.get(req_id=req_num)
+        current_EditCrtStep = detail.step_id
+        editcrt = current_EditCrtStep + 1
+        try:
+            editORcreate = workflow_matrix.objects.get(id=editcrt).button_act_details
+        except workflow_matrix.DoesNotExist:
+            editORcreate = ''
+        # editORcreate = workflow_matrix.objects.get(id=editcrt).button_act_details
         
         form_data_id= enc(str(item[7]))
         
@@ -380,8 +392,11 @@ def workflow_starts(request):
 
                     if role_id in step['role_ids']:
                         include_for_current_user = True  # Show to next step user too
+                    
                     break
-                
+        # if next_flow_id:
+        #     EditCreate= workflow_matrix.objects.get(id=next_flow_id).button_act_details
+                    
         user_prev_step = None
         for step in workflow_steps:
             if role_id in step['role_ids']:
@@ -403,10 +418,12 @@ def workflow_starts(request):
                 "form_id": current_step_info['form_id'] if current_step_info else '',
                 "but_type": current_step_info['but_type'] if current_step_info else '',
                 "but_act": current_step_info['but_act'] if current_step_info else '',
+                
                 "idEncrypt": enc(str(current_step_info['id'])) if current_step_info else '',
                 # "next_step_name": next_step_name,
                 # "next_step_id": next_step_id,
                "form_data_id":form_data_id,
+               "editORcreate":editORcreate,
                
                 "next_step_name": next_step_name if next_step_name else 'No next step',
                 "next_step_id": next_step_id,
@@ -462,6 +479,7 @@ def get_formdataid(request):
     id = request.GET.get("id")
     req_num = request.GET.get("req_num")
     step_id = request.GET.get("step_id")
+    readonlyWF = "1"
     param=[req_num,step_id]
     cursor.callproc("stp_getFormDataIdForWorkflow", param)
     workflow_steps = []
@@ -469,7 +487,39 @@ def get_formdataid(request):
         form_data_id = result.fetchall()[0][0]
     form=enc(str(form_data_id))
     # return redirect('form_master', form=form)
-    url = reverse('form_master') + f'?form={form}'
+    # url = reverse('form_master') + f'?form={form}'
+    url = reverse('form_master') + f'?form={form}&readonlyWF={readonlyWF}'
+    return redirect(url)
+
+def get_formdataidEdit(request):
+    Db.closeConnection()
+    m = Db.get_connection()
+    cursor = m.cursor()
+
+    if request.user.is_authenticated:
+        user = request.user.id    
+        role_id = str(request.user.role_id)
+        
+    id = request.GET.get("id")
+    req_num = request.GET.get("req_num")
+    step_id = request.GET.get("step_id")
+    form_id = request.GET.get("form_id")
+    wfdetailsID = request.GET.get("wfdetailsID")
+    viewStepWF = request.GET.get("editORcreate")
+    button_type_id = None
+    if step_id:
+        step = workflow_matrix.objects.get(id=step_id)
+        button_type_id = step.button_type_id
+    workflow_YN = '1E'
+    param=[form_id,req_num]
+    cursor.callproc("stp_getFormDataIdForWorkflowEdit", param)
+    workflow_steps = []
+    for result in cursor.stored_results():
+        form_data_id = result.fetchall()[0][0]
+    form=enc(str(form_data_id))
+    # return redirect('form_master', form=form)
+    # url = reverse('form_master') + f'?form={form}'
+    url = reverse('form_master') + f'?form={form}&button_type_id={button_type_id}&workflow_YN={workflow_YN}&step_id={step_id}&form_idWF={form_id}&role_id={role_id}&wfdetailsID={wfdetailsID}&viewStepWF={viewStepWF}'
     return redirect(url)
     
         
@@ -481,6 +531,7 @@ def workflow_form_step(request):
     id = request.GET.get("id")
     wfdetailsid = request.GET.get("wfdetailsID")
     firstStep = request.GET.get("firstStep")
+    editORcreate = request.GET.get("editORcreate")
     id = dec(id) 
     # if wfdetailsid:
     #     wfdetailsid = dec(wfdetailsid) 
@@ -553,7 +604,7 @@ def workflow_form_step(request):
                 "form_action_url": form_action_url,
                 "workflow": 1,"WFoperator_dropdown":WFoperator_dropdown,
                 "role_id":role_id,"action_detail_id":action_detail_id,"form_id":form_id,
-                "action_id":action_id,"step_id":id,"wfdetailsid":wfdetailsid,"status_wfM":status_wfM,"firstStep":firstStep,
+                "action_id":action_id,"step_id":id,"wfdetailsid":wfdetailsid,"status_wfM":status_wfM,"firstStep":firstStep,"editORcreate":editORcreate,
             })
         else:
             return render(request, "Form/_formfieldedit.html", {
@@ -563,7 +614,7 @@ def workflow_form_step(request):
                 "form_action_url": form_action_url,
                 "workflow": 1,"WFoperator_dropdown":WFoperator_dropdown,
                 "role_id":role_id,"action_detail_id":action_detail_id,"form_id":form_id,
-                "action_id":action_id,"step_id":id,"status_wfM":status_wfM,"firstStep":firstStep,
+                "action_id":action_id,"step_id":id,"status_wfM":status_wfM,"firstStep":firstStep,"editORcreate":editORcreate,
             })
             
 

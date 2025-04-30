@@ -89,10 +89,13 @@
 
             <label class="fw-bold">{{ field.label }}</label>
             <input type="hidden" id = "type" name = "type" value ="{{type}}">
+            <input type="hidden" id = "editORcreate" name = "editORcreate" value ="{{editORcreate}}">
+            <input type="hidden" id = "readonlyWF" name = "readonlyWF" value ="{{readonlyWF}}">
+            <input type="hidden" id = "viewStepWFSeq" name = "viewStepWFSeq" value ="{{viewStepWFSeq}}">
           
             {% if field.field_type == "select"  %}
                 <select class="form-control select" name="field_{{ field.id }}"
-                    {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                    {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
                     <option value="" selected disabled>-- Select --</option>
                     {% for option in field.values %}
                         <option value="{{ option }}" {% if option == field.value %} selected {% endif %}>{{ option }}</option>
@@ -101,7 +104,7 @@
 
             {% elif field.field_type == "master dropdown" %}
                 <select class="form-control select" name="field_{{ field.id }}"
-                    {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                    {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
                     <option value="" disabled {% if not field.value %} selected {% endif %}>Select</option>
                     {% for option in field.values %}
                         <option value="{{ option.id }}" {% if option.id|stringformat:"s" == field.value|stringformat:"s" %} selected {% endif %}>{{ option.name }}</option>
@@ -113,7 +116,7 @@
 
             {% elif field.field_type == "select multiple" %}
                 <select class="form-control select_multiple" name="field_{{ field.id }}" multiple
-                    {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                    {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
                     {% for option in field.values %}
                         <option value="{{ option }}" {% if option in field.value %}selected{% endif %}>{{ option }}</option>
                     {% endfor %}
@@ -127,6 +130,7 @@
                         <div style="font-size:18px;" class="form-check me-2">
                             <input class="form-check-input" type="radio" name="field_{{ field.id }}" value="{{ option }}" id="radio_{{ field.id }}_{{ forloop.counter }}"
                                 {% if option == field.value %} checked {% endif %}
+                                
                                 {% for attr in field.attributes %} {{ attr }} {% endfor %}>
                             <label class="form-check-label" for="radio_{{ field.id }}_{{ forloop.counter }}">{{ option }}&nbsp;&nbsp;</label>
                         </div>
@@ -148,14 +152,14 @@
                     <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
                         <input type="file" accept="{{ field.accept }}"  name="field_{{ field.id }}"
                                class="form-control custom-file-input" style="padding-right: 100px;" id="file_input_{{ field.id }}"
-                               {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                               {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3' %} disabled {% endif %}>
                     
                         <i class="fa-solid fa-eye eye-icon"
                            {% if type == "create" %}
                                onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
                            {% else %}
                                onclick="showScript({{ form_data_id }}, {{ field.id }})"
-                           {% endif %}>
+                           {% endif %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3' %} disabled {% endif %}>
                         </i>
                     </div>
                     
@@ -163,14 +167,14 @@
                 <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
                     <input type="file" accept="{{ field.accept }}"name="field_{{ field.id }}" multiple
                            class="form-control custom-file-input"style="padding-right: 100px;" id="file_input_{{ field.id }}"
-                           {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                           {% for attr in field.attributes %} {{ attr }} {% endfor %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3' %} disabled {% endif %}>
                 
                     <i class="fa-solid fa-eye eye-icon"
                        {% if type == "create" %}
                            onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
                        {% else %}
                            onclick="showScript( {{ form_data_id }}, {{ field.id }})"
-                       {% endif %}>
+                       {% endif %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3' %} disabled {% endif %}>
                     </i>
                 </div>
                       
@@ -178,7 +182,7 @@
 
             {% elif field.field_type == "textarea" %}
                 <textarea class="form-control custom-textarea" name="field_{{ field.id }}" rows="1" value={{ field.value }}
-                    {% for attr in field.attributes %} {{ attr }} {% endfor %}>{{ field.value }}</textarea>
+                    {% for attr in field.attributes %} {{ attr }} {% endfor {% if readonlyWF == '1' %} readonly {% endif %}{% if viewStepWFSeq == '3' %} readonly {% endif %}>{{ field.value }}</textarea>
 
             {% elif field.field_type == "generative" %}
                 <input type="text" class="form-control" disabled name="field_{{ field.id }}" value="{{ field.value }}" placeholder="This Field is System Generated"
@@ -187,17 +191,18 @@
             {% elif field.field_type == "number" %}
                 <input type="number" class="form-control" name="field_{{ field.id }}" value="{{ field.value }}" placeholder="Enter Numeric Value"
                     {% for attr in field.attributes %} {{ attr }} {% endfor %} />
+                    
             
             {% elif field.field_type == "text" %}
                 <input type="text" class="form-control" name="field_{{ field.id }}"  value="{{ field.value }}"
-                    {% if field.accept %} maxlength="{{ field.accept }}" {% endif %} 
+                    {% if field.accept %} maxlength="{{ field.accept }}" {% endif %}{% if readonlyWF == '1' %} readonly {% endif %}{% if viewStepWFSeq == '3' %} readonly {% endif %}
                     placeholder="{% if field.accept %}Enter up to {{ field.accept }} characters{% else %}Enter text{% endif %}"
                     {% for attr in field.attributes %} {{ attr }} {% endfor %}>
                 
                     
             {% else %}
                 <input type="{{ field.field_type }}" class="form-control" name="field_{{ field.id }}" value="{{ field.value }}"
-                    {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                    {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' %} readonly {% endif %}{% if viewStepWFSeq == '3' %} readonly {% endif %}>
             {% endif %}
 
         
@@ -229,7 +234,7 @@
                     name="button_type"
                     value="{{ action.button_type|default:'button' }}"
                     data-button-type="{{ action.button_type|default:'button' }}"
-                    data-action-id="{{ action.id }}"
+                    data-action-id="{{ action.id }}"{% if readonlyWF == '1' %} disabled {% endif %}
                     class="btn w-100 mt-4 submit-btn"
                     style="background-color: {{ action.bg_color }}; color: {{ action.text_color }}; border-radius:15px;">
                 {{ action.button_name }}
@@ -239,7 +244,7 @@
     
 
             {% elif action.type == "textarea" %}
-                <textarea class="form-control custom-textarea" name="action_field_{{ action.id }}" rows="1"></textarea>
+                <textarea class="form-control custom-textarea" name="action_field_{{ action.id }}" rows="1" {% if readonlyWF == '1' %} disabled {% endif %}></textarea>
 
             {% elif action.type == "text" %}
                 <input type="text" class="form-control" name="action_field_{{ action.id }}">
@@ -388,7 +393,7 @@
                                     <i class="fa-solid fa-file-circle-plus" title="File will be uploaded after saving"></i>
                                 </td>
                                 <td style="padding: 8px;">
-                                     --
+                                     
                                 </td>
                             </tr>
                         `;
@@ -583,6 +588,7 @@
                 const popup = document.getElementById('workflowPopup');
                 const overlay = document.getElementById('popupOverlay');
                 const operatorDropdown = document.getElementById('custom_dropdownOpr');
+                const editORcreate = document.getElementById('editORcreate');
 
                 
 
@@ -617,11 +623,17 @@
 
                 }
                 else if (buttonType === 'Submit' && type === 'create') {
+                    operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_post' %}";
                 } else if (buttonType === 'Submit' && type === 'edit') {
+                    operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_edit' %}";
                 } else if (buttonType === 'Action') {
+                    operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_action' %}";
+                }else if (buttonType === 'Submit' && parseInt(editORcreate.value) === 1) {
+                    operatorDropdown.removeAttribute('required');
+                    form.action = "{% url 'common_form_post' %}";
                 }
     
                 
@@ -630,11 +642,70 @@
                 // form.submit();
             });
         });
-    
-    
 
+
+
+
+
+        {% comment %} document.querySelectorAll('.submit-btn').forEach(button => {
+            debugger;
+            button.addEventListener('click', function (e) {
+                const form = document.getElementById('dynamicForm');
+                const buttonType = this.getAttribute('data-button-type');
+
+                const workflow_YN = document.getElementById('workflow_YN');
+                //const dropdownContainer = document.getElementById('workflowDropdownContainer');
+                const confirmSubmitBtn = document.getElementById('confirmSubmitBtn'); 
+                const cancelPopupBtn = document.getElementById('cancelPopupBtn');
+                const firstStep = document.getElementById('firstStep');
+                
+                const popup = document.getElementById('workflowPopup');
+                const overlay = document.getElementById('popupOverlay');
+                const operatorDropdown = document.getElementById('custom_dropdownOpr');
+
+                if (buttonType === 'Submit' && parseInt(workflow_YN.value) === 1 && parseInt(firstStep.value) === 1) {
+                    debugger;
+                    
+                    e.preventDefault();
+
+                    const popup = document.getElementById('workflowPopup');
+                    const overlay = document.getElementById('popupOverlay');
+
+                    // ✅ Show popup and overlay
+                    popup.style.display = 'block';
+                    overlay.style.display = 'block';
+                    operatorDropdown.setAttribute('required', true);
+
+                    confirmSubmitBtn.onclick = function () {
+                        form.action = "{% url 'common_form_post' %}";
+                        
+                    };
+        
+                    // Cancel button inside popup
+                    cancelPopupBtn.onclick = function () {
+                        workflowPopup.style.display = 'none';
+                        popupOverlay.style.display = 'none';
+                    };
+
+                }
+                else if (buttonType === 'Submit') {
+                    operatorDropdown.removeAttribute('required');
+                    form.action = "{% url 'common_form_post' %}";
+                    
+
+                } else if (buttonType === 'Action') {
+                    operatorDropdown.removeAttribute('required');
+                    form.action = "{% url 'common_form_action' %}";
+                   
+                }
     
-    
+                // optional: if you want to submit the form manually
+                // form.submit();
+            });
+        }); {% endcomment %}
+
+
+
 </script>
 
 {% if messages %}
