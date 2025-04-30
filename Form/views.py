@@ -91,7 +91,7 @@ def form_builder(request):
         try:
             form_id = dec(form_id)  # Decrypt form_id
             form = get_object_or_404(Form, id=form_id)
-            fields = FormField.objects.filter(form_id=form_id)
+            fields = FormField.objects.filter(form_id=form_id).order_by('order')
             validations = FieldValidation.objects.filter(form_id=form_id)
             generative = FormGenerativeField.objects.filter(form_id=form_id)
         except Exception as e:
@@ -222,12 +222,14 @@ def save_form(request):
                
                 if field.get("type") == "master dropdown":
                     value = field.get("masterValue","")
+
                     # value = dec(value)
                 else:
                     value=",".join(option.strip() for option in field.get("options", []))
 
                 
                 formatted_label = format_label(field.get("label", ""))
+                order = field.get("order","")
 
                 form_field = FormField.objects.create(
                     form=form,
@@ -236,7 +238,7 @@ def save_form(request):
                     attributes=field.get("attributes", ""),
                     values=value,
                     created_by=request.session.get('user_id', '').strip(),
-                    order=index + 1
+                    order=order
                 )
                 field_id = form_field.id
 
@@ -374,6 +376,7 @@ def update_form(request, form_id):
                 attributes_value = field.get("attributes", "")
                 field_id = field.get("id", "")
                 formatted_label = format_label(field.get("label", ""))
+                order = field.get("order","")
 
                 if field.get("type") == "master dropdown":
                     value = field.get("masterValue", "")
@@ -387,7 +390,7 @@ def update_form(request, form_id):
                         form_field.field_type = field.get("type", "")
                         form_field.attributes = attributes_value
                         form_field.values = value
-                        form_field.order = index + 1
+                        form_field.order = order
                         form_field.updated_by = user
                         form_field.save()
                     except FormField.DoesNotExist:
