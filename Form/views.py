@@ -240,7 +240,9 @@ def save_form(request):
                     created_by=request.session.get('user_id', '').strip(),
                     order=order
                 )
+                
                 field_id = form_field.id
+                
 
 
                
@@ -383,7 +385,7 @@ def update_form(request, form_id):
                 else:
                     value = ",".join(option.strip() for option in field.get("options", []))
 
-                if field_id:  # Update existing field
+                if field_id:
                     try:
                         form_field = FormField.objects.get(id=field_id)
                         form_field.label = formatted_label
@@ -394,7 +396,27 @@ def update_form(request, form_id):
                         form_field.updated_by = user
                         form_field.save()
                     except FormField.DoesNotExist:
-                        pass 
+                        # Field ID not found, create new
+                        form_field = FormField.objects.create(
+                            form=form,
+                            label=formatted_label,
+                            field_type=field.get("type", ""),
+                            attributes=attributes_value,
+                            values=value,
+                            created_by=user,
+                            order=order
+                        )
+                else:
+                    # New field with no ID
+                    form_field = FormField.objects.create(
+                        form=form,
+                        label=formatted_label,
+                        field_type=field.get("type", ""),
+                        attributes=attributes_value,
+                        values=value,
+                        created_by=user,
+                        order=order
+                    )
 
                 field_id = form_field.id
 
@@ -1029,8 +1051,7 @@ def common_form_edit(request):
 
         created_by = request.session.get("user_id", "").strip()
         form_name = request.POST.get("form_name", "").strip()
-
-        FormFieldValues.objects.filter(form_data_id = form_data_id).delete()
+    
 
         # Re-create all non-file fields
         for key, value in request.POST.items():
@@ -1038,21 +1059,34 @@ def common_form_edit(request):
                 field_id = value.strip()
                 field = get_object_or_404(FormField, id=field_id)
 
-
                 if field.field_type == "select multiple":
                     selected_values = request.POST.getlist(f"field_{field_id}")
                     input_value = ','.join([val.strip() for val in selected_values if val.strip()])
                 else:
                     input_value = request.POST.get(f"field_{field_id}", "").strip()
 
-
                 if field.field_type == "generative":
                     continue
 
-                
-                FormFieldValues.objects.create(
-                    form_data=form_data,form=form, field=field, value=input_value, created_by=created_by
-                )
+                # Check if a value already exists for this field
+                existing_value = FormFieldValues.objects.filter(
+                    form_data=form_data, form=form, field=field
+                ).first()
+
+                if existing_value:
+                    # Update existing entry
+                    existing_value.value = input_value
+                    existing_value.save()
+                else:
+                    # Create new entry
+                    FormFieldValues.objects.create(
+                        form_data=form_data,
+                        form=form,
+                        field=field,
+                        value=input_value,
+                        created_by=created_by
+                    )
+
 
 
         # ✅ File upload logic goes here
