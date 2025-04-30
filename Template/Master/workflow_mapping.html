@@ -31,7 +31,7 @@
         max-width: 100%;
         padding: 10px;
         background-color: #fff; /* White background inside the card */
-        border-radius: 12px; /* Rounded corners for the card */
+        {% comment %} border-radius: 12px; /* Rounded corners for the card */ {% endcomment %}
         box-shadow: 0 12px 24px rgba(0, 0, 0, 0.3); /* Darker shadow for a stronger 3D effect */
         background: linear-gradient(135deg, #f9f9f9 0%, #ffffff 100%);
         margin: 0;
@@ -300,6 +300,10 @@
         
         
 
+        <div class="form-group">
+            <label for="stepName">Status</label>
+            <input type="text" class="form-control" id="statusName" placeholder="Enter Status" required>
+        </div>
         <!-- Submit Button -->
         <div class="submit-container">
             <button type="submit" class="btn-custom">Submit</button>
@@ -416,10 +420,11 @@
         let buttonTypeDropdown = $("#buttonTypeDropdown").val();
         let actionDropdown = $("#actionDropdown").val();
         let selectedRoles = $("#customRoleDropdown").val();
+        let statusName = $("#statusName").val();
 
         // Validation: Ensure dropdowns are not empty or "Select"
         if (!workflowDropdown || workflowDropdown === "Select" ||
-            !stepName.trim() ||
+            !stepName.trim() || !statusName.trim() ||
             !formDropdown || formDropdown === "Select" ||
             !buttonTypeDropdown || buttonTypeDropdown === "Select" ||
             !actionDropdown || actionDropdown === "Select" ||
@@ -439,6 +444,7 @@
             formDropdown: formDropdown,
             buttonTypeDropdown: buttonTypeDropdown,
             actionDropdown: actionDropdown,
+            statusName: statusName,
             roles: selectedRoles.join(","),
             csrfmiddlewaretoken: $("input[name=csrfmiddlewaretoken]").val()
             

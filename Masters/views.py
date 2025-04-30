@@ -257,6 +257,7 @@ def submit_workflow(request):
         button_type = request.POST.get("buttonTypeDropdown")
         action = request.POST.get("actionDropdown")
         customRoleDropdown = request.POST.get("roles")
+        statusName = request.POST.get("statusName")
         paramWN = [workflow_name]
         cursor.callproc("stp_getcountStepCountWF",paramWN)
         for result in cursor.stored_results():
@@ -264,7 +265,7 @@ def submit_workflow(request):
         step_id_flow2 = step_id_flow1+1
         step_id_flow = step_id_flow2
             
-        param=(workflow_name,step_name,form_name,button_type,action,user,customRoleDropdown,step_id_flow)
+        param=(workflow_name,step_name,form_name,button_type,action,user,customRoleDropdown,step_id_flow,statusName)
         cursor.callproc("stp_insertIntoWorkflow_matrix",param)   
         m.commit()  
         # return JsonResponse({"message": "Workflow submitted successfully!"}, status=200)
@@ -334,7 +335,9 @@ def workflow_Editmap(request):
                     "step_name": workflow_data[0][2],
                     "button_type_id": workflow_data[0][3],
                     "button_act_details": workflow_data[0][4],
+                    "statusV": workflow_data[0][7],
                     "workflow_idD": workflow_data[0][5],
+                    
                     "role_id": role_string,
                     "role_list": role_list
                 }
@@ -362,9 +365,10 @@ def workflow_Editmap(request):
             button_type = request.POST.get("buttonTypeDropdown")
             action = request.POST.get("actionDropdown")
             roles = request.POST.get("roles")
+            statusName = request.POST.get("statusName")
             
 
-            param = (workflow_name, step_name, form_name, button_type, action, workflow_idDecryp,user,roles)
+            param = (workflow_name, step_name, form_name, button_type, action, workflow_idDecryp,user,roles,statusName)
             cursor.callproc("stp_updateWorkflow_matrix", param)
             m.commit()
             
