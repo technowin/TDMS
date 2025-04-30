@@ -4,7 +4,7 @@
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" integrity="sha512-SnH5WK+bZxgPHs44uWIX+LLJAJ9/2PkPKZ5QiAj6Ta86w+fsb2TkcmfRyVX3pBnMFcV7oQPJkl9QevSCWr3W6A==" crossorigin="anonymous" referrerpolicy="no-referrer" /><link rel="stylesheet" type="text/css" href="{% static 'css/report.css' %}" />
 <link rel="stylesheet" type="text/css" href="{% static 'css/tooltips.css' %}" />
 <link rel="stylesheet" type="text/css" href="{% static 'css/report.css' %}" />
-<link rel="stylesheet" type="text/css" href="{% static 'js/selectize-bootstrap-4-style-master/dist/css/selectize.bootstrap4.css' %}" />
+{% comment %} <link rel="stylesheet" type="text/css" href="{% static 'js/selectize-bootstrap-4-style-master/dist/css/selectize.bootstrap4.css' %}" /> {% endcomment %}
 <link rel="stylesheet" type="text/css" href="https://fonts.googleapis.com/css?family=Tangerine:bold,bolditalic|Inconsolata:italic|Droid+Sans|Arima+Madurai|El+Messiri|Indie+Flower&effect=decaying|shadow-multiple">
 <link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.min.css">
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.min.css">
@@ -77,16 +77,45 @@
     .Btns:active {
       transform: translate(2px ,2px);
     }
+
+    .selectize-input {
+      border: 1px solid black !important; 
+      border-radius: 10px !important; 
+      width: 80%;
+      min-height: 40px;
+      max-height: auto;
+      overflow-y: auto;
+      padding: 6px 10px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+    }
+    .selectize-dropdown {
+      overflow: hidden !important;
+    }
+    
   </style>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.15.2/js/selectize.min.js" integrity="sha512-IOebNkvA/HZjMM7MxL0NYeLYEalloZ8ckak+NDtOViP7oiYzG5vn6WVXyrJDiJPhl4yRdmNAG49iuLmhkUdVsQ==" crossorigin="anonymous" referrerpolicy="no-referrer"></script>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/selectize@0.12.6/dist/css/selectize.default.css" />
+
 <div class=" card ">
+    
     <div class="row " id="headertitle" style="margin-bottom:14px">
         <input type="hidden" id = "Entity1" name = "Entity" value = "{{ entity }}" />
         <input type="hidden" id = "CountFilterId" name = "testFilterId" value = "0" />
-        <div class="col-5 no-gutters padding-1">
+        <div class="col-4 no-gutters padding-1">
             <h3 class=" nav-link active" style=" color:#4e73df; font-size: 25px; font-family: 'Bungee'; text-shadow: 0 1px 0 #ccc, 0 2px 0 #c9c9c9, 0 3px 0 #bbb, 0 4px 0 #b9b9b9, 0 5px 0 #aaa, 0 6px 1px rgba(0,0,0,.1), 0 1px 3px rgba(0,0,0,.3), 0 3px 5px rgba(0,0,0,.2), 0 5px 10px rgba(0,0,0,.25), 0 10px 10px rgba(0,0,0,.2), 0 20px 20px rgba(0,0,0,.15), 0 30px 20px rgba(0,0,0,.1); ">{{ title }}</h3>
             <h3 class=" nav-link active" style=" color:#4e73df; font-size: 14px;"><b>{{ note }}</b></h3>
+        </div>
+        <div class="col-2 padding-1 padding-0" >
+            <div class="form-outline inputcssf" >
+                <select name="forms" id="forms" class="forms" style="border-radius: 10px; padding: 1.5%; width: 100%;"  required onchange="change12(this.id)">
+                    {% for item1 in forms %}
+                        <option style="border-radius: 10px; padding: 0.5%; width: 100%"  value="{{ item1.0 }}" {% if item1.0 == entity %}selected{% endif %}> {{ item1.1 }} </option>
+                    {% endfor %}
+                </select>
+            </div>
         </div>
         <div class="col-2 no-gutters padding-0">
             <div class="form-outline inputcss" hover-tooltip="select or add saved report"  tooltip-position="top">
@@ -111,7 +140,7 @@
                 <button type="submit" value="save" class="btn btn-info button_r" id="delete_filters_id"><i class="fa fa-trash"></i></button>
             </div>
         </div>
-        <div class="col-2 padding-1 padding-0" >
+        <div class="col-1 padding-1 padding-0" >
           
         </div>
         <div class="col-1 padding-1 padding-0" >
@@ -268,7 +297,14 @@
 <script src="https://cdn.datatables.net/fixedcolumns/4.1.0/js/dataTables.fixedColumns.min.js"></script>
 <script src="https://cdn.datatables.net/select/1.4.0/js/dataTables.select.min.js"></script>
 <script src="{% static 'js/selectize-bootstrap-4-style-master/dist/js/selectize/standalone/selectize.min.js' %}"></script>
-
+<script>
+    document.getElementById('forms').addEventListener('change', function() {
+        var selectedEntity = this.value;
+        // Redirect to URL with entity as parameter
+        window.location.href = '/common_html?entity=' + encodeURIComponent(selectedEntity);
+    });
+    </script>
+    
 <script type="text/javascript">
 
     $(document).ready(function () {

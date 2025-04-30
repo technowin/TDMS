@@ -69,79 +69,125 @@ def get_dublicate_name(request):
         return JsonResponse({'exists': exists})
     return JsonResponse({'error': 'Invalid request'}, status=400)
 
+
 def form_builder(request):
-    form_id = request.GET.get('form_id')
-    # common_options = list(CommonMaster.objects.filter(type='attribute').values("id", "control_value"))
-    common_options = list(AttributeMaster.objects.values("id","control_name", "control_value",))
-    sub_control = list(ValidationMaster.objects.values("id", "control_name", "control_value", "field_type"))
-    regex = list(RegexPattern.objects.values("id", "input_type", "regex_pattern", "description"))  
-    dropdown_options = list(ControlParameterMaster.objects.values("control_name", "control_value"))
-    master_dropdown = list(MasterDropdownData.objects.values("id", "name", "query"))
-    # for item in master_dropdown:
-    #     item["id"] = enc(json.dumps(item["id"]))
-
-
-    if not form_id:  
-        return render(request, "Form/form_builder.html", {
-            "regex":json.dumps(regex),
-            "dropdown_options": json.dumps(dropdown_options),
-            "common_options": json.dumps(common_options),
-            "sub_control": json.dumps(sub_control),
-            "master_dropdown": json.dumps(master_dropdown)
-        })
-
     try:
-        form_id = dec(form_id)  # Decrypt form_id
-        form = get_object_or_404(Form, id=form_id)  # Get form or return 404
-        fields = FormField.objects.filter(form_id=form_id)
-        validations = FieldValidation.objects.filter(form_id=form_id)
+        form_id = request.GET.get('form_id')
+        common_options = list(AttributeMaster.objects.values("id", "control_name", "control_value"))
+        sub_control = list(ValidationMaster.objects.values("id", "control_name", "control_value", "field_type"))
+        regex = list(RegexPattern.objects.values("id", "input_type", "regex_pattern", "description"))
+        dropdown_options = list(ControlParameterMaster.objects.values("control_name", "control_value"))
+        master_dropdown = list(MasterDropdownData.objects.values("id", "name", "query"))
+
+        if not form_id:
+            return render(request, "Form/form_builder.html", {
+                "regex": json.dumps(regex),
+                "dropdown_options": json.dumps(dropdown_options),
+                "common_options": json.dumps(common_options),
+                "sub_control": json.dumps(sub_control),
+                "master_dropdown": json.dumps(master_dropdown)
+            })
+
+        try:
+            form_id = dec(form_id)  # Decrypt form_id
+            form = get_object_or_404(Form, id=form_id)
+            fields = FormField.objects.filter(form_id=form_id)
+            validations = FieldValidation.objects.filter(form_id=form_id)
+            generative = FormGenerativeField.objects.filter(form_id=form_id)
+        except Exception as e:
+            print(f"Error fetching form data: {e}")
+
+        validation_dict = {}
+        try:
+            for validation in validations:
+                field_id = validation.field.id
+
+                if field_id not in validation_dict:
+                    validation_dict[field_id] = []
+
+                validation_entry = {
+                    "validation_type": validation.sub_master.control_value,
+                    "validation_value": validation.value
+                }
+                validation_dict[field_id].append(validation_entry)
+
+        except Exception as e:
+            print(f"Error processing validations: {e}")
+            traceback.print_exc()
+
+        generative_list = {}
+        for generate in generative:
+            field_id = generate.field.id
+
+            if field_id not in generative_list:
+                generative_list[field_id] = []
+
+            generative_list[field_id].append({
+                "prefix": generate.prefix,
+                "selected_field": generate.selected_field_id,
+                "no_of_zero": generate.no_of_zero,
+                "increment": generate.increment,
+            })
+
+
+        # if fields.field_type == 'generative':
+        #     all_field_options = list(FormField.objects.filter(form_id=form_id).values('id', 'label'))
+
+        #     generative_list = []
+
+        #     for field in fields:
+        #         field_id = field.id
+        #         selected = []
+        #         prefix = ""
+        #         no_of_zero = ""
+        #         increment = ""
+
+        #         for generate in generative:
+        #             if generate.field.id == field_id:
+        #                 selected = [int(i) for i in generate.selected_field_id.split(",")] if generate.selected_field_id else []
+        #                 prefix = generate.prefix or ""
+        #                 no_of_zero = generate.no_of_zero or ""
+        #                 increment = generate.increment or ""
+        #                 break  # Found the match, no need to continue looping
+
+        #         generative_list.append({
+        #             "field_id": field_id,
+        #             "selected_fields": selected,
+        #             "prefix": prefix,
+        #             "no_of_zero": no_of_zero,
+        #             "increment": increment,
+        #             "all_fields": all_field_options
+        #         })
+
+
+
+        form_fields_json = json.dumps([
+            {
+                "id": field.id,
+                "label": field.label,
+                "type": field.field_type,
+                "options": field.values.split(",") if field.values else [],
+                "attributes": field.attributes if field.attributes else [],
+                "validation": validation_dict.get(field.id, []),
+                "generative_list": generative_list,
+            }
+            for field in fields
+        ])
     except Exception as e:
-        print(f"Error fetching form data: {e}")  # Debugging
-        return render(request, "Form/form_builder.html", {
-            "regex":json.dumps(regex),
-            "dropdown_options": json.dumps(dropdown_options),
-            "common_options": json.dumps(common_options),
-            "sub_control": json.dumps(sub_control),
-            "master_dropdown": json.dumps(master_dropdown),
-            "error": "Invalid form ID"
-        })
-
-    # Organizing validations in a dictionary {field_id: [{validation_type, validation_value}]}
-    validation_dict = {}
-
-    for validation in validations:
-        field_id = validation.field.id
-
-        if field_id not in validation_dict:
-            validation_dict[field_id] = []
-
-        validation_dict[field_id].append({
-            "validation_type": validation.sub_master.control_value,  # Assuming 'control_value' holds validation type
-            "validation_value": validation.value
-        })
-
-    # Convert fields and their validation rules to JSON
-    form_fields_json = json.dumps([
-        {
-            "id": field.id,
-            "label": field.label,
-            "type": field.field_type,
-            "options": field.values.split(",") if field.values else [],
-            "attributes": field.attributes,
-            "validation": validation_dict.get(field.id, [])  # Attach validation rules
-        }
-        for field in fields
-    ])
+        traceback.print_exc()
+        messages.error(request, 'Oops...! Something went wrong!')
+        return JsonResponse({"error": "Something went wrong!"}, status=500)
 
     return render(request, "Form/form_builder.html", {
         "form": form,
-        "regex":json.dumps(regex),
+        "regex": json.dumps(regex),
         "form_fields_json": form_fields_json,
         "dropdown_options": json.dumps(dropdown_options),
         "common_options": json.dumps(common_options),
         "sub_control": json.dumps(sub_control),
         "master_dropdown": json.dumps(master_dropdown)
     })
+
 
 def format_label(label):
     """Format label to have proper capitalization."""
@@ -170,6 +216,7 @@ def save_form(request):
             
             form = Form.objects.create(name=form_name, description=form_description)
             index = 0
+            generative_fields = [] 
 
             for  index,field in enumerate(form_data):
                
@@ -213,7 +260,7 @@ def save_form(request):
 
 
                 # ✅ Save `file` validation (New Logic)
-                elif field.get("type") == "file" and "validation" in field:
+                if field.get("type") == "file" and "validation" in field:
                     file_validation_list = field["validation"]  # This is a list
 
                     if file_validation_list and isinstance(file_validation_list, list):
@@ -231,7 +278,7 @@ def save_form(request):
                             created_by = request.session.get('user_id', '').strip()
                         )
 
-                elif field.get("type") == "file multiple" and "validation" in field:
+                if field.get("type") == "file multiple" and "validation" in field:
                     file_validation_list = field["validation"]  # This is a list of validation dicts
 
                     if file_validation_list and isinstance(file_validation_list, list):
@@ -247,8 +294,39 @@ def save_form(request):
                                 created_by = request.session.get('user_id', '').strip()
                             )
 
+                if field.get("type") == "generative":
+                    generative_fields.append({
+                        "form_field": form_field,
+                        "prefix": field.get("prefix", ""),
+                        "field_names": field.get("field_name", []),
+                        "no_of_zero": field.get("no_of_zero", ""),
+                        "increment": field.get("increment", "")
+                    })
+
+                
+
+                for gen_field in generative_fields:
+                    
+                    prefix = gen_field["prefix"]
+                    if isinstance(prefix, (list, tuple)):
+                        prefix = prefix[0] if prefix else ""
+
+                    field_ids = FormField.objects.filter(
+                        form=form,
+                        label__in=gen_field["field_names"]
+                    ).values_list("id", flat=True)
+
+                    FormGenerativeField.objects.create(
+                        prefix=gen_field["prefix"],
+                        selected_field_id=",".join(map(str, field_ids)),  # Convert IDs to comma-separated string
+                        no_of_zero=gen_field["no_of_zero"],
+                        increment=gen_field["increment"],
+                        form=form,
+                        field=gen_field["form_field"]
+                    )
 
 
+            callproc('create_dynamic_form_views')
             messages.success(request, "Form and fields saved successfully!!")
             new_url = f'/masters?entity=form&type=i'
             return redirect(new_url) 
@@ -282,42 +360,42 @@ def update_form(request, form_id):
             except json.JSONDecodeError:
                 return JsonResponse({"error": "Invalid JSON data"}, status=400)
 
-            # Update form details
+            
             form = get_object_or_404(Form, id=form_id)
             form.name = form_name
             form.description = form_description
             updated_by = request.session.get('user_id', '').strip()
             form.save()
-
-            # Delete existing form fields and validations
-            FormField.objects.filter(form=form).delete()
-            FieldValidation.objects.filter(form=form).delete()
             index = 0
 
-            for index,field in enumerate(form_data):
-                # ✅ Ensure attributes are stored correctly
-                attributes_value = field.get("attributes", "")
+            generative_fields = [] 
 
+            for index,field in enumerate(form_data):
+                attributes_value = field.get("attributes", "")
+                field_id = field.get("id", "")
                 formatted_label = format_label(field.get("label", ""))
 
                 if field.get("type") == "master dropdown":
-                    value = field.get("masterValue","")
-                    # value = dec(value)
+                    value = field.get("masterValue", "")
                 else:
-                    value=",".join(option.strip() for option in field.get("options", []))
-                
-                form_field = FormField.objects.create(
-                    form=form,
-                    label=formatted_label,
-                    field_type=field.get("type", ""),
-                    attributes=attributes_value,  
-                    values=value,
-                    order = index + 1,
-                    created_by = user,
-                    updated_by = user
-                )
+                    value = ",".join(option.strip() for option in field.get("options", []))
+
+                if field_id:  # Update existing field
+                    try:
+                        form_field = FormField.objects.get(id=field_id)
+                        form_field.label = formatted_label
+                        form_field.field_type = field.get("type", "")
+                        form_field.attributes = attributes_value
+                        form_field.values = value
+                        form_field.order = index + 1
+                        form_field.updated_by = user
+                        form_field.save()
+                    except FormField.DoesNotExist:
+                        pass 
 
                 field_id = form_field.id
+
+
 
                 # ✅ Ensure 'subValues' exists
                 if "validation" in field and isinstance(field["validation"], list):
@@ -334,9 +412,8 @@ def update_form(request, form_id):
                                 value=validation_value, 
                                 created_by = user,
                                 updated_by = user
-                                  # Save regex pattern or max_length
                             )
-                elif field.get("type") == "file" and "validation" in field:
+                if field.get("type") == "file" and "validation" in field:
                     file_validation_list = field["validation"]  # This is a list
 
                     if file_validation_list and isinstance(file_validation_list, list):
@@ -344,16 +421,18 @@ def update_form(request, form_id):
 
                         file_validation_value = file_validation.get("validation_value", "")  # Extract ".jpg, .jpeg, .png"
                         sub_master_id = file_validation.get("id", None)  # Extract "2"
+                        FieldValidation.objects.filter(field_id=field_id, form_id=form.id).delete()
 
-                        # Create FieldValidation record
+                        # Then insert new validation
                         FieldValidation.objects.create(
                             field=get_object_or_404(FormField, id=field_id),
                             form=get_object_or_404(Form, id=form.id),
-                            sub_master_id=sub_master_id,  # Save only the ID
-                            value=file_validation_value, 
+                            sub_master_id=sub_master_id,
+                            value=validation_value, 
                             created_by = user,
-                            updated_by = user # Save only ".jpg, .jpeg, .png"
+                            updated_by = user
                         )
+
 
                 elif field.get("type") == "file multiple" and "validation" in field:
                     file_validation_list = field["validation"]  # This is a list of validation dicts
@@ -364,16 +443,53 @@ def update_form(request, form_id):
                         file_validation_value = file_validation.get("validation_value", "")  # Extract ".jpg, .jpeg, .png"
                         sub_master_id = file_validation.get("id", None)  # Extract "2"
 
-                        # Create FieldValidation record
+                        FieldValidation.objects.filter(field_id=field_id, form_id=form.id).delete()
+
+                        # Then insert new validation
                         FieldValidation.objects.create(
                             field=get_object_or_404(FormField, id=field_id),
                             form=get_object_or_404(Form, id=form.id),
-                            sub_master_id=sub_master_id,  # Save only the ID
-                            value=file_validation_value,
+                            sub_master_id=sub_master_id,
+                            value=validation_value, 
                             created_by = user,
                             updated_by = user
                         )
 
+
+                if field.get("type") == "generative":
+                    generative_fields.append({
+                        "form_field": form_field,
+                        "prefix": field.get("prefix", ""),
+                        "field_ids": field.get("field_name", []),
+                        "no_of_zero": field.get("no_of_zero", ""),
+                        "increment": field.get("increment", "")
+                    })
+
+
+                for gen_field in generative_fields:
+                    FormGenerativeField.objects.filter(form_id=form.id).delete()
+                    
+                    prefix = gen_field["prefix"]
+                    if isinstance(prefix, (list, tuple)):
+                        prefix = prefix[0] if prefix else ""
+
+                    field_ids = FormField.objects.filter(
+                        form=form,
+                        label__in=gen_field["field_ids"]
+                    ).values_list("id", flat=True)
+
+
+                    FormGenerativeField.objects.create(
+                        prefix=gen_field["prefix"],
+                        selected_field_id=",".join(map(str, field_ids)),  # Convert IDs to comma-separated string
+                        no_of_zero=gen_field["no_of_zero"],
+                        increment=gen_field["increment"],
+                        form=form,
+                        field=gen_field["form_field"]
+                    )
+                    
+
+            callproc('create_dynamic_form_views')
             messages.success(request, "Form updated successfully!!")
             return redirect('/masters?entity=form&type=i')
     except Exception as e:
@@ -384,6 +500,8 @@ def update_form(request, form_id):
         return JsonResponse({"error": "Something went wrong!"}, status=500)
     finally:
         Db.closeConnection()
+
+
 
 def form_action_builder(request):
     action_id = request.GET.get('action_id')
@@ -408,6 +526,7 @@ def form_action_builder(request):
             "dropdown_options": json.dumps(dropdown_options),
             "error": "Invalid form ID"
         })
+
 
     form_fields_json = json.dumps([
         {
@@ -595,6 +714,7 @@ def form_master(request):
 
         if request.method == "POST":
             form_id = request.POST.get("form")
+            form = get_object_or_404(Form,id = form_id)
             
             fields = FormField.objects.filter(form_id=form_id).values(
                 "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name"
@@ -631,7 +751,7 @@ def form_master(request):
                     except MasterDropdownData.DoesNotExist:
                         field["values"] = []
 
-            context = {"fields": fields, "type": "master"}
+            context = {"fields": fields, "type": "master","form_name":form}
             html = render_to_string("Form/_formfields.html", context)
             return JsonResponse({'html': html}, safe=False)
 
@@ -748,18 +868,7 @@ def common_form_post(request):
         type = request.POST.get('type','')
 
         workflow_YN = request.POST.get('workflow_YN', '')
-        
-        # Get form ID
-        # form_id_key = next((key for key in request.POST if key.startswith("form_id_")), None)
-        # if not form_id_key:
-        #     return JsonResponse({"error": "Form ID not found"}, status=400)
-        
-        # if type != 'master':
-        #     action_id_key = next((key for key in request.POST if key.startswith("action_field_id_")), None)
-        #     if not action_id_key:
-        #         return JsonResponse({"error": "Form ID not found"}, status=400)
-
-        # form_id = request.POST.get("form_id")
+        form_id = request.POST.get("form_id")
 
         # form_id = request.POST.get(form_id_key, '').strip()
         form = get_object_or_404(Form, id=request.POST.get("form_id"))
@@ -772,24 +881,17 @@ def common_form_post(request):
             form_data = FormData.objects.create(form=form)
         else:
             form_data = FormData.objects.create(form=form,action=action)
-        form_data.req_no = f"REQNO-00{form_data.id}"
+        form_data.req_no = f"UNIQ-NO-00{form_data.id}"
         form_data.created_by = user
         form_data.save()
         
         form_dataID = form_data.id
-
-        saved_values = []
-        file_records = []
-        field_value_map = {} 
 
         # Process each field
         for key, value in request.POST.items():
             if key.startswith("field_id_"):
                 field_id = value.strip()
                 field = get_object_or_404(FormField, id=field_id)
-
-                if field.field_type.startswith("file"):
-                    continue
 
 
                 if field.field_type == "select multiple":
@@ -799,16 +901,18 @@ def common_form_post(request):
                     input_value = request.POST.get(f"field_{field_id}", "").strip()
 
 
-                # Insert into FormFieldValues first
+                if field.field_type == "generative":
+                    continue
+
+                
                 FormFieldValues.objects.create(
                     form_data=form_data,form=form, field=field, value=input_value, created_by=created_by
                 )
                
-
-
         handle_uploaded_files(request, form_name, created_by, form_data, user)
+        handle_generative_fields(form, form_data, created_by)
 
-
+        callproc('create_dynamic_form_views')
         messages.success(request, "Form data saved successfully!")
         if workflow_YN == '1':
             wfdetailsid = request.POST.get('wfdetailsid', '')
@@ -918,8 +1022,7 @@ def common_form_edit(request):
         form_data.updated_by = user
         form_data.save()
 
-        # Delete only FormFieldValues — this won't affect FormFile anymore
-        FormFieldValues.objects.filter(form_data_id=form_data_id).delete()
+        form = get_object_or_404(Form, id=request.POST.get("form_id"))
 
         created_by = request.session.get("user_id", "").strip()
         form_name = request.POST.get("form_name", "").strip()
@@ -927,29 +1030,36 @@ def common_form_edit(request):
         # Re-create all non-file fields
         for key, value in request.POST.items():
             if key.startswith("field_id_"):
-                field_id = value.strip()
+                field_id = key.replace("field_id_", "").strip()
                 field = get_object_or_404(FormField, id=field_id)
 
-                if field.field_type.startswith("file"):
-                    continue  # Skip file fields — handled separately
-
                 if field.field_type == "select multiple":
-                    selected_values = request.POST.getlist(f"field_{field_id}")
+                    selected_values = request.POST.getlist(key)
                     input_value = ','.join([val.strip() for val in selected_values if val.strip()])
                 else:
-                    input_value = request.POST.get(f"field_{field_id}", "").strip()
+                    input_value = value.strip()
+                
+                if field.field_type == "generative":
+                    continue
 
-                FormFieldValues.objects.create(
+                # Update if exists, else create
+                FormFieldValues.objects.update_or_create(
                     form_data=form_data,
                     field=field,
-                    value=input_value,
-                    created_by=created_by,
-                    updated_by=created_by
+                    form=form,
+                    defaults={
+                        "value": input_value,
+                        "created_by": created_by,
+                        "updated_by": created_by
+                    }
                 )
+
 
         # ✅ File upload logic goes here
         handle_uploaded_files(request, form_name, created_by, form_data, user)
+        handle_generative_fields(form, form_data, created_by)
 
+        callproc('create_dynamic_form_views')
         messages.success(request, "Form data updated successfully!")
         if workflow_YN == '1E':
         
@@ -1044,9 +1154,51 @@ def common_form_edit(request):
             return redirect("/masters?entity=form_master&type=i")
 
     
+def handle_generative_fields(form, form_data, created_by):
+    generative_fields = FormField.objects.filter(form=form, field_type="generative")
 
+    for field in generative_fields:
+        try:
+            gen_settings = FormGenerativeField.objects.get(field=field, form=form)
 
-from django.utils import timezone
+            prefix = gen_settings.prefix or ''
+            selected_ids = (gen_settings.selected_field_id or '').split(',')
+            no_of_zero = int(gen_settings.no_of_zero or '0')
+            increment = int(gen_settings.increment or '1')
+
+            # Gather values from previously saved fields
+            selected_values = []
+            for sel_id in selected_ids:
+                selected_field = FormField.objects.filter(id=sel_id).first()
+                if not selected_field:
+                    continue
+
+                value_obj = FormFieldValues.objects.filter(
+                    form_data=form_data,
+                    form=form,
+                    field=selected_field
+                ).first()
+
+                if value_obj:
+                    selected_values.append(value_obj.value)
+
+            base_part = '-'.join(selected_values)
+            padded_number = str(0).zfill(no_of_zero)
+            final_value = f"{prefix}-{base_part}-{padded_number}{increment}"
+
+            # Save the generated value
+            FormFieldValues.objects.create(
+                form_data=form_data,
+                form=form,
+                field=field,
+                value=final_value,
+                created_by=created_by
+            )
+
+        except FormGenerativeField.DoesNotExist:
+            continue  # skip if no config found
+
+    
 
 def handle_uploaded_files(request, form_name, created_by, form_data, user):
     try:
@@ -1091,7 +1243,6 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
                         existing_file.file_path = relative_file_path
                         existing_file.updated_by = user
                         existing_file.save()
-
                         continue
 
                 else:
@@ -1108,7 +1259,7 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
                     for chunk in uploaded_file.chunks():
                         destination.write(chunk)
 
-                FormFile.objects.create(
+                form_file = FormFile.objects.create(
                     file_name=saved_file_name,
                     uploaded_name=uploaded_file_name,
                     file_path=relative_file_path,
@@ -1118,12 +1269,35 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
                     updated_by=user,
                     field=field
                 )
+                 
+                form_field_value = FormFieldValues.objects.filter(
+                    form_id=form_data.form.id,
+                    field_id=field.id,
+                    form_data = form_data
+                ).first()
+
+                if form_field_value:
+                    # 3. Update values (append or set)
+                    if form_field_value.value:
+                        # Already has value, so append new id
+                        existing_ids = form_field_value.value.split(',')
+                        existing_ids.append(str(form_file.id))
+                        form_field_value.value = ','.join(existing_ids)
+                    else:
+                        # No value yet, set directly
+                        form_field_value.value = str(form_file.id)
+
+                    form_field_value.save()
+
+                    # 4. Update FormFile to add file_id (which is FormFieldValues' id)
+                    form_file.file_id = form_field_value.id
+                    form_file.save()
+
+
 
     except Exception as e:
         traceback.print_exc()
         messages.error(request, "Oops...! Something went wrong!")
-
-
 
     
 
@@ -1178,6 +1352,8 @@ def form_preview(request):
             "matrix_id":id,
             "fields": fields,
             "form":form,
+            "form_id":form_id,
+            "action_id":action_id,
             "action_fields": action_fields,
             "type":"create"
         })

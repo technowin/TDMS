@@ -219,10 +219,10 @@ class FormFile(models.Model):
     file_name = models.TextField(null=True, blank=True)
     uploaded_name = models.TextField(null=True, blank=True)
     file_path = models.TextField(null=True, blank=True)
-    file = models.ForeignKey('Form.FormFieldValues',null=True, blank=True, on_delete=models.SET_NULL, related_name='file_id')
-    form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.SET_NULL, related_name='form_filr_id')
-    field = models.ForeignKey('Form.FormField',null=True, blank=True,  on_delete=models.SET_NULL, related_name='field_file_id')
-    form_data = models.ForeignKey('Form.FormData',null=True, blank=True,  on_delete=models.SET_NULL, related_name='form_data_id')
+    file = models.ForeignKey('Form.FormFieldValues',null=True, blank=True, on_delete=models.CASCADE, related_name='file_id')
+    form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_filr_id')
+    field = models.ForeignKey('Form.FormField',null=True, blank=True,  on_delete=models.CASCADE, related_name='field_file_id')
+    form_data = models.ForeignKey('Form.FormData',null=True, blank=True,  on_delete=models.CASCADE, related_name='form_data_id')
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
@@ -271,6 +271,21 @@ class MasterDropdownData(models.Model):
     updated_by =  models.TextField(null=True, blank=True)
     class Meta:
         db_table = 'master_drodpown_data'
+
+class FormGenerativeField(models.Model):
+    prefix = models.TextField(null=True, blank=True)
+    selected_field_id = models.TextField(null=True, blank=True)
+    no_of_zero = models.TextField(null=True, blank=True)
+    increment = models.TextField(null=True, blank=True)
+    form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_genrative_id')
+    field = models.ForeignKey('Form.FormField',null=True, blank=True, on_delete=models.CASCADE, related_name='field_genrative_id')
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'form_generative_field'
+
 
 
 
