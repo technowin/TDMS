@@ -1067,6 +1067,8 @@ def common_form_edit(request):
 
                 if field.field_type == "generative":
                     continue
+                elif  field.field_type in ["file", "file multiple"]:
+                    continue
 
                 # Check if a value already exists for this field
                 existing_value = FormFieldValues.objects.filter(
