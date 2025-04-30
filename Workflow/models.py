@@ -104,6 +104,7 @@ class workflow_details(models.Model):
     updated_by = models.TextField(null=True, blank=True)
     increment_id= models.IntegerField(null=True, blank=True)
     operator = models.IntegerField(null=True, blank=True)
+    form_id = models.IntegerField(null=True, blank=True)
     class Meta:
         db_table = 'workflow_details'
         
@@ -125,6 +126,7 @@ class history_workflow_details(models.Model):
     updated_at = models.DateTimeField(null=True, blank=True)               
     updated_by = models.TextField(null=True, blank=True)
     increment_id= models.IntegerField(null=True, blank=True)
+    form_id = models.IntegerField(null=True, blank=True)
     class Meta:
         db_table = 'history_workflow_details'
 
