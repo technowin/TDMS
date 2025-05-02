@@ -78,6 +78,7 @@ def form_builder(request):
         regex = list(RegexPattern.objects.values("id", "input_type", "regex_pattern", "description"))
         dropdown_options = list(ControlParameterMaster.objects.values("control_name", "control_value"))
         master_dropdown = list(MasterDropdownData.objects.values("id", "name", "query"))
+        form_names = list(Form.objects.values("id","name"))
 
         if not form_id:
             return render(request, "Form/form_builder.html", {
@@ -85,7 +86,8 @@ def form_builder(request):
                 "dropdown_options": json.dumps(dropdown_options),
                 "common_options": json.dumps(common_options),
                 "sub_control": json.dumps(sub_control),
-                "master_dropdown": json.dumps(master_dropdown)
+                "master_dropdown": json.dumps(master_dropdown),
+                "form_names":json.dumps(form_names)
             })
 
         try:
@@ -129,7 +131,6 @@ def form_builder(request):
                 "increment": generate.increment,
             })
 
-
         # if fields.field_type == 'generative':
         #     all_field_options = list(FormField.objects.filter(form_id=form_id).values('id', 'label'))
 
@@ -169,7 +170,7 @@ def form_builder(request):
                 "options": field.values.split(",") if field.values else [],
                 "attributes": field.attributes if field.attributes else [],
                 "validation": validation_dict.get(field.id, []),
-                "generative_list": generative_list,
+                "generative_list": generative_list
             }
             for field in fields
         ])
@@ -185,7 +186,8 @@ def form_builder(request):
         "dropdown_options": json.dumps(dropdown_options),
         "common_options": json.dumps(common_options),
         "sub_control": json.dumps(sub_control),
-        "master_dropdown": json.dumps(master_dropdown)
+        "master_dropdown": json.dumps(master_dropdown),
+        "form_names":json.dumps(form_names)
     })
 
 
@@ -222,7 +224,12 @@ def save_form(request):
                
                 if field.get("type") == "master dropdown":
                     value = field.get("masterValue","")
-
+                elif field.get("type") == "field_dropdown":
+                    dropdown_mappings = field.get("field_dropdown", [])
+                    form_id_selected = dropdown_mappings.get("form_id")
+                    field_id_selected = dropdown_mappings.get("field_id")
+                    value = f"{form_id_selected},{field_id_selected}"
+            
                     # value = dec(value)
                 else:
                     value=",".join(option.strip() for option in field.get("options", []))
@@ -235,15 +242,13 @@ def save_form(request):
                     form=form,
                     label=formatted_label,  # Use formatted label here
                     field_type=field.get("type", ""),
-                    attributes=field.get("attributes", ""),
+                    attributes=field.get("attributes", "[]"),
                     values=value,
                     created_by=request.session.get('user_id', '').strip(),
                     order=order
                 )
                 
                 field_id = form_field.id
-                
-
 
                
                 # Handle regex & max_length validation separately
@@ -330,6 +335,8 @@ def save_form(request):
                     )
 
 
+
+
             callproc('create_dynamic_form_views')
             messages.success(request, "Form and fields saved successfully!!")
             new_url = f'/masters?entity=form&type=i'
@@ -384,13 +391,32 @@ def update_form(request, form_id):
             generative_fields = [] 
 
             for index,field in enumerate(form_data):
-                attributes_value = field.get("attributes", "")
+                attributes_value = field.get("attributes", "[]")
                 field_id = field.get("id", "")
                 formatted_label = format_label(field.get("label", ""))
                 order = field.get("order","")
 
                 if field.get("type") == "master dropdown":
                     value = field.get("masterValue", "")
+                
+                elif field.get("type") == "field_dropdown":
+                    dropdown_mappings = field.get("field_dropdown", [])
+                    if dropdown_mappings:
+                        form_id_selected = dropdown_mappings.get("form_id","")
+                        field_id_selected = dropdown_mappings.get("field_id","")
+                        if form_id_selected and field_id_selected:
+                            value = f"{form_id_selected},{field_id_selected}"
+
+                    else:
+                        if field.get("options"):
+                            # Assuming options is an array like ["91", "1206"]
+                            value = f"{field['options'][0]},{field['options'][1]}"  # First option as form_id, second as field_id
+                        else:
+                            value = ""
+                    
+                    # Store the value
+                    field["value"] = value
+
                 else:
                     value = ",".join(option.strip() for option in field.get("options", []))
 
@@ -774,6 +800,13 @@ def form_master(request):
                 if field["field_type"] in ["file", "file multiple", "text"]:
                     file_validation = next((v for v in field["validations"]), None)
                     field["accept"] = file_validation["value"] if file_validation else ""
+                
+                if field["field_type"] == "field_dropdown":
+                    split_values = field["values"]
+                    if len(split_values) == 2:
+                        dropdown_form_id, dropdown_field_id = split_values
+                        field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id)
+                        field["dropdown_data"] = list(field_values.values())
 
                 # Handle master dropdown (fetch dynamic values)
                 if field["field_type"] == "master dropdown" and field["values"]:
@@ -857,6 +890,15 @@ def form_master(request):
                         else:
                             field["value"] = saved_value
 
+                        if field["field_type"] == "field_dropdown":
+                            split_values = [val.strip() for val in saved_value.split(",") if val.strip()]
+                            if len(split_values) == 2:
+                                form_id, field_id = split_values
+                                field_values = FormFieldValues.objects.filter(field_id=field_id)
+                                field["dropdown_data"] = list(field_values.values())  # or use .values_list() if you need specific fields
+
+
+
                         if field["field_type"] == "master dropdown" and field["values"]:
                             dropdown_id = field["values"][0]
                             try:
@@ -918,7 +960,10 @@ def common_form_post(request):
             form_data = FormData.objects.create(form=form)
         else:
             form_data = FormData.objects.create(form=form,action=action)
-        form_data.req_no = f"UNIQ-NO-00{form_data.id}"
+        if workflow_YN == '1':
+            form_data.req_no = f"UNIQ-NO-00{form_data.id}"
+        else:
+            form_data.req_no = f"REQNO-00{form_data.id}"
         form_data.created_by = user
         form_data.save()
         
@@ -947,8 +992,7 @@ def common_form_post(request):
                 )
                
         handle_uploaded_files(request, form_name, created_by, form_data, user)
-        if field.field_type == "generative":
-            handle_generative_fields(form, form_data, created_by)
+        handle_generative_fields(form, form_data, created_by)
 
         callproc('create_dynamic_form_views')
         messages.success(request, "Form data saved successfully!")
@@ -1103,11 +1147,7 @@ def common_form_edit(request):
                     )
 
 
-
-        # ✅ File upload logic goes here
         handle_uploaded_files(request, form_name, created_by, form_data, user)
-        if field.field_type == "generative":
-            handle_generative_fields(form, form_data, created_by)
 
         callproc('create_dynamic_form_views')
         messages.success(request, "Form data updated successfully!")
@@ -1673,4 +1713,10 @@ def check_field_before_delete(request):
             return JsonResponse({"success": True})
 
     return JsonResponse({"success": False, "error": "Invalid request method."})
+
+def get_field_names(request):
+    if request.method == 'POST':
+        form_id = request.POST.get('form_id')
+        fields = FormField.objects.filter(form_id=form_id).values('id', 'label')
+        return JsonResponse({'fields': list(fields)})
 
