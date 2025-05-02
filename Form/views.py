@@ -961,9 +961,9 @@ def common_form_post(request):
         else:
             form_data = FormData.objects.create(form=form,action=action)
         if workflow_YN == '1':
-            form_data.req_no = f"UNIQ-NO-00{form_data.id}"
-        else:
             form_data.req_no = f"REQNO-00{form_data.id}"
+        else:
+            form_data.req_no = f"UNIQ-NO-00{form_data.id}"
         form_data.created_by = user
         form_data.save()
         
