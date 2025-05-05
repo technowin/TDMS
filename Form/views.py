@@ -587,6 +587,48 @@ def form_action_builder(request):
         "dropdown_options": json.dumps(dropdown_options),
     })
 
+from django.http import JsonResponse
+
+def form_action_builder_master(request):
+    action_id = request.GET.get('action_id')
+
+    if action_id:  # AJAX call to fetch form data
+        try:
+            form = get_object_or_404(FormAction, id=action_id)
+            fields = FormActionField.objects.filter(action_id=action_id)
+
+            form_fields_json = [
+                {
+                    "id": field.id,
+                    "label": field.label_name,
+                    "bg_color": field.bg_color,
+                    "text_color": field.text_color,
+                    "type": field.type,
+                    "options": field.dropdown_values.split(",") if field.dropdown_values else [],
+                    "button_type": field.button_type,
+                    "status": field.status,
+                    "value": field.button_name
+                }
+                for field in fields
+            ]
+
+            return JsonResponse({"formFields": form_fields_json})
+        
+        except Exception as e:
+            return JsonResponse({"error": str(e)}, status=400)
+
+    # If no action_id: Initial full page render
+    master_values = FormAction.objects.filter(is_master=1).all()
+    button_type = list(CommonMaster.objects.filter(type='button').values("control_value"))
+    dropdown_options = list(ControlParameterMaster.objects.filter(is_action=1).values("control_name", "control_value"))
+
+    return render(request, "Form/form_action_builder.html", {
+        "master_values": master_values,
+        "button_type": json.dumps(button_type),
+        "dropdown_options": json.dumps(dropdown_options),
+    })
+
+
 
 
 @csrf_exempt
