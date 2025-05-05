@@ -632,9 +632,6 @@
         }
     }
     
-    
-    
-
 
      function loadFieldNames(fieldId, combinedValue, selectedSubFieldValue) {
         if (!combinedValue) return;
@@ -737,8 +734,12 @@
     
     function updateSubFieldAndGenerateElement(fieldId, selectedValue, savedValue = "", subControlId) {
         let dynamicElement = document.getElementById(`dynamic-element-${fieldId}`);
-        dynamicElement.innerHTML = "";
-    
+        /// dynamicElement.innerHTML = "";
+
+        if (!dynamicElement) {
+            console.warn(`Element dynamic-element-${fieldId} not found.`);
+            return;  
+        }
         let field = formFields.find(f => f.id === fieldId);
         if (field) {
             field.selectedValue = selectedValue;
@@ -765,7 +766,44 @@
                 </select>
             `;
         }
-    }
+    } 
+
+    {% comment %} function updateSubFieldAndGenerateElement(fieldId, selectedValue, savedValue = "", subControlId) {
+        let dynamicElement = document.getElementById(`dynamic-element-${fieldId}`);
+        
+        if (!dynamicElement) {
+            console.warn(`Element dynamic-element-${fieldId} not found.`);
+            return;  // Exit early to prevent the error
+        }
+    
+        let field = formFields.find(f => f.id === fieldId);
+        if (field) {
+            field.selectedValue = selectedValue;
+            field.subFieldValue = savedValue;
+        }
+    
+        if (selectedValue === "max_length") {
+            dynamicElement.innerHTML = `
+                <input type="number" class="form-control" id="max-length-${fieldId}" placeholder="Max Characters" title="Max Characters"
+                       value="${savedValue}" oninput="updateSubField(${fieldId}, 'max_length', this.value, ${subControlId})">
+                       `;
+        }
+        else if (selectedValue === "regex") {
+            let regexOptions = `<option value="">Select Pattern</option>` +
+                regex.map(option => 
+                    `<option value="${option.regex_pattern}" ${option.regex_pattern === savedValue ? "selected" : ""}>
+                        ${option.input_type}
+                    </option>`
+                ).join("");
+    
+            dynamicElement.innerHTML = `
+                <select class="form-control select" id="regex-${fieldId}" onchange="updateSubField(${fieldId}, 'regex', this.value, ${subControlId})">
+                    ${regexOptions}
+                </select>
+            `;
+        }
+    } {% endcomment %}
+    
     
     function updateSubField(fieldId, type, value, subControlId) {
         
@@ -926,7 +964,7 @@
                                      placeholder="Enter up to ${maxLengthValue} characters only">`;
                     } else if (field.selectedValue === "regex") {
                         inputHtml = `<input type="text" class="form-control w-100" name="${field.label}" 
-                                     id="regex-${field.id}" data-regex="${pattern}" value="${field.value || ""}">`;
+                                id="regex-${field.id}" onchange="attachRegexInputFilter()" data-regex="${pattern}" value="${field.value || ""}">`;
                     } else {
                         inputHtml = `<input type="text" class="form-control w-100" name="${field.label}" value="${field.value || ""}">`;
                     }
@@ -961,9 +999,58 @@
         });
     }
 
+    function attachRegexInputFilter() {
+        document.querySelectorAll('input[data-regex]').forEach(input => {
+            debugger;
+            input.addEventListener('beforeinput', function (event) {
+                const regexPattern = this.getAttribute('data-regex');
+                let regex;
     
- // true = useCapture so blur is caught during capture phase
+                try {
+                    regex = new RegExp("^" + regexPattern);
+                } catch (e) {
+                    console.error("Invalid regex pattern:", regexPattern);
+                    return;
+                }
     
+                const currentValue = this.value;
+                const proposedValue =
+                    currentValue.slice(0, this.selectionStart) +
+                    (event.data || '') +
+                    currentValue.slice(this.selectionEnd);
+    
+                if (!regex.test(proposedValue)) {
+                    event.preventDefault();
+                }
+            });
+    
+            // ✅ Paste filtering
+            input.addEventListener('paste', function (event) {
+                const regexPattern = this.getAttribute('data-regex');
+                let regex;
+    
+                try {
+                    regex = new RegExp("^" + regexPattern);
+                } catch (e) {
+                    console.error("Invalid regex pattern:", regexPattern);
+                    return;
+                }
+    
+                const paste = (event.clipboardData || window.clipboardData).getData('text');
+                const proposedValue =
+                    this.value.slice(0, this.selectionStart) +
+                    paste +
+                    this.value.slice(this.selectionEnd);
+    
+                if (!regex.test(proposedValue)) {
+                    event.preventDefault();
+                }
+            });
+        });
+    }
+    
+    
+
     
     
 
