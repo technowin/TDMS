@@ -123,13 +123,14 @@
                 </select>
 
             {% elif field.field_type == "field_dropdown" %}
-
                 <select class="form-control select" name="field_{{ field.id }}"
                     {% for attr in field.attributes %} {{ attr }} {% endfor %}>
-                    <option value="" selected disabled>Select</option>
+                    <option value="" disabled {% if not field.saved_value %}selected{% endif %}>Select</option>
                     {% for option in field.dropdown_data %}
-                    <option value="{{ option.value }}">{{ option.value }}</option>
-                  {% endfor %}
+                      <option value="{{ option.value }}" {% if option.value == field.saved_value %}selected{% endif %}>
+                        {{ option.value }}
+                      </option>
+                    {% endfor %}
                 </select>
             
             

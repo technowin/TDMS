@@ -226,9 +226,8 @@ def save_form(request):
                     value = field.get("masterValue","")
                 elif field.get("type") == "field_dropdown":
                     dropdown_mappings = field.get("field_dropdown", [])
-                    form_id_selected = dropdown_mappings.get("form_id")
                     field_id_selected = dropdown_mappings.get("field_id")
-                    value = f"{form_id_selected},{field_id_selected}"
+                    value = field_id_selected
             
                     # value = dec(value)
                 else:
@@ -802,11 +801,11 @@ def form_master(request):
                     field["accept"] = file_validation["value"] if file_validation else ""
                 
                 if field["field_type"] == "field_dropdown":
-                    split_values = field["values"]
-                    if len(split_values) == 2:
-                        dropdown_form_id, dropdown_field_id = split_values
-                        field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id)
-                        field["dropdown_data"] = list(field_values.values())
+                    dropdown_field_id = int(field["values"][0])  # extract from list and convert to int
+                    field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id)
+                    field["dropdown_data"] = list(field_values.values())
+
+
 
                 # Handle master dropdown (fetch dynamic values)
                 if field["field_type"] == "master dropdown" and field["values"]:
@@ -891,11 +890,11 @@ def form_master(request):
                             field["value"] = saved_value
 
                         if field["field_type"] == "field_dropdown":
-                            split_values = field["value"]
-                            if len(split_values) == 2:
-                                dropdown_form_id, dropdown_field_id = split_values
-                                field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id)
-                                field["dropdown_data"] = list(field_values.values())
+                            dropdown_field_id = int(field["values"][0])  # extract from list and convert to int
+                            field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id)
+                            field["dropdown_data"] = list(field_values.values())
+                            field["saved_value"] = values_dict.get(field["id"])
+
 
 
 
