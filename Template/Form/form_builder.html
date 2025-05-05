@@ -477,7 +477,7 @@
             
     
         
-           let colSize = 'col-md-4'; // default
+            let colSize = 'col-md-4';
 
           builder.innerHTML += `
             <div class="row col-md-12 draggable-field" data-id="${fieldId}">
@@ -585,42 +585,6 @@
     });
     
     
-
-    {% comment %} function captureDropdownStates() {
-        const stateMap = {};
-    
-        // Capture states of all the dropdowns
-        $('select[id^="form-dropdown-"]').each(function () {
-            const fieldId = this.id.split('-')[2];
-            const selectedFormValue = $(this).val();  // The form ID selected, e.g., "4,37"
-            const selectedSubFieldValue = $(`select[name="sub_field_${fieldId}"]`).val() || "";  // Get the sub field value
-    
-            stateMap[fieldId] = {
-                formValue: selectedFormValue,
-                subFieldValue: selectedSubFieldValue
-            };
-        });
-    
-        return stateMap;
-    } {% endcomment %}
-    
-    {% comment %} function restoreDropdownStates(stateMap) {
-        // Restore the dropdown states from the stateMap
-        for (const fieldId in stateMap) {
-            const { formValue, subFieldValue } = stateMap[fieldId];
-    
-            if (formValue) {
-                // Set the form dropdown value
-                const [formId, fieldIdFromValue] = formValue.split(',');
-    
-                // Set form dropdown value
-                $(`#form-dropdown-${fieldId}`).val(formValue);
-    
-                // Trigger the loadFieldNames to load the sub field options
-                loadFieldNames(fieldId, formValue, subFieldValue);
-            }
-        }
-    } {% endcomment %}
 
     function captureDropdownStates() {
         const stateMap = {};
