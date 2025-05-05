@@ -420,41 +420,61 @@
                     </select>
                 `;
             }
-           else if (field.type === "generative") {
-               // Show all field labels except current one
-               const dropdownOptions = allFieldLabels
-                   .filter(f => f.id !== field.id)
-                   .map(option =>
-                       `<option value="${option.id}" ${field.genDropdown == option.id ? 'selected' : ''}>${option.label}</option>`
-                   ).join('');
-           
-               optionDropdownHtml = `
+            else if (field.type === "generative") {
+                const generativeData = field.generative_list?.[field.id]?.[0] || {};
+                let rawSelected = generativeData.selected_field;
+                const selectedFieldIds = Array.isArray(rawSelected)
+                    ? rawSelected
+                    : typeof rawSelected === 'string'
+                        ? rawSelected.split(',').map(id => id.trim())
+                        : rawSelected ? [rawSelected] : [];
 
-               <div class="row g-0">
-                   <div class="col-md-2 p-1">
-                       <input type="text" class="form-control" placeholder="Prefix" title="Enter a prefix" name="prefix-${fieldId}" id="prefix-${fieldId}" oninput="updateGenerativePreview('${fieldId}')"/>
-                   </div>
+                const prefixValue = generativeData.prefix || '';
+                const noOfZeroValue = generativeData.no_of_zero || '';
+                const incrementValue = generativeData.increment || '';
+            
+                // Show all field labels except current one
+                const dropdownOptions = allFieldLabels
+                .filter(f => f.id !== field.id)
+                .map(option =>
+                    `<option value="${option.id}" ${selectedFieldIds.includes(String(option.id)) ? 'selected' : ''}>${option.label}</option>`
+                ).join('');
 
-                   <div class="col-md-6 p-1">
-                       <select class="form-control field_dropdown" oninput="updateGenerativePreview('${fieldId}')"
-                       multiple name="fielddropdown-${fieldId}" id="fielddropdown-${fieldId}"title="Select a field from the dropdown">
-                       <option value="">Select Field</option>${dropdownOptions}
-                       </select>
-                   </div>
 
-                   <div class="col-md-2 p-1">
-                       <input type="text" class="form-control" oninput="updateGenerativePreview('${fieldId}')" placeholder="0-9" name="zeroincrement1-${fieldId}" id="zeroincrement1-${fieldId}" 
-                       value="${field.genText2 || ''}" 
-                       minlength="1" maxlength="1" title="Enter number of Zero" />
-                   </div>
-
-                   <div class="col-md-2 p-1">
-                       <input type="number" class="form-control" oninput="updateGenerativePreview('${fieldId}')" placeholder="Value" name="zeroincrement2-${fieldId}" id="zeroincrement2-${fieldId}"  value="${field.genText2 || ''}"  title="Enter Increment number" />
-                   </div>
-               </div>
-
-               `;
-           }
+            
+                optionDropdownHtml = `
+                <div class="row col-md-12">
+                    <div class="col-md-3 p-1">
+                        <input type="text" class="form-control" placeholder="Prefix" title="Enter a prefix"
+                            name="prefix-${fieldId}" id="prefix-${fieldId}" value="${prefixValue}"
+                            oninput="updateGenerativePreview('${fieldId}')" />
+                    </div>
+            
+                    <div class="col-md-5 p-1">
+                        <select class="form-control field_dropdown" oninput="updateGenerativePreview('${fieldId}')"
+                            multiple name="fielddropdown-${fieldId}" id="fielddropdown-${fieldId}"
+                            title="Select a field from the dropdown">
+                            <option value="">Select Field</option>
+                            ${dropdownOptions}
+                        </select>
+                    </div>
+            
+                    <div class="col-md-2 p-1">
+                        <input type="text" class="form-control" oninput="updateGenerativePreview('${fieldId}')"
+                            placeholder="0-9" name="zeroincrement1-${fieldId}" id="zeroincrement1-${fieldId}"
+                            value="${noOfZeroValue}" minlength="1" maxlength="1"
+                            title="Enter number of Zero" />
+                    </div>
+            
+                    <div class="col-md-2 p-1">
+                        <input type="number" class="form-control" oninput="updateGenerativePreview('${fieldId}')"
+                            placeholder="Value" name="zeroincrement2-${fieldId}" id="zeroincrement2-${fieldId}"
+                            value="${incrementValue}" title="Enter Increment number" />
+                    </div>
+                </div>
+                `;
+            }
+            
     
         
            let colSize = 'col-md-4'; // default
@@ -472,7 +492,7 @@
                 <div class="col-md-2 mb-3">
                     ${dropdownHtml}
                 </div>
-                <div class="col-md-2 mb-3">
+                <div class="col-md-3 mb-3">
                     ${commonDropdownHtml}
                 </div>
                 <div class="${colSize} mb-3">
@@ -930,6 +950,12 @@
         });
     }
 
+    
+ // true = useCapture so blur is caught during capture phase
+    
+    
+    
+
     function syncFormValidationsBeforeSubmit() {
         formFields.forEach(field => {
             // For file and file multiple
@@ -969,6 +995,9 @@
         });
     }
 
+
+
+    
    
 
     function updatefileField(fieldId, key, value, id) {
@@ -1006,20 +1035,6 @@
     }
     
 
-        document.addEventListener("input", function (event) {
-            
-            let input = event.target;
-            let regexPattern = input.getAttribute("data-regex");
-            
-            if (regexPattern) {
-                let regex = new RegExp(regexPattern);
-                let inputValue = input.value;
-                
-                if (!regex.test(inputValue)) {
-                    input.value = inputValue.match(regex)?.join("") || "";
-                }
-            }
-        });
     
     
     document.querySelectorAll(".common-select").forEach(select => {
@@ -1095,6 +1110,7 @@
 
 
     document.addEventListener("DOMContentLoaded", function() {
+        updateAllFieldLabels();
         renderFormBuilder();
         renderFormPreview();
     });
@@ -1248,6 +1264,50 @@
             ghostClass: 'sortable-ghost',
         });
     });
+</script>
+
+<script>
+
+    {% comment %} document.addEventListener("DOMContentLoaded", function () {
+        document.addEventListener("input", function (e) {
+            if (e.target.matches('input[data-regex]')) {
+                const input = e.target;
+                const regexPattern = input.getAttribute("data-regex");
+                try {
+                    const regex = new RegExp(regexPattern);
+                    if (!regex.test(input.value)) {
+                        input.value = input.dataset.prevValue || '';
+                    } else {
+                        input.dataset.prevValue = input.value;
+                    }
+                } catch (error) {
+                    console.error("Invalid regex pattern:", regexPattern);
+                }
+            }
+        });
+    
+        document.addEventListener("blur", function (e) {
+            if (e.target.matches('input[data-regex]')) {
+                const input = e.target;
+                const fullPattern = input.getAttribute("data-regex");
+                const value = input.value;
+    
+                try {
+                    const regex = new RegExp(fullPattern.replace(/{0,/g, '{')); // for final check
+                    if (!regex.test(value)) {
+                        alert("Invalid input. Please match the required pattern.");
+                        input.focus();
+                        input.classList.add("is-invalid");
+                    } else {
+                        input.classList.remove("is-invalid");
+                    }
+                } catch (error) {
+                    console.error("Invalid regex pattern:", fullPattern);
+                }
+            }
+        }, true);
+    });
+     {% endcomment %}
 </script>
 
     

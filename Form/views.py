@@ -891,11 +891,11 @@ def form_master(request):
                             field["value"] = saved_value
 
                         if field["field_type"] == "field_dropdown":
-                            split_values = [val.strip() for val in saved_value.split(",") if val.strip()]
+                            split_values = field["value"]
                             if len(split_values) == 2:
-                                form_id, field_id = split_values
-                                field_values = FormFieldValues.objects.filter(field_id=field_id)
-                                field["dropdown_data"] = list(field_values.values())  # or use .values_list() if you need specific fields
+                                dropdown_form_id, dropdown_field_id = split_values
+                                field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id)
+                                field["dropdown_data"] = list(field_values.values())
 
 
 
