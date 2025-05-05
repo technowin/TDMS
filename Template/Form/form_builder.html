@@ -586,7 +586,7 @@
     
     
 
-    function captureDropdownStates() {
+    {% comment %} function captureDropdownStates() {
         const stateMap = {};
     
         // Capture states of all the dropdowns
@@ -602,9 +602,9 @@
         });
     
         return stateMap;
-    }
+    } {% endcomment %}
     
-    function restoreDropdownStates(stateMap) {
+    {% comment %} function restoreDropdownStates(stateMap) {
         // Restore the dropdown states from the stateMap
         for (const fieldId in stateMap) {
             const { formValue, subFieldValue } = stateMap[fieldId];
@@ -620,7 +620,54 @@
                 loadFieldNames(fieldId, formValue, subFieldValue);
             }
         }
+    } {% endcomment %}
+
+    function captureDropdownStates() {
+        const stateMap = {};
+    
+        // Capture form dropdowns
+        $('select[id^="form-dropdown-"]').each(function () {
+            const fieldId = this.id.split('-')[2];
+            const selectedFormValue = $(this).val();
+            const selectedSubFieldValue = $(`select[name="sub_field_${fieldId}"]`).val() || "";
+    
+            stateMap[fieldId] = {
+                formValue: selectedFormValue,
+                subFieldValue: selectedSubFieldValue
+            };
+        });
+    
+        // Capture master dropdowns
+        $('select[id^="option-dropdown-"]').each(function () {
+            const fieldId = this.id.split('-')[2];
+            const selectedMasterValue = $(this).val();
+    
+            if (!stateMap[fieldId]) stateMap[fieldId] = {};
+            stateMap[fieldId].masterValue = selectedMasterValue;
+        });
+    
+        return stateMap;
     }
+
+    
+    function restoreDropdownStates(stateMap) {
+        for (const fieldId in stateMap) {
+            const { formValue, subFieldValue, masterValue } = stateMap[fieldId];
+    
+            // Restore form dropdown
+            if (formValue) {
+                $(`#form-dropdown-${fieldId}`).val(formValue);
+                loadFieldNames(fieldId, formValue, subFieldValue);
+            }
+    
+            // Restore master dropdown
+            if (masterValue !== undefined) {
+                $(`#option-dropdown-${fieldId}`).val(masterValue);
+                updateFields(fieldId, 'masterValue', masterValue);
+            }
+        }
+    }
+    
     
     
 
@@ -996,6 +1043,37 @@
     }
 
 
+    function syncGenerativeDataBeforeSubmit() {
+        formFields.forEach(field => {
+            if (field.type === "field_dropdown") {
+                const fieldId = field.id;
+    
+                const prefix = document.getElementById(`prefix-${fieldId}`)?.value || '';
+                const dropdown = document.getElementById(`fielddropdown-${fieldId}`);
+                const selectedLabels = Array.from(dropdown?.selectedOptions || [])
+                    .map(opt => opt.text.trim());
+                const selectedValues = Array.from(dropdown?.selectedOptions || [])
+                    .map(opt => opt.value);
+    
+                const zeroCountStr = document.getElementById(`zeroincrement1-${fieldId}`)?.value || '';
+                const zeroCount = parseInt(zeroCountStr, 10);
+                const zeroPadding = '0'.repeat(isNaN(zeroCount) ? 0 : zeroCount);
+    
+                const incNum = document.getElementById(`zeroincrement2-${fieldId}`)?.value || '';
+                const previewValue = `${prefix}-${selectedLabels.join('-')}-${zeroPadding}${incNum}`;
+    
+                // Save updated values to field object
+                field.prefix = prefix;
+                field.field_name = selectedLabels;
+                field.field_id = selectedValues;
+                field.no_of_zero = zeroCountStr;
+                field.increment = incNum;
+                field.generatefield = previewValue;
+            }
+        });
+    }
+    
+
 
     
    
@@ -1100,14 +1178,6 @@
             restoreDropdownStates(previousDropdownStates);
         }
         {% endif %}
-
-    document.getElementById("main-form").addEventListener("submit", function () {
-        debugger;
-        syncFormValidationsBeforeSubmit(); // 👈 Ensure untouched validations are captured
-        document.getElementById("form-data-input").value = JSON.stringify(formFields);
-    });
-    
-
 
     document.addEventListener("DOMContentLoaded", function() {
         updateAllFieldLabels();
@@ -1224,7 +1294,8 @@
 
     document.getElementById("main-form").addEventListener("submit", function () {
         debugger;
-    
+        syncFormValidationsBeforeSubmit();
+       // syncGenerativeDataBeforeSubmit()
         const fieldsInDom = document.querySelectorAll('#form-builder .draggable-field');
         const orderedFormFields = [];
     
@@ -1264,50 +1335,6 @@
             ghostClass: 'sortable-ghost',
         });
     });
-</script>
-
-<script>
-
-    {% comment %} document.addEventListener("DOMContentLoaded", function () {
-        document.addEventListener("input", function (e) {
-            if (e.target.matches('input[data-regex]')) {
-                const input = e.target;
-                const regexPattern = input.getAttribute("data-regex");
-                try {
-                    const regex = new RegExp(regexPattern);
-                    if (!regex.test(input.value)) {
-                        input.value = input.dataset.prevValue || '';
-                    } else {
-                        input.dataset.prevValue = input.value;
-                    }
-                } catch (error) {
-                    console.error("Invalid regex pattern:", regexPattern);
-                }
-            }
-        });
-    
-        document.addEventListener("blur", function (e) {
-            if (e.target.matches('input[data-regex]')) {
-                const input = e.target;
-                const fullPattern = input.getAttribute("data-regex");
-                const value = input.value;
-    
-                try {
-                    const regex = new RegExp(fullPattern.replace(/{0,/g, '{')); // for final check
-                    if (!regex.test(value)) {
-                        alert("Invalid input. Please match the required pattern.");
-                        input.focus();
-                        input.classList.add("is-invalid");
-                    } else {
-                        input.classList.remove("is-invalid");
-                    }
-                } catch (error) {
-                    console.error("Invalid regex pattern:", fullPattern);
-                }
-            }
-        }, true);
-    });
-     {% endcomment %}
 </script>
 
     

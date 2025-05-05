@@ -131,43 +131,13 @@ def form_builder(request):
                 "increment": generate.increment,
             })
 
-        # if fields.field_type == 'generative':
-        #     all_field_options = list(FormField.objects.filter(form_id=form_id).values('id', 'label'))
-
-        #     generative_list = []
-
-        #     for field in fields:
-        #         field_id = field.id
-        #         selected = []
-        #         prefix = ""
-        #         no_of_zero = ""
-        #         increment = ""
-
-        #         for generate in generative:
-        #             if generate.field.id == field_id:
-        #                 selected = [int(i) for i in generate.selected_field_id.split(",")] if generate.selected_field_id else []
-        #                 prefix = generate.prefix or ""
-        #                 no_of_zero = generate.no_of_zero or ""
-        #                 increment = generate.increment or ""
-        #                 break  # Found the match, no need to continue looping
-
-        #         generative_list.append({
-        #             "field_id": field_id,
-        #             "selected_fields": selected,
-        #             "prefix": prefix,
-        #             "no_of_zero": no_of_zero,
-        #             "increment": increment,
-        #             "all_fields": all_field_options
-        #         })
-
-
 
         form_fields_json = json.dumps([
             {
                 "id": field.id,
                 "label": field.label,
                 "type": field.field_type,
-                "options": field.values.split(",") if field.values else [],
+                "options": field.values.split(",") if field.values else [], 
                 "attributes": field.attributes if field.attributes else [],
                 "validation": validation_dict.get(field.id, []),
                 "generative_list": generative_list
@@ -526,8 +496,6 @@ def update_form(request, form_id):
 
 
                 for gen_field in generative_fields:
-                    FormGenerativeField.objects.filter(form_id=form.id).delete()
-                    
                     prefix = gen_field["prefix"]
                     if isinstance(prefix, (list, tuple)):
                         prefix = prefix[0] if prefix else ""
@@ -537,15 +505,21 @@ def update_form(request, form_id):
                         label__in=gen_field["field_ids"]
                     ).values_list("id", flat=True)
 
+                    # Skip if all critical fields are empty
+                    if not prefix and not field_ids and not gen_field["no_of_zero"] and not gen_field["increment"]:
+                        continue
+                    else:
+                        FormGenerativeField.objects.filter(form_id=form.id).delete()
 
-                    FormGenerativeField.objects.create(
-                        prefix=gen_field["prefix"],
-                        selected_field_id=",".join(map(str, field_ids)),  # Convert IDs to comma-separated string
-                        no_of_zero=gen_field["no_of_zero"],
-                        increment=gen_field["increment"],
-                        form=form,
-                        field=gen_field["form_field"]
-                    )
+                        FormGenerativeField.objects.create(
+                            prefix=prefix,
+                            selected_field_id=",".join(map(str, field_ids)),  # Convert IDs to comma-separated string
+                            no_of_zero=gen_field["no_of_zero"],
+                            increment=gen_field["increment"],
+                            form=form,
+                            field=gen_field["form_field"]
+                        )
+
                 removed_field_ids = existing_field_ids - incoming_field_ids
                 if removed_field_ids:
                     FormField.objects.filter(id__in=removed_field_ids).delete()
