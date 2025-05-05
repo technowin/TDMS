@@ -1269,6 +1269,50 @@ def common_form_edit(request):
             return redirect("/masters?entity=form_master&type=i")
 
     
+# def handle_generative_fields(form, form_data, created_by):
+#     generative_fields = FormField.objects.filter(form=form, field_type="generative")
+
+#     for field in generative_fields:
+#         try:
+#             gen_settings = FormGenerativeField.objects.get(field=field, form=form)
+
+#             prefix = gen_settings.prefix or ''
+#             selected_ids = (gen_settings.selected_field_id or '').split(',')
+#             no_of_zero = int(gen_settings.no_of_zero or '0')
+#             increment = int(gen_settings.increment or '1')
+
+#             # Gather values from previously saved fields
+#             selected_values = []
+#             for sel_id in selected_ids:
+#                 selected_field = FormField.objects.filter(id=sel_id).first()
+#                 if not selected_field:
+#                     continue
+
+#                 value_obj = FormFieldValues.objects.filter(
+#                     form_data=form_data,
+#                     form=form,
+#                     field=selected_field
+#                 ).first()
+
+#                 if value_obj:
+#                     selected_values.append(value_obj.value)
+
+#             base_part = '-'.join(selected_values)
+#             padded_number = str(0).zfill(no_of_zero)
+#             final_value = f"{prefix}-{base_part}-{padded_number}{increment}"
+
+#             # Save the generated value
+#             FormFieldValues.objects.create(
+#                 form_data=form_data,
+#                 form=form,
+#                 field=field,
+#                 value=final_value,
+#                 created_by=created_by
+#             )
+
+#         except FormGenerativeField.DoesNotExist:
+#             continue  # skip if no config found
+
 def handle_generative_fields(form, form_data, created_by):
     generative_fields = FormField.objects.filter(form=form, field_type="generative")
 
@@ -1279,9 +1323,20 @@ def handle_generative_fields(form, form_data, created_by):
             prefix = gen_settings.prefix or ''
             selected_ids = (gen_settings.selected_field_id or '').split(',')
             no_of_zero = int(gen_settings.no_of_zero or '0')
-            increment = int(gen_settings.increment or '1')
+            initial_increment = int(gen_settings.increment or '1')
 
-            # Gather values from previously saved fields
+            increment_row, created = FormIncrementNo.objects.get_or_create(
+                form=form,
+                defaults={'increment': initial_increment}
+            )
+
+            if not created:
+                increment_row.increment += 1
+                increment_row.save()
+
+            current_increment = increment_row.increment
+
+            # Step 2: Gather selected field values
             selected_values = []
             for sel_id in selected_ids:
                 selected_field = FormField.objects.filter(id=sel_id).first()
@@ -1299,9 +1354,9 @@ def handle_generative_fields(form, form_data, created_by):
 
             base_part = '-'.join(selected_values)
             padded_number = str(0).zfill(no_of_zero)
-            final_value = f"{prefix}-{base_part}-{padded_number}{increment}"
+            final_value = f"{prefix}-{base_part}-{padded_number}{current_increment}"
 
-            # Save the generated value
+            # Step 3: Save the generated value
             FormFieldValues.objects.create(
                 form_data=form_data,
                 form=form,
@@ -1310,8 +1365,9 @@ def handle_generative_fields(form, form_data, created_by):
                 created_by=created_by
             )
 
-        except FormGenerativeField.DoesNotExist:
-            continue  # skip if no config found
+        except Exception as e:
+            traceback.print_exc()
+
 
     
 

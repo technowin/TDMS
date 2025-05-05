@@ -227,6 +227,18 @@ class FormGenerativeField(models.Model):
     class Meta:
         db_table = 'form_generative_field'
 
+class FormIncrementNo(models.Model):
+    form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_increment_id')
+    form_data = models.TextField(null=True, blank=True)
+    increment = models.IntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'form_increment_no'
+
+
 
 
 
