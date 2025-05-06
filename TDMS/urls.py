@@ -118,6 +118,7 @@ urlpatterns = [
     path('workflowcommon_form_post/', workflowcommon_form_post, name='workflowcommon_form_post'),
     path('get_formdataid/', get_formdataid, name='get_formdataid'),
     path('get_formdataidEdit/', get_formdataidEdit, name='get_formdataidEdit'),
+    path('reject_workflow_step/', reject_workflow_step, name='reject_workflow_step'),
 
 ]
 
