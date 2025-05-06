@@ -26,8 +26,6 @@ class FormMaster(models.Model):
     class Meta:
         db_table = 'form_master'
 
-
-
     
 class Form(models.Model):
     name = models.CharField(max_length=255)
@@ -80,8 +78,6 @@ class CommonMaster(models.Model):
     id = models.AutoField(primary_key=True)
     control_value = models.TextField(null=True, blank=True)
     type = models.TextField(null=True, blank=True)
-    sub_master1 = models.IntegerField(null=True, blank=True)
-    sub_master2 = models.IntegerField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)

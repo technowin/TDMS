@@ -220,6 +220,17 @@
                        {% if readonlyWF == '1' or viewStepWFSeq == '3' %}readonly{% endif %}
                        placeholder="{% if field.accept %}Enter up to {{ field.accept }} characters{% else %}Enter text{% endif %}"
                        {% for attr in field.attributes %}{{ attr }} {% endfor %}/>
+
+            {% elif field.field_type == "regex" %}
+                <input type="text" class="form-control"
+                       name="field_{{ field.id }}"
+                       id="regex-{{ field.id }}"
+                       data-regex="{{ field.validations.0.value }}"
+                       data-regex-id="{{ field.regex_id }}"
+                       value="{{ field.value|default:'' }}"
+                       oninput="formatInputByPattern(this, '{{ field.regex_id }}'); validateRegexInput(this);"
+                       placeholder="{{ field.regex_description }}"
+                       {% for attr in field.attributes %} {{ attr }} {% endfor %}>
             
             {% else %}
                 <input type="{{ field.field_type }}" class="form-control"
@@ -734,6 +745,89 @@
 
 
 
+</script>
+
+<script>
+
+    function validateRegexInput(inputElement) {
+        const pattern = inputElement.getAttribute("data-regex");
+        const value = inputElement.value;
+    
+        if (!pattern) return true; // No pattern to validate against
+    
+        const regex = new RegExp(pattern);
+        if (!regex.test(value)) {
+            inputElement.classList.add("is-invalid");
+            inputElement.setCustomValidity("Invalid input pattern.");
+            inputElement.reportValidity(); // Show browser validation message
+            return false;
+        } else {
+            inputElement.classList.remove("is-invalid");
+            inputElement.setCustomValidity(""); // Reset validity
+            return true;
+        }
+    }
+
+
+     function formatInputByPattern(inputElement, regexId) {
+        debugger;
+        let value = inputElement.value;
+    
+        const numericOnly = v => v.replace(/\D/g, "");
+        const alnumUpper = v => v.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    
+        switch (parseInt(regexId)) {
+            case 1: // Aadhar
+                value = numericOnly(value).substring(0, 12);
+                value = value.replace(/(\d{4})(?=\d)/g, "$1 ");
+                break;
+            case 2: // PAN
+                value = value.toUpperCase().replace(/[^A-Z0-9]/g, ""); // Remove non-alphanumerics
+                value = value.substring(0, 10); // Enforce 10-char limit
+                break;
+            case 3: // IFSC
+                value = alnumUpper(value).substring(0, 11);
+                break;
+            case 4: // Mobile Number
+                value = numericOnly(value).substring(0, 10);
+                break;
+            case 5: // Pincode
+                value = numericOnly(value).substring(0, 6);
+                break;
+            case 6: // Passport
+                value = alnumUpper(value).substring(0, 8);
+                break;
+            case 7: // Voter ID
+                value = alnumUpper(value).substring(0, 10);
+                break;
+            case 8: // Driving License
+                value = alnumUpper(value).substring(0, 16);
+                break;
+            case 9: // UPI
+                value = value.replace(/[^\w@.]/g, "").substring(0, 50);
+                break;
+            case 10: // Credit Card
+                // Remove all non-digit characters and format
+                value = numericOnly(value).substring(0, 16);
+                value = value.replace(/(\d{4})(?=\d)/g, "$1 ");
+                break;
+            case 11: // Landline Number (XXX-XXXXXXX)
+                // Remove all non-digit characters
+                value = numericOnly(value).substring(0, 11);
+                // Format as XXX-XXXXXXX
+                value = value.replace(/^(\d{3})(\d{0,8})/, "$1-$2");
+                break;
+            case 12: // PNR
+                // Allow only numeric values, limit to 10 digits
+                value = numericOnly(value).substring(0, 10);
+                break;
+            default:
+                value = value.replace(/[^\w\s]/g, "");
+                break;
+        }
+    
+        inputElement.value = value;
+    }
 </script>
 
 {% if messages %}

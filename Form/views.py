@@ -808,10 +808,29 @@ def form_master(request):
                 field["attributes"] = [a.strip() for a in field["attributes"].split(",")] if field.get("attributes") else []
 
                 # Fetch validations
+                # validations = FieldValidation.objects.filter(
+                #     field_id=field["id"], form_id=form_id
+                # ).values("value")
+                # field["validations"] = list(validations)
+
                 validations = FieldValidation.objects.filter(
                     field_id=field["id"], form_id=form_id
                 ).values("value")
+
                 field["validations"] = list(validations)
+
+                # Check if any validation value includes "^"
+                if any("^" in v["value"] for v in field["validations"]):
+                    field["field_type"] = "regex"
+                    pattern_value = field["validations"][0]["value"]
+
+                    try:
+                        regex_obj = RegexPattern.objects.get(regex_pattern=pattern_value)
+                        field["regex_id"] = regex_obj.id
+                        field["regex_description"] = regex_obj.description
+                    except RegexPattern.DoesNotExist:
+                        field["regex_id"] = None
+                        field["regex_description"] = ""
 
                 # File/text accept field handling
                 if field["field_type"] in ["file", "file multiple", "text"]:
@@ -822,8 +841,8 @@ def form_master(request):
                     split_values = field["values"]
                     if len(split_values) == 2:
                         dropdown_form_id, dropdown_field_id = split_values
-                        field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id)
-                        field["dropdown_data"] = list(field_values.values())
+                        field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id).values("value").distinct()
+                        field["dropdown_data"] = list(field_values)
 
 
                 # Handle master dropdown (fetch dynamic values)
@@ -884,8 +903,27 @@ def form_master(request):
                         field["attributes"] = field["attributes"].split(",") if field.get("attributes") else []
 
                         # Fetch validation rules
-                        validations = FieldValidation.objects.filter(field_id=field["id"], form_id=form_id).values("value")
+                        # validations = FieldValidation.objects.filter(field_id=field["id"], form_id=form_id).values("value")
+                        # field["validations"] = list(validations)
+
+                        validations = FieldValidation.objects.filter(
+                            field_id=field["id"], form_id=form_id
+                        ).values("value")
+
                         field["validations"] = list(validations)
+
+                        # Check if any validation value includes "^"
+                        if any("^" in v["value"] for v in field["validations"]):
+                            field["field_type"] = "regex"
+                            pattern_value = field["validations"][0]["value"]
+
+                            try:
+                                regex_obj = RegexPattern.objects.get(regex_pattern=pattern_value)
+                                field["regex_id"] = regex_obj.id
+                                field["regex_description"] = regex_obj.description
+                            except RegexPattern.DoesNotExist:
+                                field["regex_id"] = None
+                                field["regex_description"] = ""
 
                         # Extract file format for file fields
                         if field["field_type"] in ["file", "file multiple"]:
@@ -1800,4 +1838,19 @@ def get_field_names(request):
         form_id = request.POST.get('form_id')
         fields = FormField.objects.filter(form_id=form_id).values('id', 'label')
         return JsonResponse({'fields': list(fields)})
+    
+def get_regex_pattern(request):
+    if request.method == "POST":
+        regex_id = request.POST.get("regex_id")
 
+        try:
+            regex = RegexPattern.objects.get(id=regex_id)
+            return JsonResponse({
+                "regex_id":regex_id,
+                "pattern": regex.regex_pattern,
+                "description": regex.description
+            })
+        except RegexPattern.DoesNotExist:
+            return JsonResponse({"error": "Pattern not found"}, status=404)
+
+    return JsonResponse({"error": "Invalid request method"}, status=400)

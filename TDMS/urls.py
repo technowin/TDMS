@@ -50,6 +50,7 @@ urlpatterns = [
     path('get_query_data/', get_query_data, name='get_query_data'),
     path('check_field_before_delete/', check_field_before_delete, name='check_field_before_delete'),
     path('get_field_names/', get_field_names, name='get_field_names'),
+    path('get_regex_pattern/', get_regex_pattern, name='get_regex_pattern'),
 
 
     # Account
