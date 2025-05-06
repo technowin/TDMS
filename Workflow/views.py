@@ -749,6 +749,7 @@ def reject_workflow_step(request):
     # )
 
     # return JsonResponse({'status': True, 'message': 'Rejected and moved back to previous step successfully'})
+    messages.success(request, "Workflow Rejected successfully!")
     return redirect('workflow_starts')
     
     # NOT USING THIS
