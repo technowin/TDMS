@@ -127,6 +127,7 @@ class history_workflow_details(models.Model):
     updated_by = models.TextField(null=True, blank=True)
     increment_id= models.IntegerField(null=True, blank=True)
     form_id = models.IntegerField(null=True, blank=True)
+    sent_back = models.TextField(null=True, blank=True)
     class Meta:
         db_table = 'history_workflow_details'
 

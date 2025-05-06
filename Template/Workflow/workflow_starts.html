@@ -74,44 +74,66 @@
               </td>
               <td>{{ item.status }}</td>
               <td>
-                
-                {% if item.include_for_current_user %}
-                    {% if item.user_prev_step_Check != item.increment_idCheck %}
-                    <img 
-                    src="{% static 'img/eye-open.png' %}" 
-                    alt="View" 
-                    style="width: 30px; height: 30px; cursor: pointer;" 
-                    onclick="startStepView('{{ item.form_data_id }}','{{ item.req_num }}','{{ item.user_prev_step_Check }}')"
-                  />
-                    
 
 
+
+                {% if item.extra_flag == 'edit_again' and item.last_rejected_step is not none %}
+                      <button class="btn btn-primary" style="background-color: #2e59d9"
+                      onclick="startStepEdit('{{ item.form_data_id }}','{{ item.req_num }}','{{ item.user_prev_step_Check }}','{{item.form_id}}','{{ item.enc_id_wfd }}','{{ item.editORcreate }}')">
+                      {{ item.user_prev_step_name }}
+                      </button>
+                  {% elif item.extra_flag == 'view_only' and item.last_rejected_step is not none %}
+                      <img 
+                      src="{% static 'img/eye-open.png' %}" 
+                      alt="View" 
+                      style="width: 30px; height: 30px; cursor: pointer;" 
+                      onclick="startStepView('{{ item.form_data_id }}','{{ item.req_num }}','{{ item.user_prev_step_Check }}')"
+                    />
                   {% else %}
+                    <!-- Default flow -->
+                  
 
-                    {% comment %} {% if item.next_step_name != 'No next step' %} {% endcomment %}
 
-                     {% if item.editORcreate == 1 %} 
-                      <button class="btn btn-primary" style="background-color: #2e59d9"
-                          onclick="startStep('{{ item.user_prev_step_id }}', '{{ item.form_id }}', '{{ item.but_type }}', '{{ item.but_act }}', '{{ item.enc_id_wfd }}','{{item.editORcreate}}')">
-                          {{ item.user_prev_step_name }}
-                      </button>
+                
+                      {% if item.include_for_current_user %}
+                          {% if item.user_prev_step_Check != item.increment_idCheck %}
+                          <img 
+                          src="{% static 'img/eye-open.png' %}" 
+                          alt="View" 
+                          style="width: 30px; height: 30px; cursor: pointer;" 
+                          onclick="startStepView('{{ item.form_data_id }}','{{ item.req_num }}','{{ item.user_prev_step_Check }}')"
+                        />
+                          
 
-                      {% elif item.editORcreate == 2 or item.editORcreate == 3 %}
 
-                      <button class="btn btn-primary" style="background-color: #2e59d9"
-                          onclick="startStepEdit('{{ item.form_data_id }}','{{ item.req_num }}','{{ item.user_prev_step_Check }}','{{item.form_id}}','{{ item.enc_id_wfd }}','{{ item.editORcreate }}')">
-                          {{ item.user_prev_step_name }}
-                      </button>
-                    {% endif %} 
+                        {% else %}
 
-                    {% endif %}
-                    {% comment %} {% else %}
-                    <span class="text-muted">No next step</span>
-                    {% endif %} {% endcomment %}
-                {% else %}
-                    <!-- Display the correct current step name for the user -->
-                    <span class="text-muted">{{ item.step_name }}</span>
-                {% endif %}
+                          {% comment %} {% if item.next_step_name != 'No next step' %} {% endcomment %}
+
+                          {% if item.editORcreate == 1 %} 
+                            <button class="btn btn-primary" style="background-color: #2e59d9"
+                                onclick="startStep('{{ item.user_prev_step_id }}', '{{ item.form_id }}', '{{ item.but_type }}', '{{ item.but_act }}', '{{ item.enc_id_wfd }}','{{item.editORcreate}}')">
+                                {{ item.user_prev_step_name }}
+                            </button>
+
+                            {% elif item.editORcreate == 2 or item.editORcreate == 3 %}
+
+                            <button class="btn btn-primary" style="background-color: #2e59d9"
+                                onclick="startStepEdit('{{ item.form_data_id }}','{{ item.req_num }}','{{ item.user_prev_step_Check }}','{{item.form_id}}','{{ item.enc_id_wfd }}','{{ item.editORcreate }}')">
+                                {{ item.user_prev_step_name }}
+                            </button>
+                          {% endif %} 
+
+                          {% endif %}
+                          {% comment %} {% else %}
+                          <span class="text-muted">No next step</span>
+                          {% endif %} {% endcomment %}
+                      {% else %}
+                          <!-- Display the correct current step name for the user -->
+                          <span class="text-muted">{{ item.step_name }}</span>
+                      {% endif %}
+
+                  {% endif %}
               </td>
           </tr>
       {% endfor %}

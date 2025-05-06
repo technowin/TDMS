@@ -1273,6 +1273,7 @@ def common_form_edit(request):
                     req_id=workflow_detail.req_id,
                     form_id=request.POST.get('form_id', ''),
                     created_by=user,
+                    sent_back='0',
                     # created_by=workflow_detail.updated_by,
                     created_at=workflow_detail.updated_at
                 )
@@ -1289,6 +1290,7 @@ def common_form_edit(request):
                     operator=request.POST.get('custom_dropdownOpr', ''),
                     form_id=request.POST.get('form_id', ''),
                     created_by=user,
+                    sent_back='0',
                     # created_by=workflow_detail.updated_by,
                     created_at=workflow_detail.updated_at
                 )

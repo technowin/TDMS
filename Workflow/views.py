@@ -30,6 +30,7 @@ import Db
 
 from Form.models import *
 from django.urls import reverse
+from django.utils.timezone import now
 
 @login_required 
 def index(request):
@@ -356,6 +357,38 @@ def workflow_starts(request):
         
         form_data_id= enc(str(item[7]))
         
+        # last_rejected = history_workflow_details.objects.filter(
+        # req_id=req_num, sent_back='1'
+        # ).order_by('-step_id').first()
+
+        # # if last_rejected:
+        # #     # If a rejected entry exists, you can process it
+        # #     last_rejected_details = last_rejected.some_column  # Adjust this based on your needs
+        # # else:
+        # #     last_rejected_details = None  # No rejected step
+        # if last_rejected:
+        #     # extra_flag = 'edit_again'
+        #     last_rejected_step = last_rejected.step_id
+        #     last_rejected_status = last_rejected.status
+            
+        # else:
+        #     extra_flag = 'view_only'
+        #     last_rejected_step = None
+        #     last_rejected_status = None
+            
+        latest_entry = history_workflow_details.objects.filter(
+        req_id=req_num
+        ).order_by('-id').first()  # latest entry, could be reject or forward
+
+        if latest_entry and latest_entry.sent_back == '1':
+            last_rejected_step = latest_entry.step_id
+            last_rejected_status = latest_entry.status
+        else:
+            last_rejected_step = None
+            last_rejected_status = None
+            
+            
+        
         current_step_info = step_roles_map.get(step_id_str)
 
         # Init vars
@@ -403,6 +436,13 @@ def workflow_starts(request):
                 user_prev_step = step
                 break
 
+        # if last_rejected_step is not None and user_prev_step and user_prev_step.get('id') == last_rejected_step - 1:
+        #     extra_flag = 'edit_again'
+        if last_rejected_step is not None and user_prev_step and user_prev_step.get('id') == last_rejected_step - 1:
+            extra_flag = 'edit_again'
+        else:
+            extra_flag = 'view_only'
+        
         if include_for_current_user:
             user_prev_step_id_val = user_prev_step['id'] if user_prev_step else ''
             WFIndexdata.append({
@@ -433,8 +473,16 @@ def workflow_starts(request):
                  "user_prev_step_Check":user_prev_step_id_val,
                  
                 "user_prev_step_name": user_prev_step['step_name'] if user_prev_step else '',
-                "include_for_current_user": include_for_current_user
+                "include_for_current_user": include_for_current_user,
+                "last_rejected_step": last_rejected_step,
+                "last_rejected_status": last_rejected_status,
+                'extra_flag': extra_flag,
             })
+            if last_rejected_step is not None:
+                # This is where the backend resets rejection
+                last_rejected_step = None
+                last_rejected_status = None
+            
                 
                 
     first_step = workflow_steps[0] if workflow_steps else None
@@ -629,6 +677,80 @@ def workflow_form_step(request):
         m.close()
         Db.closeConnection()
     # save to yuor workflow_details and call nect step in index
+    
+def reject_workflow_step(request):
+    wfdetailsid = request.POST.get("wfdetailsid")
+    if wfdetailsid:
+        wfdetailsid = dec(wfdetailsid)
+
+    step_id_previous = int(request.POST.get("step_id"))  # Current step
+    step_id = step_id_previous - 1  # Previous step
+
+    # Get req_id from workflow_details
+    wf_record = workflow_details.objects.filter(id=wfdetailsid, step_id=step_id).first()
+    # if not wf_record:
+    #     return {'status': False, 'message': 'Workflow detail not found'}
+
+    req_id = wf_record.req_id
+
+    # 1. Insert rejected status in history_workflow_details
+    history_workflow_details.objects.create(
+        workflow_id=None,
+        step_id=step_id_previous,
+        form_data_id=wf_record.form_data_id,
+        req_id=req_id,
+        action_details_id=wf_record.action_details_id,
+        role_id=wf_record.role_id,
+        status=(wf_record.status or '') + " - Rejected",
+        operator=None,
+        user_id=wf_record.user_id,
+        created_by=str(wf_record.user_id),
+        created_at=timezone.now(),
+        updated_at=timezone.now(),
+        updated_by=str(wf_record.user_id),
+        increment_id=wf_record.increment_id,
+        form_id=wf_record.form_id,
+        sent_back='1',
+    )
+    
+    workflow_details.objects.filter(req_id=req_id).update(
+        increment_id=wf_record.increment_id - 1,
+        status=(wf_record.status or '') + " - Rejected"
+    )
+    
+    # context={"reject":1}
+
+    # 2. Fetch previous step from history
+    # previous_step = history_workflow_details.objects.filter(
+    #     req_id=req_id,
+    #     step_id=step_id
+    # ).order_by('-increment_id').first()
+
+    # if not previous_step:
+    #     return {'status': False, 'message': 'Previous step not found'}
+
+    # # 3. Insert previous step back as editable into history (to re-open it)
+    # history_workflow_details.objects.create(
+    #     workflow_id=None,
+    #     step_id=previous_step.step_id,
+    #     form_data_id=previous_step.form_data_id,
+    #     req_id=req_id,
+    #     action_details_id=previous_step.action_details_id,
+    #     role_id=previous_step.role_id,
+    #     status="Reopened after Rejection",
+    #     operator=None,
+    #     user_id=None,
+    #     created_by=str(request.user.id),
+    #     created_at=timezone.now(),
+    #     updated_at=timezone.now(),
+    #     updated_by=str(request.user.id),
+    #     increment_id=(previous_step.increment_id or 0) + 1,
+    #     form_id=previous_step.form_id,
+    # )
+
+    # return JsonResponse({'status': True, 'message': 'Rejected and moved back to previous step successfully'})
+    messages.success(request, "Workflow Rejected successfully!")
+    return redirect('workflow_starts')
     
     # NOT USING THIS
 def workflowcommon_form_post(request):
