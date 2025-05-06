@@ -32,7 +32,8 @@ urlpatterns = [
 
     # Form 
     path('form_builder/', form_builder, name='form_builder'),
-    path('form_action_builder/', form_action_builder, name='form_action_builder'),  # Render HTML
+    path('form_action_builder/', form_action_builder, name='form_action_builder'), 
+    path('form_action_builder_master/', form_action_builder_master, name='form_action_builder_master'),  # Render HTML
     path('save_form/', save_form, name='save_form'), 
     path('save_form_action/', save_form_action, name='save_form_action'), 
     path('update-action-form/<int:form_id>/',update_action_form, name='update_action_form'),
@@ -47,6 +48,8 @@ urlpatterns = [
     path('download_file/',download_file, name='download_file'),
     path('delete-file/', delete_file, name='delete_file'),
     path('get_query_data/', get_query_data, name='get_query_data'),
+    path('check_field_before_delete/', check_field_before_delete, name='check_field_before_delete'),
+    path('get_field_names/', get_field_names, name='get_field_names'),
 
 
     # Account

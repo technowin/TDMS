@@ -59,10 +59,6 @@
             </select>
 
 
-       
-
-
-
         {% elif field.field_type == "master dropdown" %}
             <select class="form-control select" name="field_{{ field.id }}"
                 {% for attr in field.attributes %} {{ attr }} {% endfor %}>
@@ -95,6 +91,17 @@
                 {% endfor %}
             </div>
 
+        {% elif field.field_type == "field_dropdown" %}
+
+            <select class="form-control select" name="field_{{ field.id }}"
+                {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                <option value="" selected disabled>Select</option>
+                {% for option in field.dropdown_data %}
+                <option value="{{ option.value }}">{{ option.value }}</option>
+              {% endfor %}
+            </select>
+          
+
         {% elif field.field_type == "checkbox" %}
             <br>
             <label class="switch">
@@ -123,8 +130,7 @@
                        class="form-control custom-file-input"style="padding-right: 100px;" id="file_input_{{ field.id }}"
                        {% for attr in field.attributes %} {{ attr }} {% endfor %}>
             
-                <i class="fa-solid fa-eye eye-icon"
-                       onclick="showFile(document.getElementById('file_input_{{ field.id }}'))">
+                <i class="fa-solid fa-eye eye-icon" onclick="showFile(document.getElementById('file_input_{{ field.id }}'))">
                 </i>
             </div>
                   
@@ -252,7 +258,6 @@
         }
     }
     
-
   
 </script>
 
