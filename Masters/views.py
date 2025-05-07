@@ -71,7 +71,7 @@ def masters(request):
             header = callproc("stp_get_masters", [entity, type, 'header',user])
             rows = callproc("stp_get_masters",[entity,type,'data',user])
             if entity == 'form_master':
-                forms = callproc("stp_get_forms",['view_form'])  
+                forms = callproc("stp_get_forms",['view_form',user])  
                 type = 'i'
                 if sf == '' or None:
                    sf =  forms[0][0]   
