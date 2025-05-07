@@ -307,13 +307,15 @@
              let sectiondropdownHtml = `<select id="section-dropdown-${field.id}" class="form-control section-select">`;
 
              // Add placeholder
-             sectiondropdownHtml += `<option value="" disabled selected>Select Section</option>`;
+             sectiondropdownHtml += `<option value="" disabled ${!field.section ? "selected" : ""}>Select Section</option>`;
              
              section.forEach(option => {
-                 sectiondropdownHtml += `<option value="${option.id}">${option.name}</option>`;
+                 const isSelected = String(option.id) === String(field.section) ? "selected" : "";
+                 sectiondropdownHtml += `<option value="${option.id}" ${isSelected}>${option.name}</option>`;
              });
              
              sectiondropdownHtml += `</select>`;
+             
              
 
             // Sub-Control Handling (max_length / regex)
@@ -1457,26 +1459,28 @@
             const fieldId = fieldEl.dataset.id;
             const originalField = formFields.find(f => String(f.id) === String(fieldId));
             if (!originalField) return;
-    
-            // Set the order based on DOM position
+        
+            // Set the order
             originalField.order = index + 1;
-    
+        
+            // Master dropdown logic
             if (originalField.type === "master dropdown") {
                 const selectedDropdown = document.getElementById(`field_${fieldId}`);
                 if (selectedDropdown) {
-                    originalField.selectedValue = selectedDropdown.value;
+                    originalField.selectedValue = selectedDropdown.value; 
                 }
             }
-    
+        
+            // 🔥🔥 Get selected section value
+            const sectionSelect = document.getElementById(`section-dropdown-${fieldId}`);
+            if (sectionSelect && sectionSelect.selectize) {
+                const selectedSection = sectionSelect.selectize.getValue();
+                originalField.section = selectedSection; // <-- Save selected section ID here
+            }
+        
             orderedFormFields.push(originalField);
         });
-        const sectionSelect = document.querySelector("#section-select");
-            if (sectionSelect && sectionSelect.selectize) {
-                const selectedSections = sectionSelect.selectize.getValue(); // gets an array or comma-separated string
-                document.getElementById("selected-sections-input").value = Array.isArray(selectedSections)
-                    ? selectedSections.join(",")
-                    : selectedSections;
-            }
+        
     
         // Save reordered + updated fields
         document.getElementById("form-data-input").value = JSON.stringify(orderedFormFields);

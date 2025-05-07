@@ -1,3 +1,4 @@
+from collections import defaultdict
 from django.db import connection
 from django.shortcuts import render
 
@@ -139,6 +140,7 @@ def form_builder(request):
                 "id": field.id,
                 "label": field.label,
                 "type": field.field_type,
+                "section":field.section,
                 "options": field.values.split(",") if field.values else [], 
                 "attributes": field.attributes if field.attributes else [],
                 "validation": validation_dict.get(field.id, []),
@@ -214,7 +216,8 @@ def save_form(request):
 
                 form_field = FormField.objects.create(
                     form=form,
-                    label=formatted_label,  # Use formatted label here
+                    label=formatted_label, 
+                    section = field.get("section",""), # Use formatted label here
                     field_type=field.get("type", ""),
                     attributes=field.get("attributes", "[]"),
                     values=value,
@@ -399,6 +402,7 @@ def update_form(request, form_id):
                         form_field = FormField.objects.get(id=field_id)
                         form_field.label = formatted_label
                         form_field.field_type = field.get("type", "")
+                        form_field.section = field.get("section","")
                         form_field.attributes = attributes_value
                         form_field.values = value
                         form_field.order = order
@@ -817,9 +821,9 @@ def form_master(request):
                         section = SectionMaster.objects.get(id=section_id)
                         section_name = section.name
                     except SectionMaster.DoesNotExist:
-                        section_name = "Ungrouped"
+                        section_name = ""
                 else:
-                    section_name = "Ungrouped"
+                    section_name = ""
 
                 field["section_name"] = section_name
 
@@ -895,44 +899,57 @@ def form_master(request):
             if form_data_id:
                 form_data_id = dec(form_data_id)
                 form_instance = FormData.objects.filter(id=form_data_id).values("id","form_id", "action_id").first()
+
+                comments = ActionData.objects.filter(
+                    form_data_id=form_data_id,
+                    field__type__in=['text', 'textarea']
+                ).values('field_id', 'value','step_id')
+
                 
                 if form_instance:
                     form_id = form_instance["form_id"]
-                    form = get_object_or_404(Form,id = form_id)
-                    if button_type_id == None:
-                        action_id = form_instance["action_id"]
-                    else: 
-                        action_id =button_type_id
-                    # action_id = get_object_or_404(workflow_matrix,form_id=form_id).button_type_id
-                    
+                    form = get_object_or_404(Form, id=form_id)
+
+                    action_id = form_instance["action_id"] if button_type_id is None else button_type_id
+
                     fields = FormField.objects.filter(form_id=form_id).values(
-                        "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name"
-                    ).order_by("order")  # Sort by 'order' field
+                        "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name", "section"
+                    ).order_by("order")
                     fields = list(fields)
 
-                    # Fetch saved values for the form data
+                    # Fetch saved values
                     field_values = FormFieldValues.objects.filter(form_data_id=form_data_id).values("field_id", "value")
                     values_dict = {fv["field_id"]: fv["value"] for fv in field_values}
 
+                    sectioned_fields = defaultdict(list)
+
+
                     for field in fields:
+                        # Split values and attributes
                         field["values"] = field["values"].split(",") if field.get("values") else []
                         field["attributes"] = field["attributes"].split(",") if field.get("attributes") else []
 
-                        # Fetch validation rules
-                        # validations = FieldValidation.objects.filter(field_id=field["id"], form_id=form_id).values("value")
-                        # field["validations"] = list(validations)
+                        # Section name logic
+                        section_id = field.get("section")
+                        if section_id:
+                            try:
+                                section = SectionMaster.objects.get(id=section_id)
+                                section_name = section.name
+                            except SectionMaster.DoesNotExist:
+                                section_name = ""
+                        else:
+                            section_name = ""
 
+                        # Validation rules
                         validations = FieldValidation.objects.filter(
                             field_id=field["id"], form_id=form_id
                         ).values("value")
-
                         field["validations"] = list(validations)
 
-                        # Check if any validation value includes "^"
+                        # Check for regex
                         if any("^" in v["value"] for v in field["validations"]):
                             field["field_type"] = "regex"
                             pattern_value = field["validations"][0]["value"]
-
                             try:
                                 regex_obj = RegexPattern.objects.get(regex_pattern=pattern_value)
                                 field["regex_id"] = regex_obj.id
@@ -941,7 +958,7 @@ def form_master(request):
                                 field["regex_id"] = None
                                 field["regex_description"] = ""
 
-                        # Extract file format for file fields
+                        # File field logic
                         if field["field_type"] in ["file", "file multiple"]:
                             file_validation = next((v for v in field["validations"]), None)
                             field["accept"] = file_validation["value"] if file_validation else ""
@@ -949,46 +966,42 @@ def form_master(request):
                             file_exists = FormFile.objects.filter(field_id=field["id"], form_data_id=form_data_id).exists()
                             field["file_uploaded"] = 1 if file_exists else 0
 
-                            # If file exists, remove "required" from attributes
                             if file_exists and "required" in field["attributes"]:
                                 field["attributes"].remove("required")
 
-
-                        # Set existing values if available
+                        # Set saved value
                         saved_value = values_dict.get(field["id"], "")
-
                         if field["field_type"] == "select multiple":
                             field["value"] = [val.strip() for val in saved_value.split(",") if val.strip()]
                         else:
                             field["value"] = saved_value
 
+                        # field_dropdown logic
                         if field["field_type"] == "field_dropdown":
                             split_values = field["values"]
                             if len(split_values) == 2:
-                                dropdown_form_id, dropdown_field_id = split_values
-                                field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id)
-                                field["dropdown_data"] = list(field_values.values())
+                                try:
+                                    dropdown_field_id = int(split_values[1])
+                                    dropdown_field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id)
+                                    field["dropdown_data"] = list(dropdown_field_values.values())
+                                    field["saved_value"] = values_dict.get(field["id"])
+                                except (ValueError, IndexError):
+                                    field["dropdown_data"] = []
+                                    field["saved_value"] = ""
 
-                        if field["field_type"] == "field_dropdown":
-                            dropdown_field_id = int(field["values"][1])  # extract from list and convert to int
-                            field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id)
-                            field["dropdown_data"] = list(field_values.values())
-                            field["saved_value"] = values_dict.get(field["id"])
-
-
-
-
+                        # master dropdown logic
                         if field["field_type"] == "master dropdown" and field["values"]:
-                            dropdown_id = field["values"][0]
                             try:
+                                dropdown_id = field["values"][0]
                                 master_data = MasterDropdownData.objects.get(id=dropdown_id)
                                 query = master_data.query
                                 result = callproc("stp_get_query_data", [query])
-
-                                # Format as list of dicts
                                 field["values"] = [{"id": row[0], "name": row[1]} for row in result]
-                            except MasterDropdownData.DoesNotExist:
+                            except (MasterDropdownData.DoesNotExist, IndexError):
                                 field["values"] = []
+
+                        # Group field by section name
+                        sectioned_fields[section_name].append(field)
 
                     # ✅ Fetch action fields (no validations needed)
                     action_fields = list(FormActionField.objects.filter(action_id=action_id).values(
@@ -997,13 +1010,15 @@ def form_master(request):
                     ))
                     action_fields = list(action_fields)
 
+                    action_data = list(ActionData.objects.filter(form_data_id=form_data_id).values())
+
                     for af in action_fields:
                         af["dropdown_values"] = af["dropdown_values"].split(",") if af.get("dropdown_values") else []
                     if workflow_YN == '1E':
-                        return render(request, "Form/_formfieldedit.html", {"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"workflow":workflow_YN,
-                                    "step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF})
+                        return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"workflow":workflow_YN,
+                                    "step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF,"action_data":action_data,"comments":comments})
                     else:
-                        return render(request, "Form/_formfieldedit.html", {"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"readonlyWF":readonlyWF,"viewStepWFSeq":'0'})
+                        return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"readonlyWF":readonlyWF,"viewStepWFSeq":'0',"action_data":action_data,"comments":comments})
             else:
                 type = request.GET.get("type")
                 form = Form.objects.all()
@@ -1027,6 +1042,7 @@ def common_form_post(request):
 
         workflow_YN = request.POST.get('workflow_YN', '')
         form_id = request.POST.get("form_id")
+        
 
         # form_id = request.POST.get(form_id_key, '').strip()
         form = get_object_or_404(Form, id=request.POST.get("form_id"))
@@ -1041,8 +1057,10 @@ def common_form_post(request):
             form_data = FormData.objects.create(form=form,action=action)
         if workflow_YN == '1':
             form_data.req_no = f"REQNO-00{form_data.id}"
+            form_data.is_workflow = 1
         else:
             form_data.req_no = f"UNIQ-NO-00{form_data.id}"
+            form_data.is_workflow = 0
         form_data.created_by = user
         form_data.save()
         
@@ -1152,6 +1170,22 @@ def common_form_post(request):
                     # created_by=workflow_detail.updated_by,
                     created_at=workflow_detail.updated_at
                 )
+
+            for key, value in request.POST.items():
+                    if key.startswith("action_field_") and not key.startswith("action_field_id_"):
+                        match = re.match(r'action_field_(\d+)', key)
+                        if match:
+                            field_id = int(match.group(1))
+                            action_field = get_object_or_404(FormActionField, pk=field_id)
+                            if action_field.type in ['text', 'textarea', 'dropdown']:
+                                ActionData.objects.create(
+                                    value=value,
+                                    form_data=form_data,
+                                    field=action_field,
+                                    step_id=step_id,
+                                    created_by=user,
+                                    updated_by=user,
+                                )
             
             messages.success(request, "Workflow data saved successfully!")
 
@@ -1206,6 +1240,11 @@ def common_form_edit(request):
                 elif  field.field_type in ["file", "file multiple"]:
                     continue
 
+                if workflow_YN == '1':
+                    workflow = 1
+                else:
+                    workflow = 0
+
                 # Check if a value already exists for this field
                 existing_value = FormFieldValues.objects.filter(
                     form_data=form_data, form=form, field=field
@@ -1222,7 +1261,8 @@ def common_form_edit(request):
                         form=form,
                         field=field,
                         value=input_value,
-                        created_by=created_by
+                        created_by=created_by,
+                        is_worklflow = workflow
                     )
 
 
@@ -1324,50 +1364,7 @@ def common_form_edit(request):
         else:
             return redirect("/masters?entity=form_master&type=i")
 
-    
-# def handle_generative_fields(form, form_data, created_by):
-#     generative_fields = FormField.objects.filter(form=form, field_type="generative")
 
-#     for field in generative_fields:
-#         try:
-#             gen_settings = FormGenerativeField.objects.get(field=field, form=form)
-
-#             prefix = gen_settings.prefix or ''
-#             selected_ids = (gen_settings.selected_field_id or '').split(',')
-#             no_of_zero = int(gen_settings.no_of_zero or '0')
-#             increment = int(gen_settings.increment or '1')
-
-#             # Gather values from previously saved fields
-#             selected_values = []
-#             for sel_id in selected_ids:
-#                 selected_field = FormField.objects.filter(id=sel_id).first()
-#                 if not selected_field:
-#                     continue
-
-#                 value_obj = FormFieldValues.objects.filter(
-#                     form_data=form_data,
-#                     form=form,
-#                     field=selected_field
-#                 ).first()
-
-#                 if value_obj:
-#                     selected_values.append(value_obj.value)
-
-#             base_part = '-'.join(selected_values)
-#             padded_number = str(0).zfill(no_of_zero)
-#             final_value = f"{prefix}-{base_part}-{padded_number}{increment}"
-
-#             # Save the generated value
-#             FormFieldValues.objects.create(
-#                 form_data=form_data,
-#                 form=form,
-#                 field=field,
-#                 value=final_value,
-#                 created_by=created_by
-#             )
-
-#         except FormGenerativeField.DoesNotExist:
-#             continue  # skip if no config found
 
 def handle_generative_fields(form, form_data, created_by):
     generative_fields = FormField.objects.filter(form=form, field_type="generative")
@@ -1540,20 +1537,21 @@ def form_preview(request):
         form_id = workflow.form_id
         action_id = workflow.button_type_id
 
-        form  = get_object_or_404(Form,id = form_id)
+        form = get_object_or_404(Form, id=form_id)
 
-        # Fetch form fields
+        # Fetch form fields with 'section'
         fields = list(FormField.objects.filter(form_id=form_id).values(
-            "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name","order"
+            "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name", "order", "section"
         ).order_by("order"))
 
+        # Initialize sectioned fields
+        sectioned_fields = {}
 
         # Fetch action fields
         action_fields = list(FormActionField.objects.filter(action_id=action_id).values(
             "id", "type", "label_name", "button_name", "bg_color", "text_color", 
-            "button_type", "dropdown_values", "status","action_id"
+            "button_type", "dropdown_values", "status", "action_id"
         ))
-
 
         # Process action fields
         for action in action_fields:
@@ -1564,31 +1562,56 @@ def form_preview(request):
             field["values"] = field["values"].split(",") if field.get("values") else []
             field["attributes"] = field["attributes"].split(",") if field.get("attributes") else []
 
+
+
+            # Section name logic
+            section_id = field.get("section")
+            if section_id:
+                try:
+                    section = SectionMaster.objects.get(id=section_id)
+                    section_name = section.name
+                except SectionMaster.DoesNotExist:
+                    section_name = ""
+            else:
+                section_name = ""
+
+            if field["field_type"] == "field_dropdown":
+                    split_values = field["values"]
+                    if len(split_values) == 2:
+                        dropdown_form_id, dropdown_field_id = split_values
+                        field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id).values("value").distinct()
+                        field["dropdown_data"] = list(field_values)
+
             # Fetch validations
             validations = FieldValidation.objects.filter(
                 field_id=field["id"], form_id=form_id
             ).values("value")
             field["validations"] = list(validations)
 
-            # Handle accept type for file input
+            # Handle file accept
             if field["field_type"] in ["file", "text", "file multiple"]:
                 file_validation = next((v for v in field["validations"]), None)
                 field["accept"] = file_validation["value"] if file_validation else ""
 
+            # Group by section
+            sectioned_fields.setdefault(section_name, []).append(field)
+
         return render(request, "Form/_formfieldedit.html", {
-            "matrix_id":id,
-            "fields": fields,
-            "form":form,
-            "form_id":form_id,
-            "action_id":action_id,
+            "matrix_id": id,
+            "sectioned_fields": sectioned_fields,
+            "fields": fields,  # still passed if needed
+            "form": form,
+            "form_id": form_id,
+            "action_id": action_id,
             "action_fields": action_fields,
-            "type":"create"
+            "type": "create"
         })
 
     except Exception as e:
         traceback.print_exc()
         messages.error(request, "Oops...! Something went wrong!")
         return render(request, "Form/_formfields.html", {"fields": []})
+
     
 
 
@@ -1601,6 +1624,8 @@ def common_form_action(request):
             form_data = get_object_or_404(FormData, pk=form_data_id)
             button_type = request.POST.get('button_type')
             clicked_action_id = request.POST.get('clicked_action_id')
+            if workflow_YN == '1E':
+                step_id = request.POST.get('step_id', '')
             
             # Process only if it's an Action button
             if button_type == 'Action':
@@ -1619,6 +1644,7 @@ def common_form_action(request):
                             value=action_field.status,  # saving the status from FormActionField
                             form_data=form_data,
                             field=action_field,
+                            step_id=step_id,
                             created_by=user,
                             updated_by=user,
                         )
@@ -1636,6 +1662,7 @@ def common_form_action(request):
                                     value=value,
                                     form_data=form_data,
                                     field=action_field,
+                                    step_id=step_id,
                                     created_by=user,
                                     updated_by=user,
                                 )
