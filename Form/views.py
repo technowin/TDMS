@@ -1060,7 +1060,9 @@ def common_form_post(request):
                 operator=request.POST.get('custom_dropdownOpr', ''),
                 user_id=user,
                 created_by=user,
-                created_at=now()
+                created_at=now(),
+                updated_by = user,  
+                updated_at = now()
                 
                 )
 
@@ -1099,7 +1101,7 @@ def common_form_post(request):
                     created_at=workflow_detail.updated_at
                 )
             
-            messages.success(request, "Workflow data saved successfully!")
+            messages.success(request, f"{status_from_matrix} !")
 
     except Exception as e:
         traceback.print_exc()
@@ -1665,7 +1667,7 @@ def common_form_action(request):
                         created_at=workflow_detail.updated_at
                     )
                 
-                messages.success(request, "Workflow data saved successfully!")
+                messages.success(request, f"{status_from_matrix} !")
         
         
         if workflow_YN == '1E':
