@@ -645,11 +645,67 @@ def workflow_form_step(request):
         form  = get_object_or_404(Form,id = form_id)
 
         # Fetch form fields
-        fields = list(FormField.objects.filter(form_id=form_id).values(
-            "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name"
-        ))
+        raw_fields = FormField.objects.filter(form_id=form_id).values(
+                "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name", "section"
+            ).order_by("order")
 
-        # Fetch action fields
+        sectioned_fields = {}
+
+        for field in raw_fields:
+            # Clean up values and attributes
+            field["values"] = [v.strip() for v in field["values"].split(",")] if field.get("values") else []
+            field["attributes"] = [a.strip() for a in field["attributes"].split(",")] if field.get("attributes") else []
+            # Get section name
+            section_id = field.get("section")
+            if section_id:
+                try:
+                    section = SectionMaster.objects.get(id=section_id)
+                    section_name = section.name
+                except SectionMaster.DoesNotExist:
+                    section_name = ""
+            else:
+                section_name = ""
+            field["section_name"] = section_name
+            # Fetch validations
+            validations = FieldValidation.objects.filter(
+                field_id=field["id"], form_id=form_id
+            ).values("value")
+            field["validations"] = list(validations)
+            # Regex detection
+            if any("^" in v["value"] for v in field["validations"]):
+                field["field_type"] = "regex"
+                pattern_value = field["validations"][0]["value"]
+                try:
+                    regex_obj = RegexPattern.objects.get(regex_pattern=pattern_value)
+                    field["regex_id"] = regex_obj.id
+                    field["regex_description"] = regex_obj.description
+                except RegexPattern.DoesNotExist:
+                    field["regex_id"] = None
+                    field["regex_description"] = ""
+            # Accept type (file/text)
+            if field["field_type"] in ["file", "file multiple", "text"]:
+                file_validation = next((v for v in field["validations"]), None)
+                field["accept"] = file_validation["value"] if file_validation else ""
+            # Field Dropdown (dynamic values)
+            if field["field_type"] == "field_dropdown":
+                split_values = field["values"]
+                if len(split_values) == 2:
+                    dropdown_form_id, dropdown_field_id = split_values
+                    field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id).values("value").distinct()
+                    field["dropdown_data"] = list(field_values)
+            # Master Dropdown
+            if field["field_type"] == "master dropdown" and field["values"]:
+                dropdown_id = field["values"][0]
+                try:
+                    master_data = MasterDropdownData.objects.get(id=dropdown_id)
+                    query = master_data.query
+                    result = callproc("stp_get_query_data", [query])
+                    field["values"] = [{"id": row[0], "name": row[1]} for row in result]
+                except MasterDropdownData.DoesNotExist:
+                    field["values"] = []
+            # Group by section name
+            sectioned_fields.setdefault(section_name, []).append(field)
+
         action_fields = list(FormActionField.objects.filter(action_id=action_id).values(
             "id", "type", "label_name", "button_name", "bg_color", "text_color", 
             "button_type", "dropdown_values", "status"
@@ -668,25 +724,9 @@ def workflow_form_step(request):
                     form_action_url = reverse('common_form_action')
                     break
 
-        # Process form fields
-        for field in fields:
-            field["values"] = field["values"].split(",") if field.get("values") else []
-            field["attributes"] = field["attributes"].split(",") if field.get("attributes") else []
-
-            # Fetch validations
-            validations = FieldValidation.objects.filter(
-                field_id=field["id"], form_id=form_id
-            ).values("value")
-            field["validations"] = list(validations)
-
-            # Handle accept type for file input
-            if field["field_type"] in ["file", "text", "file multiple"]:
-                file_validation = next((v for v in field["validations"]), None)
-                field["accept"] = file_validation["value"] if file_validation else ""
-
         if wfdetailsid:
             return render(request, "Form/_formfieldedit.html", {
-                "fields": fields,
+                "sectioned_fields": sectioned_fields,
                 "form":form,
                 "action_fields": action_fields,
                 "form_action_url": form_action_url,
@@ -696,7 +736,7 @@ def workflow_form_step(request):
             })
         else:
             return render(request, "Form/_formfieldedit.html", {
-                "fields": fields,
+                "sectioned_fields": sectioned_fields,
                 "form":form,
                 "action_fields": action_fields,
                 "form_action_url": form_action_url,

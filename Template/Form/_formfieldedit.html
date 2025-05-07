@@ -44,6 +44,34 @@
       .selectize-dropdown {
         overflow: hidden !important;
       }
+
+      /* Wrapper for the section */
+      .section-wrapper {
+          border: 2px solid #ccc;
+          border-radius: 8px;
+          padding-top: 2.5rem;
+          position: relative;
+          background-color: #f9f9f9;
+      }
+      
+      /* Remove border and header if no section name is provided */
+      .section-wrapper.no-section {
+          border: none;
+      }
+      
+      /* Section header styles */
+      .section-header {
+          position: absolute;
+          top: -1rem;
+          left: 1rem;
+          background-color: #f9f9f9;
+          padding: 0 0.5rem;
+          font-weight: bold;
+          font-size: 24px;
+          color: #4e73df;
+          border-left: 4px solid #007bff;
+      }
+          
 </style>
 
 <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;" >
@@ -62,10 +90,16 @@
     {% csrf_token %}
 <div class="row">
 
-    {% for field in fields %}
-        {% if forloop.first or forloop.counter0|divisibleby:4 %}
-            <div class="w-100"></div> {# Ensures a new row every 4 fields #}
+    {% for section_name, fields in sectioned_fields.items %}
+    <div class="section-wrapper col-md-12 my-4 p-3 {% if not section_name %}no-section{% endif %}">
+        {% if section_name %}
+            <div class="section-header">{{ section_name }}</div>
         {% endif %}
+
+        {% for field in fields %}
+            {% if forloop.counter0|divisibleby:4 %}
+                <div class="row">
+            {% endif %}
 
         <div class="col-md-3 mb-3">
             <input type="hidden" name="form_name" value="{{ form.name }}">
@@ -220,6 +254,17 @@
                        {% if readonlyWF == '1' or viewStepWFSeq == '3' %}readonly{% endif %}
                        placeholder="{% if field.accept %}Enter up to {{ field.accept }} characters{% else %}Enter text{% endif %}"
                        {% for attr in field.attributes %}{{ attr }} {% endfor %}/>
+
+            {% elif field.field_type == "regex" %}
+                <input type="text" class="form-control"
+                       name="field_{{ field.id }}"
+                       id="regex-{{ field.id }}"
+                       data-regex="{{ field.validations.0.value }}"
+                       data-regex-id="{{ field.regex_id }}"
+                       value="{{ field.value|default:'' }}"
+                       oninput="formatInputByPattern(this, '{{ field.regex_id }}'); validateRegexInput(this);"
+                       placeholder="{{ field.regex_description }}"
+                       {% for attr in field.attributes %} {{ attr }} {% endfor %}>
             
             {% else %}
                 <input type="{{ field.field_type }}" class="form-control"
@@ -231,8 +276,12 @@
             
 
         
-        </div>
-    {% endfor %}
+        </div> {% if forloop.counter0|add:1|divisibleby:4 or forloop.last %}
+    </div>
+{% endif %}
+{% endfor %}
+</div>
+{% endfor %}
 
 
     
@@ -240,7 +289,24 @@
 </div>
 </div>
 <br/>
+{% if comments %}
+<div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;">
+    <div class="row col-md-12 justify-content-center">
+        <input type="hidden" id="clicked_action_id" name="clicked_action_id">
 
+        {% for comment in comments %}
+            <div class="col-md-4 mt-3">
+                <label class="fw-bold">Step {{ comment.step_id }}</label>
+                <input type="text" class="form-control" value="{{ comment.value }}" readonly>
+
+            </div>
+        {% endfor %}
+    </div>
+</div>
+{% endif %}
+
+<br/>
+{% if readonlyWF != '1' %}
 <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;" >
 <div class="row col-md-12 justify-content-center">
     <input type="hidden" id="clicked_action_id" name="clicked_action_id">
@@ -296,6 +362,8 @@
         </button>
     </div>
 {% endif %}
+{% endif %}
+
 
 
 </div>
@@ -662,9 +730,6 @@
                 }else if (buttonType === 'Action' && parseInt(editORcreate.value) === 3) {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_action' %}";
-                }else if (buttonType === 'Reject' && parseInt(workflow_YN.value) === 1) {
-                    operatorDropdown.removeAttribute('required');
-                    form.action = "{% url 'reject_workflow_step' %}";
                 }
     
                 
