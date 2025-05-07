@@ -451,7 +451,7 @@
                     </div>
             
                     <div class="col-md-5 p-1">
-                        <select class="form-control field_dropdown" oninput="updateGenerativePreview('${fieldId}')"
+                        <select class="form-control field_dropdown" onchange="updateGenerativePreview('${fieldId}')"
                             multiple name="fielddropdown-${fieldId}" id="fielddropdown-${fieldId}"
                             title="Select a field from the dropdown">
                             <option value="">Select Field</option>
@@ -477,7 +477,7 @@
             
     
         
-           let colSize = 'col-md-4'; // default
+            let colSize = 'col-md-4';
 
           builder.innerHTML += `
             <div class="row col-md-12 draggable-field" data-id="${fieldId}">
@@ -589,11 +589,10 @@
     function captureDropdownStates() {
         const stateMap = {};
     
-        // Capture states of all the dropdowns
         $('select[id^="form-dropdown-"]').each(function () {
             const fieldId = this.id.split('-')[2];
-            const selectedFormValue = $(this).val();  // The form ID selected, e.g., "4,37"
-            const selectedSubFieldValue = $(`select[name="sub_field_${fieldId}"]`).val() || "";  // Get the sub field value
+            const selectedFormValue = $(this).val();
+            const selectedSubFieldValue = $(`select[name="sub_field_${fieldId}"]`).val() || "";
     
             stateMap[fieldId] = {
                 formValue: selectedFormValue,
@@ -601,29 +600,37 @@
             };
         });
     
+        // Capture master dropdowns
+        $('select[id^="option-dropdown-"]').each(function () {
+            const fieldId = this.id.split('-')[2];
+            const selectedMasterValue = $(this).val();
+    
+            if (!stateMap[fieldId]) stateMap[fieldId] = {};
+            stateMap[fieldId].masterValue = selectedMasterValue;
+        });
+    
         return stateMap;
     }
+
     
     function restoreDropdownStates(stateMap) {
-        // Restore the dropdown states from the stateMap
         for (const fieldId in stateMap) {
-            const { formValue, subFieldValue } = stateMap[fieldId];
+            const { formValue, subFieldValue, masterValue } = stateMap[fieldId];
     
+            // Restore form dropdown
             if (formValue) {
-                // Set the form dropdown value
-                const [formId, fieldIdFromValue] = formValue.split(',');
-    
-                // Set form dropdown value
                 $(`#form-dropdown-${fieldId}`).val(formValue);
-    
-                // Trigger the loadFieldNames to load the sub field options
                 loadFieldNames(fieldId, formValue, subFieldValue);
+            }
+    
+            // Restore master dropdown
+            if (masterValue !== undefined) {
+                $(`#option-dropdown-${fieldId}`).val(masterValue);
+                updateFields(fieldId, 'masterValue', masterValue);
             }
         }
     }
     
-    
-
 
      function loadFieldNames(fieldId, combinedValue, selectedSubFieldValue) {
         if (!combinedValue) return;
@@ -726,8 +733,12 @@
     
     function updateSubFieldAndGenerateElement(fieldId, selectedValue, savedValue = "", subControlId) {
         let dynamicElement = document.getElementById(`dynamic-element-${fieldId}`);
-        dynamicElement.innerHTML = "";
-    
+        /// dynamicElement.innerHTML = "";
+
+        if (!dynamicElement) {
+            console.warn(`Element dynamic-element-${fieldId} not found.`);
+            return;  
+        }
         let field = formFields.find(f => f.id === fieldId);
         if (field) {
             field.selectedValue = selectedValue;
@@ -740,21 +751,75 @@
                        value="${savedValue}" oninput="updateSubField(${fieldId}, 'max_length', this.value, ${subControlId})">
                        `;
         }
-         else if (selectedValue === "regex") {
+        else if (selectedValue === "regex") {
             let regexOptions = `<option value="">Select Pattern</option>` +
                 regex.map(option => 
-                    `<option value="${option.regex_pattern}" ${option.regex_pattern === savedValue ? "selected" : ""}>
+                    `<option value="${option.regex_pattern}" 
+                             data-regex-id="${option.id}" 
+                              data-description="${option.description || ''}" 
+                             ${option.regex_pattern === savedValue ? "selected" : ""}>
                         ${option.input_type}
-                    </option>`
+                     </option>`
                 ).join("");
-    
+        
             dynamicElement.innerHTML = `
-                <select class="form-control select" id="regex-${fieldId}" onchange="updateSubField(${fieldId}, 'regex', this.value, ${subControlId})">
+                <select class="form-control select" id="regex-${fieldId}" 
+                        onchange="updateSubField(${fieldId}, 'regex', this.value, ${subControlId}); 
+                                 setRegexAttributes(${fieldId});">
                     ${regexOptions}
                 </select>
             `;
         }
+        
+        
+       
     }
+
+    function setRegexAttributes(fieldId) {
+        const select = document.getElementById(`regex-${fieldId}`);
+        const selectedOption = select.options[select.selectedIndex];
+        const regexId = selectedOption.getAttribute('data-regex-id');
+        const pattern = select.value;
+        const description = selectedOption.getAttribute('data-description') || "";
+    
+        const inputs = document.querySelectorAll(`.regex-preview-${fieldId}`);
+        inputs.forEach(input => {
+            input.setAttribute('data-regex', pattern);
+            input.setAttribute('data-regex-id', regexId);
+            input.setAttribute('placeholder', description);
+        });
+    }
+    
+
+
+    
+    
+
+
+    function fetchRegexDetails(regexId, fieldId) {
+        if (!regexId || !fieldId) return;
+
+            $.ajax({
+                url: "{% url 'get_regex_pattern' %}",
+                type: 'POST',
+                data: {
+                    regex_id: regexId,
+                    'csrfmiddlewaretoken': '{{ csrf_token }}'
+                },
+                success: function(response) {
+                    let inputElement = document.getElementById(`regex-${fieldId}`);
+                    if (inputElement) {
+                        inputElement.setAttribute("data-regex", response.pattern);
+                        inputElement.setAttribute("data-regex-id", response.regex_id);
+                        inputElement.setAttribute("placeholder", response.description);
+                    }
+                },
+                error: function(xhr, status, error) {
+                    console.error("AJAX Error:", error);
+                }
+            });
+        }
+
     
     function updateSubField(fieldId, type, value, subControlId) {
         
@@ -913,10 +978,20 @@
                         inputHtml = `<input type="text" class="form-control w-100" name="${field.label}" 
                                      ${maxAttr} value="${field.value || ""}" 
                                      placeholder="Enter up to ${maxLengthValue} characters only">`;
-                    } else if (field.selectedValue === "regex") {
-                        inputHtml = `<input type="text" class="form-control w-100" name="${field.label}" 
-                                     id="regex-${field.id}" data-regex="${pattern}" value="${field.value || ""}">`;
-                    } else {
+                    }
+                    else if (field.selectedValue === "regex") {
+                        debugger;
+                        inputHtml = `<input type="text" class="form-control w-100 regex-preview-${field.id}"
+                                            name="${field.label}" 
+                                            data-regex="${field.pattern || ''}" 
+                                            data-regex-id="${field.regex_id || ''}" 
+                                            placeholder="${field.description || ''}" 
+                                            oninput="formatInputByPattern(this, this.getAttribute('data-regex-id')); 
+                                                        validateRegexInput(this);" 
+                                            value="${field.value || ''}">
+                                        `;
+                    }
+                    else {
                         inputHtml = `<input type="text" class="form-control w-100" name="${field.label}" value="${field.value || ""}">`;
                     }
                 }
@@ -950,11 +1025,86 @@
         });
     }
 
+    function validateRegexInput(inputElement) {
+        const pattern = inputElement.getAttribute("data-regex");
+        const value = inputElement.value;
     
- // true = useCapture so blur is caught during capture phase
+        if (!pattern) return true; // No pattern to validate against
     
+        const regex = new RegExp(pattern);
+        if (!regex.test(value)) {
+            inputElement.classList.add("is-invalid");
+            inputElement.setCustomValidity("Invalid input pattern.");
+            inputElement.reportValidity(); // Show browser validation message
+            return false;
+        } else {
+            inputElement.classList.remove("is-invalid");
+            inputElement.setCustomValidity(""); // Reset validity
+            return true;
+        }
+    }
+
+
+     function formatInputByPattern(inputElement, regexId) {
+        debugger;
+        let value = inputElement.value;
     
+        const numericOnly = v => v.replace(/\D/g, "");
+        const alnumUpper = v => v.toUpperCase().replace(/[^A-Z0-9]/g, "");
     
+        switch (parseInt(regexId)) {
+            case 1: // Aadhar
+                value = numericOnly(value).substring(0, 12);
+                value = value.replace(/(\d{4})(?=\d)/g, "$1 ");
+                break;
+            case 2: // PAN
+                value = value.toUpperCase().replace(/[^A-Z0-9]/g, ""); // Remove non-alphanumerics
+                value = value.substring(0, 10); // Enforce 10-char limit
+                break;
+            case 3: // IFSC
+                value = alnumUpper(value).substring(0, 11);
+                break;
+            case 4: // Mobile Number
+                value = numericOnly(value).substring(0, 10);
+                break;
+            case 5: // Pincode
+                value = numericOnly(value).substring(0, 6);
+                break;
+            case 6: // Passport
+                value = alnumUpper(value).substring(0, 8);
+                break;
+            case 7: // Voter ID
+                value = alnumUpper(value).substring(0, 10);
+                break;
+            case 8: // Driving License
+                value = alnumUpper(value).substring(0, 16);
+                break;
+            case 9: // UPI
+                value = value.replace(/[^\w@.]/g, "").substring(0, 50);
+                break;
+            case 10: // Credit Card
+                // Remove all non-digit characters and format
+                value = numericOnly(value).substring(0, 16);
+                value = value.replace(/(\d{4})(?=\d)/g, "$1 ");
+                break;
+            case 11: // Landline Number (XXX-XXXXXXX)
+                // Remove all non-digit characters
+                value = numericOnly(value).substring(0, 11);
+                // Format as XXX-XXXXXXX
+                value = value.replace(/^(\d{3})(\d{0,8})/, "$1-$2");
+                break;
+            case 12: // PNR
+                // Allow only numeric values, limit to 10 digits
+                value = numericOnly(value).substring(0, 10);
+                break;
+            default:
+                value = value.replace(/[^\w\s]/g, "");
+                break;
+        }
+    
+        inputElement.value = value;
+    }
+   
 
     function syncFormValidationsBeforeSubmit() {
         formFields.forEach(field => {
@@ -995,6 +1145,37 @@
         });
     }
 
+
+    function syncGenerativeDataBeforeSubmit() {
+        formFields.forEach(field => {
+            if (field.type === "field_dropdown") {
+                const fieldId = field.id;
+    
+                const prefix = document.getElementById(`prefix-${fieldId}`)?.value || '';
+                const dropdown = document.getElementById(`fielddropdown-${fieldId}`);
+                const selectedLabels = Array.from(dropdown?.selectedOptions || [])
+                    .map(opt => opt.text.trim());
+                const selectedValues = Array.from(dropdown?.selectedOptions || [])
+                    .map(opt => opt.value);
+    
+                const zeroCountStr = document.getElementById(`zeroincrement1-${fieldId}`)?.value || '';
+                const zeroCount = parseInt(zeroCountStr, 10);
+                const zeroPadding = '0'.repeat(isNaN(zeroCount) ? 0 : zeroCount);
+    
+                const incNum = document.getElementById(`zeroincrement2-${fieldId}`)?.value || '';
+                const previewValue = `${prefix}-${selectedLabels.join('-')}-${zeroPadding}${incNum}`;
+    
+                // Save updated values to field object
+                field.prefix = prefix;
+                field.field_name = selectedLabels;
+                field.field_id = selectedValues;
+                field.no_of_zero = zeroCountStr;
+                field.increment = incNum;
+                field.generatefield = previewValue;
+            }
+        });
+    }
+    
 
 
     
@@ -1101,14 +1282,6 @@
         }
         {% endif %}
 
-    document.getElementById("main-form").addEventListener("submit", function () {
-        debugger;
-        syncFormValidationsBeforeSubmit(); // 👈 Ensure untouched validations are captured
-        document.getElementById("form-data-input").value = JSON.stringify(formFields);
-    });
-    
-
-
     document.addEventListener("DOMContentLoaded", function() {
         updateAllFieldLabels();
         renderFormBuilder();
@@ -1195,6 +1368,12 @@
                         title: 'Duplicate Form Name',
                         text: 'This form name already exists. Please choose a different name.'
                     });
+    
+                    // Disable submit button
+                    $('#btnSubmit').prop('disabled', true);
+                } else {
+                    // Enable submit button
+                    $('#btnSubmit').prop('disabled', false);
                 }
             }
         });
@@ -1224,7 +1403,8 @@
 
     document.getElementById("main-form").addEventListener("submit", function () {
         debugger;
-    
+        syncFormValidationsBeforeSubmit();
+       // syncGenerativeDataBeforeSubmit()
         const fieldsInDom = document.querySelectorAll('#form-builder .draggable-field');
         const orderedFormFields = [];
     
@@ -1264,50 +1444,6 @@
             ghostClass: 'sortable-ghost',
         });
     });
-</script>
-
-<script>
-
-    {% comment %} document.addEventListener("DOMContentLoaded", function () {
-        document.addEventListener("input", function (e) {
-            if (e.target.matches('input[data-regex]')) {
-                const input = e.target;
-                const regexPattern = input.getAttribute("data-regex");
-                try {
-                    const regex = new RegExp(regexPattern);
-                    if (!regex.test(input.value)) {
-                        input.value = input.dataset.prevValue || '';
-                    } else {
-                        input.dataset.prevValue = input.value;
-                    }
-                } catch (error) {
-                    console.error("Invalid regex pattern:", regexPattern);
-                }
-            }
-        });
-    
-        document.addEventListener("blur", function (e) {
-            if (e.target.matches('input[data-regex]')) {
-                const input = e.target;
-                const fullPattern = input.getAttribute("data-regex");
-                const value = input.value;
-    
-                try {
-                    const regex = new RegExp(fullPattern.replace(/{0,/g, '{')); // for final check
-                    if (!regex.test(value)) {
-                        alert("Invalid input. Please match the required pattern.");
-                        input.focus();
-                        input.classList.add("is-invalid");
-                    } else {
-                        input.classList.remove("is-invalid");
-                    }
-                } catch (error) {
-                    console.error("Invalid regex pattern:", fullPattern);
-                }
-            }
-        }, true);
-    });
-     {% endcomment %}
 </script>
 
     

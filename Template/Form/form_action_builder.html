@@ -26,6 +26,21 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js"></script>
 <style>
 
+    .selectize-input {
+        border: 1px solid black !important; 
+        border-radius: 10px !important; 
+        font-size: 1em;
+        min-height:38px;
+        max-height: auto; 
+        overflow-y: auto;
+        padding: 6px 10px;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+      }
+      .selectize-dropdown {
+        overflow: hidden !important;
+      }
 
 
 </style>
@@ -92,7 +107,7 @@
         </div>
     </div>
 </div>
-{% comment %} 
+
 <script>
 
     $('#dropdown').change(function() {
@@ -101,7 +116,7 @@
     
         if (selectedValue) {
             $.ajax({
-                url: "{% url 'form_action_builder' %}",   
+                url: "{% url 'form_action_builder_master' %}",   
                 type: 'GET', 
                 data: {
                     action_id: selectedValue,
@@ -112,6 +127,7 @@
                     formFields = response.formFields;
                     renderFormBuilder();
                     renderFormPreview();
+                    
                 },
                 error: function(xhr, status, error) {
                     console.error('AJAX Error:', status, error);
@@ -120,7 +136,7 @@
         }
     });
     
-</script> {% endcomment %}
+</script> 
 
 <script>
 
@@ -319,7 +335,7 @@ function renderFormPreview() {
         } else if (field.type === "select") {
             // For select, add the label along with the select dropdown
             inputHtml = `<label class="fw-bold">${field.label}</label>` + 
-                        `<select class="form-control w-100" name="field_${field.id}">`;
+                        `<select class="form-control select w-100" name="field_${field.id}">`;
             (field.options || []).forEach(option => {
                 inputHtml += `<option value="${option}" ${field.value === option ? "selected" : ""}>${option}</option>`;
             });
