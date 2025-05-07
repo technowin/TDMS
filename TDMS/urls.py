@@ -51,7 +51,7 @@ urlpatterns = [
     path('check_field_before_delete/', check_field_before_delete, name='check_field_before_delete'),
     path('get_field_names/', get_field_names, name='get_field_names'),
     path('get_regex_pattern/', get_regex_pattern, name='get_regex_pattern'),
-    path('create_new_section/', create_new_section, name='get_regex_pattern'),
+    path('create_new_section/', create_new_section, name='create_new_section'),
 
 
     # Account
