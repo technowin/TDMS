@@ -104,6 +104,7 @@ INSTALLED_APPS = [
     'MenuManager',
     'Masters',
     'corsheaders',
+    
     'Reports',
     'Dashboard',
     'Workflow',
