@@ -67,7 +67,7 @@ def common_html(request):
             entity =request.GET.get('entity', '')  
             title,note ='',''
             if request.method=="GET":
-                forms = callproc("stp_get_forms") 
+                forms = callproc("stp_get_forms",['report']) 
                 if entity == '' or None:
                    entity =  forms[0][0]         
                 filter_name = callproc("stp_get_filter_names",[entity])          

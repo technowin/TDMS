@@ -55,7 +55,8 @@ logger = logging.getLogger(__name__)
 def masters(request):
     pre_url = request.META.get('HTTP_REFERER')
     header, data = [], []
-    entity,type,name,id,text_name,dpl,dp,em,mb = '','','','','','','','',''
+    entity = type = name = id = text_name = dpl = dp = em = mb = forms = sf = ''
+
     try:
         if request.user.is_authenticated ==True:                
                 global user,role_id
@@ -63,13 +64,22 @@ def masters(request):
                 role_id = request.user.role_id 
         if request.method=="GET":
             entity = request.GET.get('entity', '')
+            sf = request.GET.get('sf', '')
             type = request.GET.get('type', '')
             datalist1= callproc("stp_get_masters",[entity,type,'name',user])
             name = datalist1[0][0]
             header = callproc("stp_get_masters", [entity, type, 'header',user])
             rows = callproc("stp_get_masters",[entity,type,'data',user])
+            if entity == 'form_master':
+                forms = callproc("stp_get_forms",['view_form'])  
+                type = 'i'
+                if sf == '' or None:
+                   sf =  forms[0][0]   
+                header = callproc("stp_get_view_form_header",[sf])          
+                rows = callproc("stp_get_view_forms",[sf])          
             if entity == 'su':
                 dpl = callproc("stp_get_dropdown_values",['dept'])
+
             id = request.GET.get('id', '')
             if type=='ed' and id != '0':
                 if id != '0' and id != '':
@@ -115,8 +125,8 @@ def masters(request):
     finally:
         Db.closeConnection()
         if request.method=="GET":
-            return render(request,'Master/index.html',
-              {'entity':entity,'type':type,'name':name,'header':header,'data':data,
+             return render(request,'Master/index.html',
+              {'entity':entity,'forms':forms,'sf':sf,'type':type,'name':name,'header':header,'data':data,
               'id':id,'text_name':text_name,'dp':dp,'em':em,'mb':mb,'dpl':dpl})
         elif request.method=="POST":  
             new_url = f'/masters?entity={entity}&type=i'
