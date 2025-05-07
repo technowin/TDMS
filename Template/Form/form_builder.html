@@ -191,6 +191,7 @@
     let regex = JSON.parse('{{ regex|escapejs|safe }}');
     let master = JSON.parse('{{ master_dropdown|escapejs|safe }}')
     let formNames = JSON.parse('{{ form_names|escapejs|safe }}')
+    let section = JSON.parse('{{ section_names|escapejs|safe }}')
   
 
     {% if form %}
@@ -207,6 +208,7 @@
             commonType: [],
             options: [],
             generatefield: "",
+            section:"",
             masterValue: "",
             order: formFields.length + 1
         };
@@ -235,6 +237,7 @@
             commonType: [],
             options: [],
             generatefield: "",
+            section: "",
             masterValue: "",
             order: formFields.length + 1
         };
@@ -300,12 +303,25 @@
                  commonDropdownHtml += `<option value="${option.control_value}" ${isSelected}>${option.control_name}</option>`;
              });
              commonDropdownHtml += `</select>`;
+
+             let sectiondropdownHtml = `<select id="section-dropdown-${field.id}" class="form-control section-select">`;
+
+             // Add placeholder
+             sectiondropdownHtml += `<option value="" disabled selected>Select Section</option>`;
+             
+             section.forEach(option => {
+                 sectiondropdownHtml += `<option value="${option.id}">${option.name}</option>`;
+             });
+             
+             sectiondropdownHtml += `</select>`;
+             
+
             // Sub-Control Handling (max_length / regex)
             let subControlHtml = "";
 
             if (field.type === "field_dropdown") {
-                const selectedFormId = field.options[0];  // "123"
-                const selectedFieldId = field.options[1]; // "456"
+                const selectedFormId = field.options[0];  
+                const selectedFieldId = field.options[1]; 
             
                 subControlHtml += `
                     <div class="row">
@@ -450,7 +466,7 @@
                             oninput="updateGenerativePreview('${fieldId}')" />
                     </div>
             
-                    <div class="col-md-5 p-1">
+                    <div class="col-md-4 p-1">
                         <select class="form-control field_dropdown" onchange="updateGenerativePreview('${fieldId}')"
                             multiple name="fielddropdown-${fieldId}" id="fielddropdown-${fieldId}"
                             title="Select a field from the dropdown">
@@ -466,7 +482,7 @@
                             title="Enter number of Zero" />
                     </div>
             
-                    <div class="col-md-2 p-1">
+                    <div class="col-md-3 p-1">
                         <input type="number" class="form-control" oninput="updateGenerativePreview('${fieldId}')"
                             placeholder="Value" name="zeroincrement2-${fieldId}" id="zeroincrement2-${fieldId}"
                             value="${incrementValue}" title="Enter Increment number" />
@@ -477,7 +493,7 @@
             
     
         
-            let colSize = 'col-md-4';
+            let colSize = 'col-md-3';
 
           builder.innerHTML += `
             <div class="row col-md-12 draggable-field" data-id="${fieldId}">
@@ -492,8 +508,11 @@
                 <div class="col-md-2 mb-3">
                     ${dropdownHtml}
                 </div>
-                <div class="col-md-3 mb-3">
+                <div class="col-md-2 mb-3">
                     ${commonDropdownHtml}
+                </div>
+                <div class="col-md-2 mb-3">
+                    ${sectiondropdownHtml}
                 </div>
                 <div class="${colSize} mb-3">
                     ${subControlHtml || optionDropdownHtml }
@@ -504,7 +523,7 @@
                     </span>
                 </div>
             </div>
-        `;
+            `;
     
             // Step 3: Restore selected sub-controls
             if (field.selectedValue) {
@@ -514,13 +533,12 @@
                 if (field.type === "master dropdown" && Array.isArray(field.options) && field.options.length > 0) {
                     const selectedMasterId = field.options[0]; // Get selected master ID
                     if (selectedMasterId) {
-                        fetchMasterOptions(selectedMasterId, field.id); // Trigger master options fetch
+                        fetchMasterOptions(selectedMasterId, field.id); 
                     }
                 }
             });
         });
     
-        // Initialize Selectize for Multiple Options
         $(".common-select").each(function () {
             let fieldId = $(this).attr("id").split("-").pop();
             let field = formFields.find(f => f.id == fieldId);
@@ -558,8 +576,35 @@
                 }
             });
         });
+        document.querySelectorAll(".section-select").forEach(select => {
+            let $select = $(select).selectize({
+                plugins: ["remove_button"],
+                delimiter: ",",
+                placeholder: "Select Section",
+                persist: false,
+                create: function (input, callback) {
+                    $.ajax({
+                        url: "{% url 'create_new_section' %}",
+                        method: "POST",
+                        data: {
+                            name: input,
+                            csrfmiddlewaretoken: '{{ csrf_token }}'
+                        },
+                        success: function (response) {
+                            let selectize = $select[0].selectize;
+                            selectize.addOption({ value: response.id, text: response.name }); // Add to options
+                            selectize.addItem(response.id); // Select it
+                        },
+                        error: function () {
+                            alert("Error adding section!");
+                            callback();
+                        }
+                    });
+                }
+            });
+        });
+        
     
-        // Initialize Selectize for Option Dropdowns
         document.querySelectorAll(".option-select").forEach(select => {
             $(select).selectize({
                 plugins: ["remove_button"],
@@ -1425,6 +1470,13 @@
     
             orderedFormFields.push(originalField);
         });
+        const sectionSelect = document.querySelector("#section-select");
+            if (sectionSelect && sectionSelect.selectize) {
+                const selectedSections = sectionSelect.selectize.getValue(); // gets an array or comma-separated string
+                document.getElementById("selected-sections-input").value = Array.isArray(selectedSections)
+                    ? selectedSections.join(",")
+                    : selectedSections;
+            }
     
         // Save reordered + updated fields
         document.getElementById("form-data-input").value = JSON.stringify(orderedFormFields);
@@ -1434,7 +1486,11 @@
     
 </script>
 
+
+
   <script>
+
+    
     document.addEventListener('DOMContentLoaded', function () {
         const formBuilder = document.getElementById('form-builder');
 

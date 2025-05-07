@@ -44,6 +44,7 @@ class FormField(models.Model):
     values = models.TextField(null=True,blank=True)
     attributes = models.TextField(null=True,blank=True)
     order = models.IntegerField(default=0)
+    section = models.TextField(null=True,blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
@@ -234,6 +235,27 @@ class FormIncrementNo(models.Model):
     class Meta:
         db_table = 'form_increment_no'
 
+
+class SectionMaster(models.Model):
+    name = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'section_master'
+
+class WorkflowVersionControl(models.Model):
+    form_data =  models.ForeignKey('Form.FormData',null=True, blank=True, on_delete=models.CASCADE, related_name='form_data_version_id')
+    file_name = models.TextField(null=True, blank=True)
+    version_no = models.TextField(null=True, blank=True)
+    baseline_date = models.DateTimeField(auto_now_add=False, null=True, blank=True)
+    modified_by = models.TextField(null=True, blank=True)
+    modified_at = models.DateTimeField(auto_now_add=False, null=True, blank=True)
+    approved_by = models.DateTimeField(auto_now_add=False, null=True, blank=True)
+    approved_at = models.DateTimeField(auto_now_add=False, null=True, blank=True)
+    class Meta:
+        db_table = 'workflow_version_control'
 
 
 
