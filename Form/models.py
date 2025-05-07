@@ -248,7 +248,7 @@ class SectionMaster(models.Model):
 class WorkflowVersionControl(models.Model):
     form_data =  models.ForeignKey('Form.FormData',null=True, blank=True, on_delete=models.CASCADE, related_name='form_data_version_id')
     file_name = models.TextField(null=True, blank=True)
-    version_no = models.TextField(null=True, blank=True)
+    version_no = models.FloatField(null=True, blank=True)
     baseline_date = models.DateTimeField(auto_now_add=False, null=True, blank=True)
     modified_by = models.TextField(null=True, blank=True)
     modified_at = models.DateTimeField(auto_now_add=False, null=True, blank=True)
@@ -256,6 +256,63 @@ class WorkflowVersionControl(models.Model):
     approved_at = models.DateTimeField(auto_now_add=False, null=True, blank=True)
     class Meta:
         db_table = 'workflow_version_control'
+
+
+class FormFieldValuesHist(models.Model):
+    form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_hist_data')
+    form_data = models.ForeignKey('Form.FormData',null=True, blank=True, on_delete=models.CASCADE, related_name='form_hist_value_id')
+    field = models.ForeignKey('Form.FormField',null=True, blank=True, on_delete=models.CASCADE, related_name='field_hist_value_id')
+    value = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'form_field_values_hist'
+
+class FormFileHist(models.Model):
+    file_name = models.TextField(null=True, blank=True)
+    uploaded_name = models.TextField(null=True, blank=True)
+    file_path = models.TextField(null=True, blank=True)
+    file = models.ForeignKey('Form.FormFieldValues',null=True, blank=True, on_delete=models.CASCADE, related_name='file_hist_id')
+    form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_file_hist_id')
+    field = models.ForeignKey('Form.FormField',null=True, blank=True,  on_delete=models.CASCADE, related_name='field_file_hist_id')
+    form_data = models.ForeignKey('Form.FormData',null=True, blank=True,  on_delete=models.CASCADE, related_name='form_data_hist_id')
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'form_file_hist'
+
+class FormFieldValuesTemp(models.Model):
+    form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_data_temp')
+    form_data = models.ForeignKey('Form.FormData',null=True, blank=True, on_delete=models.CASCADE, related_name='form_value_temp_id')
+    old_field_id = models.TextField(null=True, blank=True)
+    field = models.ForeignKey('Form.FormField',null=True, blank=True, on_delete=models.CASCADE, related_name='field_value_temp_id')
+    value = models.TextField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'form_field_values_temp'
+
+class FormFileTemp(models.Model):
+    file_name = models.TextField(null=True, blank=True)
+    uploaded_name = models.TextField(null=True, blank=True)
+    file_path = models.TextField(null=True, blank=True)
+    old_field_id = models.TextField(null=True, blank=True)
+    file = models.ForeignKey('Form.FormFieldValues',null=True, blank=True, on_delete=models.CASCADE, related_name='file_temp_id')
+    form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_file_temp_id')
+    field = models.ForeignKey('Form.FormField',null=True, blank=True,  on_delete=models.CASCADE, related_name='field_file_temp_id')
+    form_data = models.ForeignKey('Form.FormData',null=True, blank=True,  on_delete=models.CASCADE, related_name='form_data_temp_id')
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'form_file_temp'
 
 
 
