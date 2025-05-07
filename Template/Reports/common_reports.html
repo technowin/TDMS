@@ -110,7 +110,7 @@
         </div>
         <div class="col-2 padding-1 padding-0" >
             <div class="form-outline inputcssf" >
-                <select name="forms" id="forms" class="forms" style="border-radius: 10px; padding: 1.5%; width: 100%;"  required onchange="change12(this.id)">
+                <select name="forms" id="forms" class="forms" style="border-radius: 10px; padding: 1.5%; width: 100%;"  required >
                     {% for item1 in forms %}
                         <option style="border-radius: 10px; padding: 0.5%; width: 100%"  value="{{ item1.0 }}" {% if item1.0 == entity %}selected{% endif %}> {{ item1.1 }} </option>
                     {% endfor %}
