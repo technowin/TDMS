@@ -1309,8 +1309,7 @@ def common_form_edit(request):
                         form=form,
                         field=field,
                         value=input_value,
-                        created_by=created_by,
-                        is_worklflow = workflow
+                        created_by=created_by
                     )
 
 
