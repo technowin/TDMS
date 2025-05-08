@@ -1180,7 +1180,9 @@ def common_form_post(request):
                 operator=request.POST.get('custom_dropdownOpr', ''),
                 user_id=user,
                 created_by=user,
-                created_at=now()
+                created_at=now(),
+                updated_by = user,
+                updated_at = now()
                 
                 )
 
