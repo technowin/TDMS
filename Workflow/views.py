@@ -5,6 +5,7 @@ from django.shortcuts import get_object_or_404, render,redirect
 from Account.models import *
 from Masters.models import *
 from Workflow.models import *
+from Form.models import *
 import traceback
 from Account.db_utils import callproc
 
@@ -352,6 +353,21 @@ def workflow_starts(request):
         next_step = current_EditCrtStep + 1
         
         try:
+            form_data = history_workflow_details.objects.filter(
+                req_id=req_num,
+                step_id=1
+            ).values_list('form_data_id', flat=True).first()
+
+            if form_data:
+                file_number = FormFieldValues.objects.filter(
+                    form_data_id=form_data
+                ).order_by('id').values_list('value', flat=True).first()
+            else:
+                    file_number = None
+        except Exception as e:
+            file_number = None
+        
+        try:
             next_matrix_entry = workflow_matrix.objects.get(id=next_step)
             forwarded_to_role = next_matrix_entry.role_id  
             
@@ -467,7 +483,7 @@ def workflow_starts(request):
                 "user_prev_step_name": user_prev_step['step_name'] if user_prev_step else '',
                 "include_for_current_user": include_for_current_user,
                 "last_rejected_step": last_rejected_step,
-                "last_rejected_status": last_rejected_status,
+                "last_rejected_status": last_rejected_status,"file_number":file_number,
                 'extra_flag': extra_flag,"next_matrix_role":forwarded_to_display,
             })
             if last_rejected_step is not None:
