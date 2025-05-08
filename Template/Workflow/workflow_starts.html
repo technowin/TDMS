@@ -53,6 +53,7 @@
         <thead style="background-color:#a9c7fc;">
             <tr>
                 <th>Sr. No.</th>
+                <th>File No.</th>
                 <th>Request No.</th>
                 <th>Updated By</th>
                 <th>Updated At</th>
@@ -68,6 +69,7 @@
                 <th><select><option>All</option></select></th>
                 <th><select><option>All</option></select></th>
                 <th><select><option>All</option></select></th>
+                <th><select><option>All</option></select></th>
                 
               </tr>
         </thead>
@@ -75,6 +77,7 @@
           {% for item in WFIndexdata %}
           <tr>
               <td>{{ forloop.counter }}</td>
+              <td>{{ item.file_number }}</td>
               <td> 
                 <span class="badge badge-pill badge-secondary" style="font-size: 16px;background-color:#085984;">{{ item.req_num }}</span>
               </td>
