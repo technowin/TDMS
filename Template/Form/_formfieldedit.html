@@ -158,10 +158,12 @@
 
             {% elif field.field_type == "field_dropdown" %}
                 <select class="form-control select" name="field_{{ field.id }}"
-                    {% for attr in field.attributes %} {{ attr }} {% endfor %}>
+                    {% for attr in field.attributes %} {{ attr }} {% endfor %}
+                    {% if readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
                     <option value="" disabled {% if not field.saved_value %}selected{% endif %}>Select</option>
                     {% for option in field.dropdown_data %}
-                      <option value="{{ option.value }}" {% if option.value == field.saved_value %}selected{% endif %}>
+                      <option value="{{ option.value }}" {% if option.value == field.saved_value %}selected{% endif %}
+                     >
                         {{ option.value }}
                       </option>
                     {% endfor %}
@@ -264,6 +266,7 @@
                        value="{{ field.value|default:'' }}"
                        oninput="formatInputByPattern(this, '{{ field.regex_id }}'); validateRegexInput(this);"
                        placeholder="{{ field.regex_description }}"
+                       
                        {% for attr in field.attributes %} {{ attr }} {% endfor %}>
             
             {% else %}
@@ -730,7 +733,11 @@
                 }else if (buttonType === 'Action' && parseInt(editORcreate.value) === 3) {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_action' %}";
+                }else if (buttonType === 'Reject' && parseInt(workflow_YN.value) === 1) {
+                    operatorDropdown.removeAttribute('required');
+                    form.action = "{% url 'reject_workflow_step' %}";
                 }
+
     
                 
     

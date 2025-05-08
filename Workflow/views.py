@@ -349,6 +349,44 @@ def workflow_starts(request):
         detail = workflow_details.objects.get(req_id=req_num)
         current_EditCrtStep = detail.step_id
         editcrt = current_EditCrtStep + 1
+        next_step = current_EditCrtStep + 1
+        
+        try:
+            next_matrix_entry = workflow_matrix.objects.get(id=next_step)
+            forwarded_to_role = next_matrix_entry.role_id  
+            
+            #next_matrix_role1 = roles.objects.get(id=forwarded_to_role)
+            #next_matrix_role = next_matrix_role1.role_name
+            
+            role_ids = [int(role_id.strip()) for role_id in forwarded_to_role.split(',')]
+            role_names = roles.objects.filter(id__in=role_ids).values_list('role_name', flat=True)
+            forwarded_to_display = ', '.join(role_names)
+        except workflow_matrix.DoesNotExist:
+            forwarded_to_display = "N/A"
+        # try:
+        #     detail = workflow_details.objects.get(req_id=req_num)
+        #     current_step = detail.step_id
+        #     next_step = current_step + 1
+
+        #     try:
+        #         next_matrix = workflow_matrix.objects.get(id=next_step)
+        #         next_roles_raw = next_matrix.role_name  # or .role_id if using IDs
+
+        #         # Split roles and clean them
+        #         next_roles = [role.strip() for role in next_roles_raw.split(',')]
+
+        #         # Optionally: Get users/emails associated with those roles
+        #         forwarded_to_users = users.objects.filter(role__in=next_roles)
+        #         forwarded_to_emails = [user.email for user in forwarded_to_users]
+
+        #         forwarded_to_display = ', '.join(forwarded_to_emails) if forwarded_to_emails else next_roles_raw
+
+        #     except workflow_matrix.DoesNotExist:
+        #         forwarded_to_display = 'N/A'
+
+        # except workflow_details.DoesNotExist:
+        #     forwarded_to_display = 'N/A'
+            
         try:
             editORcreate = workflow_matrix.objects.get(id=editcrt).button_act_details
         except workflow_matrix.DoesNotExist:
@@ -356,6 +394,8 @@ def workflow_starts(request):
         # editORcreate = workflow_matrix.objects.get(id=editcrt).button_act_details
         
         form_data_id= enc(str(item[7]))
+        updated_by= item[9]
+        updated_at= item[10]
         
         # last_rejected = history_workflow_details.objects.filter(
         # req_id=req_num, sent_back='1'
@@ -471,12 +511,12 @@ def workflow_starts(request):
                 # "user_prev_step_id": user_prev_step['id'] if user_prev_step else '',
                 "user_prev_step_id": enc(str(user_prev_step_id_val)) if user_prev_step_id_val != '' else '',
                  "user_prev_step_Check":user_prev_step_id_val,
-                 
+                 "updated_at":updated_at,"updated_by":updated_by,
                 "user_prev_step_name": user_prev_step['step_name'] if user_prev_step else '',
                 "include_for_current_user": include_for_current_user,
                 "last_rejected_step": last_rejected_step,
                 "last_rejected_status": last_rejected_status,
-                'extra_flag': extra_flag,
+                'extra_flag': extra_flag,"next_matrix_role":forwarded_to_display,
             })
             if last_rejected_step is not None:
                 # This is where the backend resets rejection
