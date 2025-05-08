@@ -535,4 +535,43 @@
         }
     });
 </script>
+
+<script>
+    document.addEventListener("DOMContentLoaded", function () {
+        let currentUrl = window.location.href;
+        let storedHistory = sessionStorage.getItem("pageHistory");
+        let pageHistory = storedHistory ? JSON.parse(storedHistory) : [];
+    
+        // Prevent duplicate entries (resubmission issue)
+        if (pageHistory.length === 0 || pageHistory[pageHistory.length - 1] !== currentUrl) {
+            pageHistory.push(currentUrl);
+        }
+    
+        // Keep history size manageable (optional)
+        if (pageHistory.length > 20) {
+            pageHistory.shift();
+        }
+    
+        sessionStorage.setItem("pageHistory", JSON.stringify(pageHistory));
+    });
+    
+    // Back Redirection Function
+    function goBack() {
+        let storedHistory = sessionStorage.getItem("pageHistory");
+        let pageHistory = storedHistory ? JSON.parse(storedHistory) : [];
+    
+        if (pageHistory.length > 1) {
+            // Remove current page and go to the previous one
+            pageHistory.pop();
+            let prevUrl = pageHistory.pop();
+    
+            sessionStorage.setItem("pageHistory", JSON.stringify(pageHistory));
+            window.location.href = prevUrl;
+        } else {
+            // Fallback to home if no history is available
+            window.location.href = "/";
+        }
+    }
+    </script>
+    
 </html>

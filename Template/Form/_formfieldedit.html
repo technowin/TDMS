@@ -74,6 +74,55 @@
           
 </style>
 
+<div class="modal fade" id="livePreviewModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
+        aria-hidden="true">
+        <div class="modal-dialog  modal-xl">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h2 class="modal-title" id="livePreviewModalLabel">Actions</h2>
+                    {% comment %} <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"><i class="fa-regular fa-xmark-large"></i></button> {% endcomment %}
+                  </div>   
+                  <div class="modal-body">
+                    <table id="actionTable" class="table table-striped table-bordered" style="width:100%">
+                        <thead>
+                            <tr>
+                                <th>Sr No</th>
+                                <th>Step</th>
+                                <th>Action / Comments</th>
+                                <th>Role</th>
+                                <th>Created At</th>
+                                <th>Created By</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for comment in comments %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ comment.step_name }}</td>
+                                <td>
+                                    {% if comment.field_type == 'textarea' %}
+                                        <textarea class="form-control" readonly>{{ comment.value }}</textarea>
+                                    {% elif comment.field_type == 'select' %}
+                                        <select class="form-control" disabled>
+                                            <option selected>{{ comment.value }}</option>
+                                        </select>
+                                    {% else %}
+                                        <input type="text" class="form-control" value="{{ comment.value }}" readonly>
+                                    {% endif %}
+                                </td>
+                                <td>{{ comment.role_name }}</td>
+                                <td>{{ comment.created_at }}</td>
+                                <td>{{ comment.created_by }}</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                  </div>
+            </div>
+        </div>
+    </div>
+
+
 <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;" >
 
 
@@ -82,7 +131,7 @@
 
 
         <div class="col-md-4">
-            <h3 class="mb-0"><strong style="color: #4e73df;"><u id="form-title">Insert Form Data - {% if fields %}{{ form.name }}{% else %}{% endif %}
+            <h3 class="mb-0"><strong style="color: #4e73df;"><u id="form-title">Insert Form Data - {% if sectioned_fields %}{{ form.name }}{% else %}{% endif %}
             </u></strong></h3>
         </div>
         
@@ -293,19 +342,22 @@
 </div>
 <br/>
 {% if comments %}
+{% if comments %}
 <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;">
     <div class="row col-md-12 justify-content-center">
         <input type="hidden" id="clicked_action_id" name="clicked_action_id">
 
-        {% for comment in comments %}
-            <div class="col-md-4 mt-3">
-                <label class="fw-bold">Step {{ comment.step_id }}</label>
-                <input type="text" class="form-control" value="{{ comment.value }}" readonly>
-
-            </div>
-        {% endfor %}
+        <div class="col-md-2 mt-3">
+            <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#livePreviewModal">
+                Show Actions
+            </button>
+            {% comment %} href="javascript:void(0);" onclick="goBack()"  {% endcomment %}
+            <a href="{% url 'workflow_starts' %}" class="btn btn-secondary ms-2">Back</a>
+        </div>
     </div>
 </div>
+{% endif %}
+
 {% endif %}
 
 <br/>

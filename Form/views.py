@@ -57,6 +57,7 @@ from django.template.loader import render_to_string
 from Workflow.models import workflow_matrix, workflow_action_master
 from Workflow.models import *
 from django.utils.timezone import now
+from django.db.models import OuterRef, Subquery, F
 
 # Create your views here.
 def format_label_name(parameter_name):
@@ -900,11 +901,58 @@ def form_master(request):
                 form_data_id = dec(form_data_id)
                 form_instance = FormData.objects.filter(id=form_data_id).values("id","form_id", "action_id").first()
 
-                comments = ActionData.objects.filter(
-                    form_data_id=form_data_id,
-                    field__type__in=['text', 'textarea']
-                ).values('field_id', 'value','step_id')
+                # comments = ActionData.objects.filter(
+                #     form_data_id=form_data_id,
+                #     field__type__in=['text', 'textarea']
+                # ).values('field_id', 'value','step_id')
 
+                step_name_subquery = Subquery(
+                    workflow_matrix.objects
+                    .filter(step_id_flow=OuterRef('step_id'))
+                    .values('step_name')[:1]
+                )
+
+                # Subquery to get role_id from CustomUser using created_by
+                custom_user_role_id_subquery = Subquery(
+                    CustomUser.objects
+                    .filter(id=OuterRef('created_by'))
+                    .values('role_id')[:1]
+                )
+
+                # Subquery to get email from CustomUser using created_by
+                custom_email_subquery = Subquery(
+                    CustomUser.objects
+                    .filter(id=OuterRef('created_by'))
+                    .values('email')[:1]
+                )
+
+                # First annotate role_id separately
+                comments_base = ActionData.objects.filter(
+                    form_data_id=form_data_id,
+                    field__type__in=['text', 'textarea', 'select']
+                ).annotate(
+                    step_name=step_name_subquery,
+                    role_id=custom_user_role_id_subquery,
+                    email=custom_email_subquery
+                )
+
+                # Now use annotated role_id to get role_name from roles table
+                comments = comments_base.annotate(
+                    role_name=Subquery(
+                        roles.objects
+                        .filter(id=OuterRef('role_id'))
+                        .values('role_name')[:1]
+                    )
+                ).values(
+                    'field_id',
+                    'value',
+                    'step_id',
+                    'created_at',
+                    'created_by',
+                    'step_name',
+                    'role_name',
+                    'email',
+                )
                 
                 if form_instance:
                     form_id = form_instance["form_id"]
@@ -1132,9 +1180,7 @@ def common_form_post(request):
                 operator=request.POST.get('custom_dropdownOpr', ''),
                 user_id=user,
                 created_by=user,
-                created_at=now(),
-                updated_by = user,  
-                updated_at = now()
+                created_at=now()
                 
                 )
 
@@ -1189,7 +1235,7 @@ def common_form_post(request):
                                     updated_by=user,
                                 )
             
-            messages.success(request, f"{status_from_matrix} !")
+            messages.success(request, "Workflow data saved successfully!")
 
     except Exception as e:
         traceback.print_exc()
@@ -1263,8 +1309,7 @@ def common_form_edit(request):
                         form=form,
                         field=field,
                         value=input_value,
-                        created_by=created_by,
-                        is_worklflow = workflow
+                        created_by=created_by
                     )
 
 
@@ -1352,6 +1397,21 @@ def common_form_edit(request):
                     # created_by=workflow_detail.updated_by,
                     created_at=workflow_detail.updated_at
                 )
+            for key, value in request.POST.items():
+                    if key.startswith("action_field_") and not key.startswith("action_field_id_"):
+                        match = re.match(r'action_field_(\d+)', key)
+                        if match:
+                            field_id = int(match.group(1))
+                            action_field = get_object_or_404(FormActionField, pk=field_id)
+                            if action_field.type in ['text', 'textarea', 'dropdown']:
+                                ActionData.objects.create(
+                                    value=value,
+                                    form_data=form_data,
+                                    field=action_field,
+                                    step_id=step_id,
+                                    created_by=user,
+                                    updated_by=user,
+                                )
             
             messages.success(request, "Workflow data saved successfully!")
 
@@ -1748,7 +1808,7 @@ def common_form_action(request):
                         created_at=workflow_detail.updated_at
                     )
                 
-                messages.success(request, f"{status_from_matrix} !")
+                messages.success(request, "Workflow data saved successfully!")
         
         
         if workflow_YN == '1E':
