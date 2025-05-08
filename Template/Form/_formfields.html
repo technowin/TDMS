@@ -212,6 +212,25 @@
 </script>
 
 <script>
+    $(document).ready(function() {
+        $('.select').selectize({
+            plugins: ['remove_button'],
+            delimiter: ',',
+            placeholder: "--Select--",
+            persist: false,
+            create: false,
+            selectOnTab: false, 
+            maxItems: null,
+            onInitialize: function() {
+                var control = this;
+                control.clear();
+            }
+        });
+    });
+
+</script>
+
+<script>
 
     function showFile(input) {
         debugger;

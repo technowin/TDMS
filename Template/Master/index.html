@@ -85,10 +85,12 @@
                                         </td>
                                     {% endif %}
                                 {% endfor %}
-                                <td>
+                                <td>{% if entity == 'form_master' %}
+                                  <a href="/form_master?form={{ row.0 }}&readonlyWF=1" class="btn btn-sm btn-primary">View</a>
+                                  {% else %}
                                   <a href="{% if entity == 'user' %}/register_new_user?id={{ row.0 }}{% elif entity == 'form' %}/form_builder?form_id={{ row.0 }}{% elif entity == 'wfseq' %}/workflow_Editmap?wfseq_id={{ row.0 }}
                                            {% elif entity == 'form_master' %}/form_master?form={{ row.0 }}{% elif entity == 'action' %}/form_action_builder?action_id={{ row.0 }}{% else %}/masters?entity={{ entity }}&type=ed&id={{ row.0 }}{% endif %}" class="btn btn-sm btn-primary">Edit</a>
-                                
+                                  {% endif %}
                                   {% if entity == 'wfseq' %}
                                     <a href="/form_preview?id={{ row.0 }}" class="btn btn-sm btn-secondary">Preview</a>
                                   {% endif %}

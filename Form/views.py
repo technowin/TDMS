@@ -908,7 +908,7 @@ def form_master(request):
 
                 step_name_subquery = Subquery(
                     workflow_matrix.objects
-                    .filter(step_id_flow=OuterRef('step_id'))
+                    .filter(id=OuterRef('step_id'))
                     .values('step_name')[:1]
                 )
 
