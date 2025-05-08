@@ -687,6 +687,7 @@ def workflow_form_step(request):
         if wfdetailsid:
             return render(request, "Form/_formfieldedit.html", {
                 "sectioned_fields": sectioned_fields,
+                "type":"create",
                 "form":form,
                 "action_fields": action_fields,
                 "form_action_url": form_action_url,
@@ -698,6 +699,7 @@ def workflow_form_step(request):
             return render(request, "Form/_formfieldedit.html", {
                 "sectioned_fields": sectioned_fields,
                 "form":form,
+                "type":"create",
                 "action_fields": action_fields,
                 "form_action_url": form_action_url,
                 "workflow": 1,"WFoperator_dropdown":WFoperator_dropdown,
