@@ -57,6 +57,7 @@ from django.template.loader import render_to_string
 from Workflow.models import workflow_matrix, workflow_action_master
 from Workflow.models import *
 from django.utils.timezone import now
+from django.db.models import OuterRef, Subquery, F
 
 # Create your views here.
 def format_label_name(parameter_name):
@@ -900,11 +901,58 @@ def form_master(request):
                 form_data_id = dec(form_data_id)
                 form_instance = FormData.objects.filter(id=form_data_id).values("id","form_id", "action_id").first()
 
-                comments = ActionData.objects.filter(
-                    form_data_id=form_data_id,
-                    field__type__in=['text', 'textarea']
-                ).values('field_id', 'value','step_id')
+                # comments = ActionData.objects.filter(
+                #     form_data_id=form_data_id,
+                #     field__type__in=['text', 'textarea']
+                # ).values('field_id', 'value','step_id')
 
+                step_name_subquery = Subquery(
+                    workflow_matrix.objects
+                    .filter(step_id_flow=OuterRef('step_id'))
+                    .values('step_name')[:1]
+                )
+
+                # Subquery to get role_id from CustomUser using created_by
+                custom_user_role_id_subquery = Subquery(
+                    CustomUser.objects
+                    .filter(id=OuterRef('created_by'))
+                    .values('role_id')[:1]
+                )
+
+                # Subquery to get email from CustomUser using created_by
+                custom_email_subquery = Subquery(
+                    CustomUser.objects
+                    .filter(id=OuterRef('created_by'))
+                    .values('email')[:1]
+                )
+
+                # First annotate role_id separately
+                comments_base = ActionData.objects.filter(
+                    form_data_id=form_data_id,
+                    field__type__in=['text', 'textarea', 'select']
+                ).annotate(
+                    step_name=step_name_subquery,
+                    role_id=custom_user_role_id_subquery,
+                    email=custom_email_subquery
+                )
+
+                # Now use annotated role_id to get role_name from roles table
+                comments = comments_base.annotate(
+                    role_name=Subquery(
+                        roles.objects
+                        .filter(id=OuterRef('role_id'))
+                        .values('role_name')[:1]
+                    )
+                ).values(
+                    'field_id',
+                    'value',
+                    'step_id',
+                    'created_at',
+                    'created_by',
+                    'step_name',
+                    'role_name',
+                    'email',
+                )
                 
                 if form_instance:
                     form_id = form_instance["form_id"]
