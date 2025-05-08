@@ -1398,6 +1398,21 @@ def common_form_edit(request):
                     # created_by=workflow_detail.updated_by,
                     created_at=workflow_detail.updated_at
                 )
+            for key, value in request.POST.items():
+                    if key.startswith("action_field_") and not key.startswith("action_field_id_"):
+                        match = re.match(r'action_field_(\d+)', key)
+                        if match:
+                            field_id = int(match.group(1))
+                            action_field = get_object_or_404(FormActionField, pk=field_id)
+                            if action_field.type in ['text', 'textarea', 'dropdown']:
+                                ActionData.objects.create(
+                                    value=value,
+                                    form_data=form_data,
+                                    field=action_field,
+                                    step_id=step_id,
+                                    created_by=user,
+                                    updated_by=user,
+                                )
             
             messages.success(request, "Workflow data saved successfully!")
 
