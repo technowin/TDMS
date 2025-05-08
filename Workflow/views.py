@@ -363,29 +363,7 @@ def workflow_starts(request):
             forwarded_to_display = ', '.join(role_names)
         except workflow_matrix.DoesNotExist:
             forwarded_to_display = "N/A"
-        # try:
-        #     detail = workflow_details.objects.get(req_id=req_num)
-        #     current_step = detail.step_id
-        #     next_step = current_step + 1
-
-        #     try:
-        #         next_matrix = workflow_matrix.objects.get(id=next_step)
-        #         next_roles_raw = next_matrix.role_name  # or .role_id if using IDs
-
-        #         # Split roles and clean them
-        #         next_roles = [role.strip() for role in next_roles_raw.split(',')]
-
-        #         # Optionally: Get users/emails associated with those roles
-        #         forwarded_to_users = users.objects.filter(role__in=next_roles)
-        #         forwarded_to_emails = [user.email for user in forwarded_to_users]
-
-        #         forwarded_to_display = ', '.join(forwarded_to_emails) if forwarded_to_emails else next_roles_raw
-
-        #     except workflow_matrix.DoesNotExist:
-        #         forwarded_to_display = 'N/A'
-
-        # except workflow_details.DoesNotExist:
-        #     forwarded_to_display = 'N/A'
+        
             
         try:
             editORcreate = workflow_matrix.objects.get(id=editcrt).button_act_details
@@ -397,25 +375,6 @@ def workflow_starts(request):
         updated_by= item[9]
         updated_at= item[10]
         
-        # last_rejected = history_workflow_details.objects.filter(
-        # req_id=req_num, sent_back='1'
-        # ).order_by('-step_id').first()
-
-        # # if last_rejected:
-        # #     # If a rejected entry exists, you can process it
-        # #     last_rejected_details = last_rejected.some_column  # Adjust this based on your needs
-        # # else:
-        # #     last_rejected_details = None  # No rejected step
-        # if last_rejected:
-        #     # extra_flag = 'edit_again'
-        #     last_rejected_step = last_rejected.step_id
-        #     last_rejected_status = last_rejected.status
-            
-        # else:
-        #     extra_flag = 'view_only'
-        #     last_rejected_step = None
-        #     last_rejected_status = None
-            
         latest_entry = history_workflow_details.objects.filter(
         req_id=req_num
         ).order_by('-id').first()  # latest entry, could be reject or forward
@@ -427,8 +386,6 @@ def workflow_starts(request):
             last_rejected_step = None
             last_rejected_status = None
             
-            
-        
         current_step_info = step_roles_map.get(step_id_str)
 
         # Init vars
@@ -467,17 +424,13 @@ def workflow_starts(request):
                         include_for_current_user = True  # Show to next step user too
                     
                     break
-        # if next_flow_id:
-        #     EditCreate= workflow_matrix.objects.get(id=next_flow_id).button_act_details
-                    
+          
         user_prev_step = None
         for step in workflow_steps:
             if role_id in step['role_ids']:
                 user_prev_step = step
                 break
 
-        # if last_rejected_step is not None and user_prev_step and user_prev_step.get('id') == last_rejected_step - 1:
-        #     extra_flag = 'edit_again'
         if last_rejected_step is not None and user_prev_step and user_prev_step.get('id') == last_rejected_step - 1:
             extra_flag = 'edit_again'
         else:
@@ -500,8 +453,7 @@ def workflow_starts(request):
                 "but_act": current_step_info['but_act'] if current_step_info else '',
                 
                 "idEncrypt": enc(str(current_step_info['id'])) if current_step_info else '',
-                # "next_step_name": next_step_name,
-                # "next_step_id": next_step_id,
+               
                "form_data_id":form_data_id,
                "editORcreate":editORcreate,
                
@@ -523,8 +475,6 @@ def workflow_starts(request):
                 last_rejected_step = None
                 last_rejected_status = None
             
-                
-                
     first_step = workflow_steps[0] if workflow_steps else None
     show_top_button = False
     top_button_context = {}
@@ -544,12 +494,7 @@ def workflow_starts(request):
         firstStep = '1'
     else:
         firstStep = '0'
-    # flow_map = {int(step['step_id_flow']): step for step in workflow_steps if step['step_id_flow']}
-
-# Prepare final data to send to the template
-        
-
-    # Now pass WFIndexdata to your template
+    
     return render(request, "Workflow/workflow_starts.html", {
         "WFIndexdata": WFIndexdata,'show_top_button': show_top_button,'firstStep': firstStep,
     **top_button_context
