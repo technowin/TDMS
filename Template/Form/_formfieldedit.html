@@ -88,7 +88,7 @@
                             <tr>
                                 <th>Sr No</th>
                                 <th>Step</th>
-                                <th>Action / Comments</th>
+                                <th>Action</th>
                                 <th>Role</th>
                                 <th>Created At</th>
                                 <th>Created By</th>
@@ -98,25 +98,22 @@
                             {% for comment in comments %}
                             <tr>
                                 <td>{{ forloop.counter }}</td>
-                                <td>{{ comment.step_name }}</td>
                                 <td>
-                                    {% if comment.field_type == 'textarea' %}
-                                        <textarea class="form-control" readonly>{{ comment.value }}</textarea>
-                                    {% elif comment.field_type == 'select' %}
-                                        <select class="form-control" disabled>
-                                            <option selected>{{ comment.value }}</option>
-                                        </select>
-                                    {% else %}
-                                        <input type="text" class="form-control" value="{{ comment.value }}" readonly>
-                                    {% endif %}
-                                </td>
+                                <span class="badge bg-secondary text-white rounded-pill px-3 py-2 fs-6">
+                                    {{ comment.step_name }}
+                                </span>
+                            </td>
+                                <td>{{ comment.value }}</td>
                                 <td>{{ comment.role_name }}</td>
                                 <td>{{ comment.created_at }}</td>
-                                <td>{{ comment.created_by }}</td>
+                                <td>{{ comment.email }}</td>
                             </tr>
                             {% endfor %}
                         </tbody>
                     </table>
+                  </div>
+                  <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Close</button>
                   </div>
             </div>
         </div>
@@ -351,7 +348,6 @@
             <button type="button" class="btn btn-primary" data-toggle="modal" data-target="#livePreviewModal">
                 Show Actions
             </button>
-            {% comment %} href="javascript:void(0);" onclick="goBack()"  {% endcomment %}
             <a href="{% url 'workflow_starts' %}" class="btn btn-secondary ms-2">Back</a>
         </div>
     </div>
