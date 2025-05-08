@@ -82,6 +82,9 @@ def form_builder(request):
         master_dropdown = list(MasterDropdownData.objects.values("id", "name", "query"))
         form_names = list(Form.objects.values("id","name"))
         section = list(SectionMaster.objects.values("id","name"))
+        version_fields = [field.name for field in WorkflowVersionControl._meta.fields if field.name == 'file_name']
+        version = [name.replace('_', ' ').title() for name in version_fields]
+
 
         if not form_id:
             return render(request, "Form/form_builder.html", {
@@ -91,7 +94,8 @@ def form_builder(request):
                 "sub_control": json.dumps(sub_control),
                 "master_dropdown": json.dumps(master_dropdown),
                 "form_names":json.dumps(form_names),
-                "section_names":json.dumps(section)
+                "section_names":json.dumps(section),
+                "version":json.dumps(version)
             })
 
         try:
@@ -163,7 +167,8 @@ def form_builder(request):
         "sub_control": json.dumps(sub_control),
         "master_dropdown": json.dumps(master_dropdown),
         "form_names":json.dumps(form_names),
-        "section_names":json.dumps(section)
+        "section_names":json.dumps(section),
+        "version":json.dumps(version)
     })
 
 
@@ -846,6 +851,20 @@ def form_master(request):
                         field["regex_id"] = None
                         field["regex_description"] = ""
 
+                if field["field_type"] == "file_name":
+    # Filter records where baseline_date is not null and not 0
+                    queryset = WorkflowVersionControl.objects.filter(
+                        ~Q(baseline_date__isnull=True) & ~Q(baseline_date=0)
+                    )
+
+                    # Get only file_name values
+                    filtered_records = queryset.values("file_name")
+
+                    # Set the filtered file_name options
+                    if queryset.exists():
+                        field["file_name_options"] = [record["file_name"] for record in filtered_records]
+
+
                 # Accept type (file/text)
                 if field["field_type"] in ["file", "file multiple", "text"]:
                     file_validation = next((v for v in field["validations"]), None)
@@ -1017,6 +1036,7 @@ def form_master(request):
                             if file_exists and "required" in field["attributes"]:
                                 field["attributes"].remove("required")
 
+
                         # Set saved value
                         saved_value = values_dict.get(field["id"], "")
                         if field["field_type"] == "select multiple":
@@ -1036,6 +1056,19 @@ def form_master(request):
                                 except (ValueError, IndexError):
                                     field["dropdown_data"] = []
                                     field["saved_value"] = ""
+
+                        if field["field_type"] == "file_name":
+            # Filter records where baseline_date is not null and not 0
+                            queryset = WorkflowVersionControl.objects.filter(
+                                ~Q(baseline_date__isnull=True) & ~Q(baseline_date=0)
+                            )
+
+                            # Get only file_name values
+                            filtered_records = queryset.values("file_name")
+
+                            # Set the filtered file_name options
+                            if queryset.exists():
+                                field["file_name_options"] = [record["file_name"] for record in filtered_records]
 
                         # master dropdown logic
                         if field["field_type"] == "master dropdown" and field["values"]:

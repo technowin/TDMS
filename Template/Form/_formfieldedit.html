@@ -203,7 +203,7 @@
                 </select>
 
             {% elif field.field_type == "field_dropdown" %}
-                <select class="form-control field_select" name="field_{{ field.id }}"
+                <select class="form-control select" name="field_{{ field.id }}"
                     {% for attr in field.attributes %} {{ attr }} {% endfor %}
                     {% if readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
                     <option value="" disabled {% if not field.saved_value %}selected{% endif %}>Select</option>
@@ -212,6 +212,18 @@
                      >
                         {{ option.value }}
                       </option>
+                    {% endfor %}
+                </select>
+
+            {% elif field.field_type == "file_name" %}
+                <select class="form-control field_select" name="field_{{ field.id }}"
+                        {% for attr in field.attributes %} {{ attr }} {% endfor %}
+                        {% if readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
+                    <option value="" disabled {% if not field.saved_value %}selected{% endif %}>Select</option>
+                    {% for option in field.file_name_options %}
+                        <option value="{{ option }}" {% if option == field.saved_value %}selected{% endif %}>
+                            {{ option }}
+                        </option>
                     {% endfor %}
                 </select>
 
@@ -273,7 +285,7 @@
 
 
 
-                {% elif field.field_type == "textarea" %}
+            {% elif field.field_type == "textarea" %}
                 <textarea class="form-control custom-textarea"
                           name="field_{{ field.id }}"
                           rows="1"

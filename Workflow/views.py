@@ -29,6 +29,7 @@ import xlsxwriter
 import io
 import Db
 
+from django.db.models import Q, Count
 from Form.models import *
 from django.urls import reverse
 from django.utils.timezone import now
@@ -654,6 +655,21 @@ def workflow_form_step(request):
                     dropdown_form_id, dropdown_field_id = split_values
                     field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id).values("value").distinct()
                     field["dropdown_data"] = list(field_values)
+
+            if field["field_type"] == "file_name":
+            # Filter records where baseline_date is not null and not 0
+                    queryset = WorkflowVersionControl.objects.filter(
+                        ~Q(baseline_date__isnull=True) & ~Q(baseline_date=0)
+                    )
+
+                            # Get only file_name values
+                    filtered_records = queryset.values("file_name")
+
+                    # Set the filtered file_name options
+                    if queryset.exists():
+                        field["file_name_options"] = [record["file_name"] for record in filtered_records]
+
+            
             # Master Dropdown
             if field["field_type"] == "master dropdown" and field["values"]:
                 dropdown_id = field["values"][0]
