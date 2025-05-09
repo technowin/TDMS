@@ -375,13 +375,19 @@
 <div class="row col-md-12 justify-content-center">
     <input type="hidden" id="clicked_action_id" name="clicked_action_id">
 
-    {% if type == "reference_inward" %}
-    <div class="button-group">
-        <button type="button" class="btn btn-primary" id="compareButton" style="margin-right: 30px;">Compare</button>
-        <button type="submit" class="btn btn-success submit-btn" id="saveDataButton">Save Data</button>
-    </div>
+   
+    {% if type == "reference_inward"  %} 
+        <div class="button-group">
+            <button type="submit" class="btn btn-success submit-btn" id="saveDataButton">Save Data</button>
+        </div>
+    {% elif type == "reference" %}
 
-    {% else %}
+     <div class="button-group">
+            <button type="button" class="btn btn-primary" id="compareButton" style="margin-right: 30px;">Compare</button>
+    </div>
+    {% endif %} 
+
+
 
 
 
@@ -407,7 +413,6 @@
                 {{ action.button_name }}
             </button>
 
-            </button>
 
 
             {% elif action.type == "textarea" %}
@@ -440,7 +445,6 @@
 {% endif %}
 {% endif %}
 
-{% endif %}
 
 
 
@@ -812,11 +816,14 @@
                 } else if (buttonType === 'Submit' && type === 'edit') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_edit' %}";
-                } else if (buttonType === 'Action') {
+                } else if (buttonType === 'Submit' && type === 'reference') {
+                    operatorDropdown.removeAttribute('required');
+                    form.action = "{% url 'common_form_edit' %}";
+                }  else if (buttonType === 'Action') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_action' %}";
                 }else if (type == "reference_inward") {
-                    form.action = "{% url 'common_form_edit' %}";
+                    form.action = "{% url 'reference_workflow' %}";
                 }else if (buttonType === 'Submit' && parseInt(editORcreate.value) === 1) {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_post' %}";
@@ -833,69 +840,90 @@
         });
 
 
-
-
-
-        {% comment %} document.querySelectorAll('.submit-btn').forEach(button => {
-            debugger;
-            button.addEventListener('click', function (e) {
-                const form = document.getElementById('dynamicForm');
-                const buttonType = this.getAttribute('data-button-type');
-
-                const workflow_YN = document.getElementById('workflow_YN');
-                //const dropdownContainer = document.getElementById('workflowDropdownContainer');
-                const confirmSubmitBtn = document.getElementById('confirmSubmitBtn');
-                const cancelPopupBtn = document.getElementById('cancelPopupBtn');
-                const firstStep = document.getElementById('firstStep');
-
-                const popup = document.getElementById('workflowPopup');
-                const overlay = document.getElementById('popupOverlay');
-                const operatorDropdown = document.getElementById('custom_dropdownOpr');
-
-                if (buttonType === 'Submit' && parseInt(workflow_YN.value) === 1 && parseInt(firstStep.value) === 1) {
-                    debugger;
-
-                    e.preventDefault();
-
-                    const popup = document.getElementById('workflowPopup');
-                    const overlay = document.getElementById('popupOverlay');
-
-                    // ✅ Show popup and overlay
-                    popup.style.display = 'block';
-                    overlay.style.display = 'block';
-                    operatorDropdown.setAttribute('required', true);
-
-                    confirmSubmitBtn.onclick = function () {
-                        form.action = "{% url 'common_form_post' %}";
-
-                    };
-
-                    // Cancel button inside popup
-                    cancelPopupBtn.onclick = function () {
-                        workflowPopup.style.display = 'none';
-                        popupOverlay.style.display = 'none';
-                    };
-
-                }
-                else if (buttonType === 'Submit') {
-                    operatorDropdown.removeAttribute('required');
-                    form.action = "{% url 'common_form_post' %}";
-
-
-                } else if (buttonType === 'Action') {
-                    operatorDropdown.removeAttribute('required');
-                    form.action = "{% url 'common_form_action' %}";
-
-                }
-
-                // optional: if you want to submit the form manually
-                // form.submit();
-            });
-        }); {% endcomment %}
-
-
-
 </script>
+
+<script>
+
+    function validateRegexInput(inputElement) {
+        const pattern = inputElement.getAttribute("data-regex");
+        const value = inputElement.value;
+    
+        if (!pattern) return true; // No pattern to validate against
+    
+        const regex = new RegExp(pattern);
+        if (!regex.test(value)) {
+            inputElement.classList.add("is-invalid");
+            inputElement.setCustomValidity("Invalid input pattern.");
+            inputElement.reportValidity(); // Show browser validation message
+            return false;
+        } else {
+            inputElement.classList.remove("is-invalid");
+            inputElement.setCustomValidity(""); // Reset validity
+            return true;
+        }
+    }
+
+
+     function formatInputByPattern(inputElement, regexId) {
+        debugger;
+        let value = inputElement.value;
+    
+        const numericOnly = v => v.replace(/\D/g, "");
+        const alnumUpper = v => v.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    
+        switch (parseInt(regexId)) {
+            case 1: // Aadhar
+                value = numericOnly(value).substring(0, 12);
+                value = value.replace(/(\d{4})(?=\d)/g, "$1 ");
+                break;
+            case 2: // PAN
+                value = value.toUpperCase().replace(/[^A-Z0-9]/g, ""); // Remove non-alphanumerics
+                value = value.substring(0, 10); // Enforce 10-char limit
+                break;
+            case 3: // IFSC
+                value = alnumUpper(value).substring(0, 11);
+                break;
+            case 4: // Mobile Number
+                value = numericOnly(value).substring(0, 10);
+                break;
+            case 5: // Pincode
+                value = numericOnly(value).substring(0, 6);
+                break;
+            case 6: // Passport
+                value = alnumUpper(value).substring(0, 8);
+                break;
+            case 7: // Voter ID
+                value = alnumUpper(value).substring(0, 10);
+                break;
+            case 8: // Driving License
+                value = alnumUpper(value).substring(0, 16);
+                break;
+            case 9: // UPI
+                value = value.replace(/[^\w@.]/g, "").substring(0, 50);
+                break;
+            case 10: // Credit Card
+                value = numericOnly(value).substring(0, 16);
+                value = value.replace(/(\d{4})(?=\d)/g, "$1 ");
+                break;
+            case 11: // Landline Number (XXX-XXXXXXX)
+                // Remove all non-digit characters
+                value = numericOnly(value).substring(0, 11);
+                // Format as XXX-XXXXXXX
+                value = value.replace(/^(\d{3})(\d{0,8})/, "$1-$2");
+                break;
+            case 12: // PNR
+                // Allow only numeric values, limit to 10 digits
+                value = numericOnly(value).substring(0, 10);
+                break;
+            default:
+                value = value.replace(/[^\w\s]/g, "");
+                break;
+        }
+    
+        inputElement.value = value;
+    }
+</script>
+
 
 <script>
      $(document).ready(function() {

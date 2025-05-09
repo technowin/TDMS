@@ -910,6 +910,10 @@ def form_master(request):
             wfdetailsID = request.GET.get('wfdetailsID', '')
             readonlyWF = request.GET.get('readonlyWF', '')
             viewStepWF = request.GET.get('viewStepWF', '')
+            type = request.GET.get('type','')
+
+            if type == 'reference':
+                workflow_YN = '1'
             
             if form_data_id:
                 form_data_id = dec(form_data_id)
@@ -1092,9 +1096,9 @@ def form_master(request):
                         af["dropdown_values"] = af["dropdown_values"].split(",") if af.get("dropdown_values") else []
                     if workflow_YN == '1E':
                         return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"workflow":workflow_YN,
-                                    "step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF,"action_data":action_data,"comments":comments})
+                                    "step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF,"action_data":action_data,"comments":comments,"type":type})
                     else:
-                        return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"readonlyWF":readonlyWF,"viewStepWFSeq":'0',"action_data":action_data,"comments":comments})
+                        return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"readonlyWF":readonlyWF,"viewStepWFSeq":'0',"action_data":action_data,"comments":comments,"type":type})
             else:
                 type = request.GET.get("type")
                 form = Form.objects.all()
@@ -1118,7 +1122,6 @@ def common_form_post(request):
 
         workflow_YN = request.POST.get('workflow_YN', '')
         form_id = request.POST.get("form_id")
-        editORcreate  = request.POST.get('editORcreate','')
         
         # form_id = request.POST.get(form_id_key, '').strip()
         form = get_object_or_404(Form, id=request.POST.get("form_id"))
@@ -1131,9 +1134,6 @@ def common_form_post(request):
             form_data = FormData.objects.create(form=form)
         else:
             form_data = FormData.objects.create(form=form,action=action)
-        if workflow_YN == '1':
-            form_data.req_no = f"REQNO-00{form_data.id}"
-        else:
             form_data.req_no = f"UNIQ-NO-00{form_data.id}"
         form_data.created_by = user
         form_data.save()
@@ -1256,7 +1256,7 @@ def common_form_post(request):
                         if match:
                             field_id = int(match.group(1))
                             action_field = get_object_or_404(FormActionField, pk=field_id)
-                            if action_field.type in ['text', 'textarea', 'dropdown']:
+                            if action_field.type in ['text', 'textarea', 'select']:
                                 ActionData.objects.create(
                                     value=value,
                                     form_data=form_data,
@@ -1300,9 +1300,12 @@ def common_form_edit(request):
 
         created_by = request.session.get("user_id", "").strip()
         form_name = request.POST.get("form_name", "").strip()
-    
+        type = request.POST.get("type","")
 
-        # Re-create all non-file fields
+        if type == 'reference':
+            workflow_YN = '1E'
+
+        
         for key, value in request.POST.items():
             if key.startswith("field_id_"):
                 field_id = value.strip()
@@ -1317,32 +1320,28 @@ def common_form_edit(request):
                 if field.field_type == "generative":
                     continue
 
-                if workflow_YN == '1':
-                    workflow = 1
-                else:
-                    workflow = 0
 
-                # Check if a value already exists for this field
-                existing_value = FormFieldValues.objects.filter(
-                    form_data=form_data, form=form, field=field
-                ).first()
+                if type != 'reference':
+                    existing_value = FormFieldValues.objects.filter(
+                        form_data=form_data, form=form, field=field
+                    ).first()
 
-                if existing_value:
-                    # Update existing entry
-                    existing_value.value = input_value
-                    existing_value.save()
-                else:
-                    # Create new entry
-                    FormFieldValues.objects.create(
-                        form_data=form_data,
-                        form=form,
-                        field=field,
-                        value=input_value,
-                        created_by=created_by
-                    )
+                    if existing_value:
+                        # Update existing entry
+                        existing_value.value = input_value
+                        existing_value.save()
+                    else:
+                        # Create new entry
+                        FormFieldValues.objects.create(
+                            form_data=form_data,
+                            form=form,
+                            field=field,
+                            value=input_value,
+                            created_by=created_by
+                        )
 
-
-        handle_uploaded_files(request, form_name, created_by, form_data, user)
+        if type != 'reference':
+            handle_uploaded_files(request, form_name, created_by, form_data, user)
 
         # callproc('create_dynamic_form_views')
         messages.success(request, "Form data updated successfully!")
@@ -1432,7 +1431,7 @@ def common_form_edit(request):
                         if match:
                             field_id = int(match.group(1))
                             action_field = get_object_or_404(FormActionField, pk=field_id)
-                            if action_field.type in ['text', 'textarea', 'dropdown']:
+                            if action_field.type in ['text', 'textarea', 'select']:
                                 ActionData.objects.create(
                                     value=value,
                                     form_data=form_data,
@@ -1748,7 +1747,7 @@ def common_form_action(request):
                         if match:
                             field_id = int(match.group(1))
                             action_field = get_object_or_404(FormActionField, pk=field_id)
-                            if action_field.type in ['text', 'textarea', 'dropdown']:
+                            if action_field.type in ['text', 'textarea', 'select']:
                                 ActionData.objects.create(
                                     value=value,
                                     form_data=form_data,
@@ -1999,3 +1998,201 @@ def create_new_section(request):
             section = SectionMaster.objects.create(name=name)
             return JsonResponse({"id": section.id, "name": section.name})
     return JsonResponse({"error": "Invalid request"}, status=400)
+
+def reference_workflow(request):
+    user = request.session.get('user_id', '')
+    try:
+        if request.method != "POST":
+            return JsonResponse({"error": "Invalid request method"}, status=400)
+
+        matched_form_data_id = request.POST.get('matched_form_data_id')
+        if not matched_form_data_id:
+            return JsonResponse({"error": "form_data_id is required"}, status=400)
+
+        form_data = get_object_or_404(FormData, id=matched_form_data_id)
+        form = get_object_or_404(Form, id=request.POST.get("form_id"))
+        created_by = user.strip()
+        form_name = request.POST.get("form_name", "").strip()
+
+        # ❌ Do not touch FormFieldValues
+        # ✅ Clean existing temp data
+        FormFieldValuesTemp.objects.filter(form_data=form_data, form=form).delete()
+
+        for key, value in request.POST.items():
+            if key.startswith("field_id_"):
+                field_id = value.strip()
+                field = get_object_or_404(FormField, id=field_id)
+
+                if field.field_type == "generative":
+                    continue
+
+                if field.field_type == "select multiple":
+                    selected_values = request.POST.getlist(f"field_{field_id}")
+                    input_value = ','.join([val.strip() for val in selected_values if val.strip()])
+                else:
+                    input_value = request.POST.get(f"field_{field_id}", "").strip()
+
+                # Check if there was an existing value in the main table
+                existing_main_value = FormFieldValues.objects.filter(
+                    form_data=form_data, form=form, field=field
+                ).first()
+
+                # Insert into TEMP only
+                FormFieldValuesTemp.objects.create(
+                    form_data=form_data,
+                    form=form,
+                    field=field,
+                    value=input_value,
+                    old_field_value_id=existing_main_value.id if existing_main_value else None,
+                    created_by=created_by,
+                    updated_by=created_by
+                )
+
+        handle_generative_fields_temp(form, form_data, created_by)
+        handle_uploaded_files_temp(request, form_name, created_by, form_data, user)
+
+        matched_form_data_id= enc(matched_form_data_id)
+
+        return redirect(f"/form_master/?form={matched_form_data_id}&type=reference")
+
+
+        
+
+    except Exception as e:
+        return JsonResponse({"error": str(e)}, status=500)
+
+
+def handle_generative_fields_temp(form, form_data, created_by):
+    generative_fields = FormField.objects.filter(form=form, field_type="generative")
+
+    for field in generative_fields:
+        try:
+            gen_settings = FormGenerativeField.objects.get(field=field, form=form)
+
+            prefix = gen_settings.prefix or ''
+            selected_ids = (gen_settings.selected_field_id or '').split(',')
+            no_of_zero = int(gen_settings.no_of_zero or '0')
+            initial_increment = int(gen_settings.increment or '1')
+
+            increment_row, created = FormIncrementNo.objects.get_or_create(
+                form=form,
+                defaults={'increment': initial_increment}
+            )
+
+            if not created:
+                increment_row.increment += 1
+                increment_row.save()
+
+            current_increment = increment_row.increment
+
+            selected_values = []
+            for sel_id in selected_ids:
+                selected_field = FormField.objects.filter(id=sel_id).first()
+                if not selected_field:
+                    continue
+
+                value_obj = FormFieldValuesTemp.objects.filter(
+                    form_data=form_data,
+                    form=form,
+                    field=selected_field
+                ).first()
+
+                if value_obj:
+                    selected_values.append(value_obj.value)
+
+            base_part = '-'.join(selected_values)
+            padded_number = str(0).zfill(no_of_zero)
+            final_value = f"{prefix}-{base_part}-{padded_number}{current_increment}"
+
+            # Get the old field value id from main table
+            existing_main_value = FormFieldValues.objects.filter(
+                form_data=form_data,
+                form=form,
+                field=field
+            ).first()
+
+            # Save the generated value into Temp table
+            FormFieldValuesTemp.objects.create(
+                form_data=form_data,
+                form=form,
+                field=field,
+                value=final_value,
+                old_field_value_id=existing_main_value.id if existing_main_value else None,
+                created_by=created_by
+            )
+
+        except Exception as e:
+            traceback.print_exc()
+
+def handle_uploaded_files_temp(request, form_name, created_by, form_data, user):
+    try:
+        for field_key, uploaded_files in request.FILES.lists():
+            if not field_key.startswith("field_"):
+                continue
+
+            field_id = field_key.split("_")[-1].strip()
+            field = get_object_or_404(FormField, id=field_id)
+
+            file_dir = os.path.join(settings.MEDIA_ROOT, form_name, created_by, form_data.req_no)
+            os.makedirs(file_dir, exist_ok=True)
+
+            is_multiple = field.field_type == "file multiple"
+
+            for uploaded_file in uploaded_files:
+                uploaded_file_name = uploaded_file.name.strip()
+                original_file_name, file_extension = os.path.splitext(uploaded_file_name)
+                timestamp = timezone.now().strftime('%Y%m%d%H%M%S%f')
+                saved_file_name = f"{original_file_name}_{timestamp}{file_extension}"
+                save_path = os.path.join(file_dir, saved_file_name)
+                relative_file_path = os.path.join(form_name, created_by, form_data.req_no, saved_file_name)
+
+                # Save new file to disk
+                with open(save_path, 'wb+') as destination:
+                    for chunk in uploaded_file.chunks():
+                        destination.write(chunk)
+
+                # Save to FormFileTemp
+                form_file_temp = FormFileTemp.objects.create(
+                    file_name=saved_file_name,
+                    uploaded_name=uploaded_file_name,
+                    file_path=relative_file_path,
+                    form_data=form_data,
+                    form=form_data.form,
+                    created_by=user,
+                    updated_by=user,
+                    field=field
+                )
+
+                # Get existing FormFieldValuesTemp by old_field_value_id
+                old_main_value = FormFieldValues.objects.filter(
+                    form=form_data.form,
+                    field=field,
+                    form_data=form_data
+                ).first()
+
+                temp_field_value = FormFieldValuesTemp.objects.filter(
+                    old_field_value_id=old_main_value.id if old_main_value else None,
+                    form=form_data.form,
+                    field=field,
+                    form_data=form_data
+                ).first()
+
+                if temp_field_value:
+                    # Append or set value
+                    if temp_field_value.value:
+                        file_ids = temp_field_value.value.split(',')
+                        file_ids.append(str(form_file_temp.id))
+                        temp_field_value.value = ','.join(file_ids)
+                    else:
+                        temp_field_value.value = str(form_file_temp.id)
+                    temp_field_value.save()
+
+                    # Update the file_temp record to reflect this linkage
+                    form_file_temp.file_id = temp_field_value.id
+                    form_file_temp.save()
+
+    except Exception as e:
+        traceback.print_exc()
+        messages.error(request, "Oops...! Something went wrong!")
+
+

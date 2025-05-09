@@ -598,9 +598,6 @@ def workflow_form_step(request):
             WFoperator_dropdown = result.fetchall()
 
         
-        
-
-            
         workflow = get_object_or_404(workflow_matrix, id=id)
         form_id = workflow.form_id
         action_id = workflow.button_type_id
