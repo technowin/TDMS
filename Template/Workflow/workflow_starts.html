@@ -84,7 +84,9 @@
               <td>{{ item.updated_by }}</td>
               <td>{{ item.updated_at }}</td>
               <td>{{item.next_matrix_role}}</td>
-              <td>{{ item.status }}</td>
+              <td>
+                <span class="badge badge-pill badge-secondary" style="font-size: 16px;background-color:{{ item.color_status }};">{{ item.status }}</span>
+              </td>
               <td>
 
 

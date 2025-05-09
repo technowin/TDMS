@@ -225,9 +225,22 @@
 
             
         </div>
-        <div class="form-group">
+        {% comment %} <div class="form-group">
             <label for="stepName">Status</label>
             <input type="text" class="form-control" id="statusName" value="{{ workflow_details.statusV }}" placeholder="Enter Status" required>
+        </div> {% endcomment %}
+        <div class="form-row" style="display: flex; gap: 20px;">
+            <!-- Status -->
+            <div class="form-group">
+                <label for="stepName">Status</label>
+                <input type="text" class="form-control" id="statusName" value="{{ workflow_details.statusV }}" placeholder="Enter Status" required>
+            </div>
+        
+            <!-- Color Picker -->
+            <div class="form-group">
+                <label for="favcolor">Choose a color for Status:</label>
+                <input type="color" id="favcolor" name="favcolor" class="form-control" value="{{ workflow_details.status_color }}" style="height: 38px; padding: 5px;">
+            </div>
         </div>
         
 
@@ -324,6 +337,7 @@
         let workflow_idEncrypt = $("#workflow_idEncrypt").val();
         let selectedRoles = $("#customRoleDropdown").val();
         let statusName = $("#statusName").val();
+        let favcolor = $("#favcolor").val();
 
         // Validation: Ensure dropdowns are not empty or "Select"
         if (!workflowDropdown || workflowDropdown === "Select" ||
@@ -349,7 +363,7 @@
                 buttonTypeDropdown: $("#buttonTypeDropdown").val(),
                 actionDropdown: $("#actionDropdown").val(),
                 workflow_idEncrypt: $("#workflow_idEncrypt").val(),
-                statusName: $("#statusName").val(),
+                statusName: $("#statusName").val(),favcolor:favcolor,
                 roles: selectedRoles.join(","),
                 csrfmiddlewaretoken: $("input[name=csrfmiddlewaretoken]").val() // CSRF token
             };
