@@ -192,6 +192,7 @@
     let master = JSON.parse('{{ master_dropdown|escapejs|safe }}')
     let formNames = JSON.parse('{{ form_names|escapejs|safe }}')
     let section = JSON.parse('{{ section_names|escapejs|safe }}')
+    let version = JSON.parse('{{ version|escapejs|safe }}')
   
 
     {% if form %}
@@ -341,6 +342,13 @@
                         <div class="col-md-6" id="subControl-${fieldId}"></div>
                     </div>`;
 
+            }
+            else if (field.type == "file_name") {
+                subControlHtml += `<select class="form-control select" name="column_select">`;
+                version.forEach(function(col) {
+                    subControlHtml += `<option value="${col}">${col}</option>`;
+                });
+                subControlHtml += `</select>`;
             }
             
             let subControlData = subControls.filter(sub => sub.field_type === field.type);
@@ -594,7 +602,7 @@
                         },
                         success: function (response) {
                             let selectize = $select[0].selectize;
-                            selectize.addOption({ value: response.id, text: response.name }); // Add to options
+                            selectize.addOption({ value: response.id, text: response.name });
                             selectize.addItem(response.id); // Select it
                         },
                         error: function () {

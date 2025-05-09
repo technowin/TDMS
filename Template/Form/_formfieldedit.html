@@ -29,12 +29,12 @@
 <style>
 
     .selectize-input {
-        border: 1px solid black !important; 
-        border-radius: 10px !important; 
+        border: 1px solid black !important;
+        border-radius: 10px !important;
         font-size: 1em;
         {% comment %} width: 60%; {% endcomment %}
         min-height:38px;
-        max-height: auto; 
+        max-height: auto;
         overflow-y: auto;
         padding: 6px 10px;
         display: flex;
@@ -53,12 +53,12 @@
           position: relative;
           background-color: #f9f9f9;
       }
-      
+
       /* Remove border and header if no section name is provided */
       .section-wrapper.no-section {
           border: none;
       }
-      
+
       /* Section header styles */
       .section-header {
           position: absolute;
@@ -71,7 +71,7 @@
           color: #4e73df;
           border-left: 4px solid #007bff;
       }
-          
+
 </style>
 
 <div class="modal fade" id="livePreviewModal" tabindex="-1" role="dialog" aria-labelledby="exampleModalLabel"
@@ -81,14 +81,14 @@
                 <div class="modal-header">
                     <h2 class="modal-title" id="livePreviewModalLabel">Actions</h2>
                     {% comment %} <button type="button" class="btn-close" data-dismiss="modal" aria-label="Close"><i class="fa-regular fa-xmark-large"></i></button> {% endcomment %}
-                  </div>   
+                  </div>
                   <div class="modal-body">
                     <table id="actionTable" class="table table-striped table-bordered" style="width:100%">
                         <thead>
                             <tr>
                                 <th>Sr No</th>
                                 <th>Step</th>
-                                <th>Action</th>
+                                <th>Action / Comments</th>
                                 <th>Role</th>
                                 <th>Created At</th>
                                 <th>Created By</th>
@@ -131,7 +131,7 @@
             <h3 class="mb-0"><strong style="color: #4e73df;"><u id="form-title">Insert Form Data - {% if sectioned_fields %}{{ form.name }}{% else %}{% endif %}
             </u></strong></h3>
         </div>
-        
+
         <br>
     {% csrf_token %}
 <div class="row">
@@ -153,7 +153,7 @@
             {% comment %} <input type="hidden" id="form_id" name="form_id_{{ field.id }}" value="{{ field.form_id }}"> {% endcomment %}
             <input type="hidden" id="action_id" name="action_id_{{ field.id }}" value="{{ field.action_id }}">
             <input type="hidden" id="field_id" name="field_id_{{ field.id }}" value="{{ field.id }}">
-            
+
             <input type="hidden" id="workflow_YN" name="workflow_YN" value="{{ workflow }}">
             <input type="hidden" id="role_id" name="role_id" value="{{ role_id }}">
             <input type="hidden" id="action_detail_id" name="action_detail_id" value="{{ action_detail_id }}">
@@ -162,7 +162,7 @@
             <input type="hidden" id="step_id" name="step_id" value="{{ step_id }}">
             <input type="hidden" id="wfdetailsid" name="wfdetailsid" value="{{ wfdetailsid }}">
             <input type="hidden" id="status_wfM" name="status_wfM" value="{{ status_wfM }}">
-            
+
 
             <input type="hidden" id="custom_dropdownOpr" name="custom_dropdownOpr">
             <input type="hidden" id="firstStep" name="firstStep" value="{{ firstStep }}">
@@ -172,7 +172,7 @@
             <input type="hidden" id = "editORcreate" name = "editORcreate" value ="{{editORcreate}}">
             <input type="hidden" id = "readonlyWF" name = "readonlyWF" value ="{{readonlyWF}}">
             <input type="hidden" id = "viewStepWFSeq" name = "viewStepWFSeq" value ="{{viewStepWFSeq}}">
-          
+
             {% if field.field_type == "select"  %}
                 <select class="form-control select" name="field_{{ field.id }}"
                     {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
@@ -190,9 +190,9 @@
                         <option value="{{ option.id }}" {% if option.id|stringformat:"s" == field.value|stringformat:"s" %} selected {% endif %}>{{ option.name }}</option>
                     {% endfor %}
                 </select>
-            
-            
-            
+
+
+
 
             {% elif field.field_type == "select multiple" %}
                 <select class="form-control select_multiple" name="field_{{ field.id }}" multiple
@@ -214,8 +214,20 @@
                       </option>
                     {% endfor %}
                 </select>
-            
-            
+
+            {% elif field.field_type == "file_name" %}
+                <select class="form-control field_select" name="field_{{ field.id }}"
+                        {% for attr in field.attributes %} {{ attr }} {% endfor %}
+                        {% if readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
+                    <option value="" disabled {% if not field.saved_value %}selected{% endif %}>Select</option>
+                    {% for option in field.file_name_options %}
+                        <option value="{{ option }}" {% if option == field.saved_value %}selected{% endif %}>
+                            {{ option }}
+                        </option>
+                    {% endfor %}
+                </select>
+
+
 
             {% elif field.field_type == "radio" %}
                 <div class="d-flex flex-wrap">
@@ -223,7 +235,7 @@
                         <div style="font-size:18px;" class="form-check me-2">
                             <input class="form-check-input" type="radio" name="field_{{ field.id }}" value="{{ option }}" id="radio_{{ field.id }}_{{ forloop.counter }}"
                                 {% if option == field.value %} checked {% endif %}
-                                
+
                                 {% for attr in field.attributes %} {{ attr }} {% endfor %}>
                             <label class="form-check-label" for="radio_{{ field.id }}_{{ forloop.counter }}">{{ option }}&nbsp;&nbsp;</label>
                         </div>
@@ -246,7 +258,7 @@
                         <input type="file" accept="{{ field.accept }}"  name="field_{{ field.id }}"
                                class="form-control custom-file-input" style="padding-right: 100px;" id="file_input_{{ field.id }}"
                                {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3' %} disabled {% endif %}>
-                    
+
                         <i class="fa-solid fa-eye eye-icon"
                            {% if type == "create" %}
                                onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
@@ -255,13 +267,13 @@
                            {% endif %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3' %} disabled {% endif %}>
                         </i>
                     </div>
-                    
+
             {% elif field.field_type == "file multiple" %}
                 <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
                     <input type="file" accept="{{ field.accept }}"name="field_{{ field.id }}" multiple
                            class="form-control custom-file-input"style="padding-right: 100px;" id="file_input_{{ field.id }}"
                            {% for attr in field.attributes %} {{ attr }} {% endfor %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3' %} disabled {% endif %}>
-                
+
                     <i class="fa-solid fa-eye eye-icon"
                        {% if type == "create" %}
                            onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
@@ -270,30 +282,30 @@
                        {% endif %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3' %} disabled {% endif %}>
                     </i>
                 </div>
-                      
-                     
 
-                {% elif field.field_type == "textarea" %}
+
+
+            {% elif field.field_type == "textarea" %}
                 <textarea class="form-control custom-textarea"
                           name="field_{{ field.id }}"
                           rows="1"
                           {% for attr in field.attributes %}{{ attr }} {% endfor %}
                           {% if readonlyWF == '1' or viewStepWFSeq == '3' %}readonly{% endif %}>{{ field.value }}</textarea>
-            
+
             {% elif field.field_type == "generative" %}
                 <input type="text" class="form-control" disabled
                        name="field_{{ field.id }}"
                        value="{{ field.value }}"
                        placeholder="This Field is System Generated"
                        {% for attr in field.attributes %}{{ attr }} {% endfor %}{% if readonlyWF == '1' or viewStepWFSeq == '3' %}readonly{% endif %}/>
-            
+
             {% elif field.field_type == "number" %}
                 <input type="number" class="form-control"
                        name="field_{{ field.id }}"
                        value="{{ field.value }}"
                        placeholder="Enter Numeric Value"
                        {% for attr in field.attributes %}{{ attr }} {% endfor %} {% if readonlyWF == '1' or viewStepWFSeq == '3' %}readonly{% endif %}/>
-            
+
             {% elif field.field_type == "text" %}
                 <input type="text" class="form-control"
                        name="field_{{ field.id }}"
@@ -312,9 +324,9 @@
                        value="{{ field.value|default:'' }}"
                        oninput="formatInputByPattern(this, '{{ field.regex_id }}'); validateRegexInput(this);"
                        placeholder="{{ field.regex_description }}"
-                       
+
                        {% for attr in field.attributes %} {{ attr }} {% endfor %}>
-            
+
             {% else %}
                 <input type="{{ field.field_type }}" class="form-control"
                        name="field_{{ field.id }}"
@@ -322,23 +334,23 @@
                        {% for attr in field.attributes %}{{ attr }} {% endfor %}
                        {% if readonlyWF == '1' or viewStepWFSeq == '3' %}readonly{% endif %}/>
             {% endif %}
-            
 
-        
+
+
         </div> {% if forloop.counter0|add:1|divisibleby:4 or forloop.last %}
     </div>
 {% endif %}
 {% endfor %}
-</div>
+
 {% endfor %}
+</div>
 
 
-    
 
 </div>
 </div>
+
 <br/>
-{% if comments %}
 {% if comments %}
 <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;">
     <div class="row col-md-12 justify-content-center">
@@ -354,8 +366,6 @@
 </div>
 {% endif %}
 
-{% endif %}
-
 <br/>
 {% if readonlyWF != '1' %}
 <div class="card shadow" style="border: 2px solid #b3b3b3; border-radius: 15px; padding: 20px;" >
@@ -365,7 +375,7 @@
     {% if action_fields %}
     {% for action in action_fields %}
     <div class="{% if action.type == 'button' %}col-md-2{% else %}col-md-3{% endif %} mt-1 text-center">
-            <input type="hidden" name="action_field_id_{{ action.id }}" value="{{ action.action_id }}"> 
+            <input type="hidden" name="action_field_id_{{ action.id }}" value="{{ action.action_id }}">
 
             {% if action.type != "button" %}
                 <label class="fw-bold mb-1">{{ action.label_name }}</label>
@@ -383,7 +393,7 @@
             </button>
 
             </button>
-    
+
 
             {% elif action.type == "textarea" %}
                 <textarea class="form-control custom-textarea" name="action_field_{{ action.id }}" rows="1" {% if readonlyWF == '1' %} disabled {% endif %}></textarea>
@@ -417,12 +427,12 @@
 
 
 
-</div>
+<div>
 
 {% comment %} added for operator dropdown {% endcomment %}
 
-<div id="workflowPopup" style="display: none; position: fixed; top: 50%; left: 50%; 
-    transform: translate(-50%, -50%); z-index: 9999; background: white; padding: 20px; 
+<div id="workflowPopup" style="display: none; position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%); z-index: 9999; background: white; padding: 20px;
     box-shadow: 0px 0px 10px rgba(0,0,0,0.5); border-radius: 8px;">
 
     <label for="custom_dropdownOpr">Select Operator:</label>
@@ -441,7 +451,7 @@
 
 </div>
 
-<div id="popupOverlay" style="display: none; position: fixed; top: 0; left: 0; 
+<div id="popupOverlay" style="display: none; position: fixed; top: 0; left: 0;
     width: 100vw; height: 30vh; background: rgba(0,0,0,0.3); z-index: 9990;"></div>
 
 {% comment %} ends here {% endcomment %}
@@ -464,23 +474,28 @@
                 // Do not clear values on initialize!
             });
         });
-        
+
 </script>
+
+<script>
+    const readonlyWF = "{{ readonlyWF }}";
+    const viewStepWFSeq = "{{ viewStepWFSeq }}";
+</script>
+
 
 <script>
 
 
         let selectedNewFiles = []; // Global array to store new files
-    
+
         function showScript(form_data_id, field_id) {
             const inputElement = document.getElementById('file_input_' + field_id);
             const newFiles = inputElement.files;
-    
-            // Populate selectedNewFiles when this runs for the first time
+        
             if (selectedNewFiles.length === 0 && newFiles.length > 0) {
                 selectedNewFiles = Array.from(newFiles);
             }
-    
+        
             $.ajax({
                 url: "{% url 'get_uploaded_files' %}",
                 type: 'POST',
@@ -490,44 +505,48 @@
                     csrfmiddlewaretoken: '{{ csrf_token }}'
                 },
                 success: function (data) {
+                    const showDelete = !(readonlyWF === '1' || viewStepWFSeq === '3');
+        
                     let tableHTML = `
                         <table style="width:100%; text-align:left; border-collapse: collapse;">
                             <thead>
                                 <tr>
                                     <th style="border-bottom: 1px solid #ccc; padding: 8px;">Sr No.</th>
                                     <th style="border-bottom: 1px solid #ccc; padding: 8px;">File Name</th>
-                                    <th style="border-bottom: 1px solid #ccc; padding: 8px;">Download</th>
-                                    <th style="border-bottom: 1px solid #ccc; padding: 8px;">Delete</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                    `;
-    
+                                    <th style="border-bottom: 1px solid #ccc; padding: 8px;">Download</th>`;
+        
+                    if (showDelete) {
+                        tableHTML += `<th style="border-bottom: 1px solid #ccc; padding: 8px;">Delete</th>`;
+                    }
+        
+                    tableHTML += `</tr></thead><tbody>`;
+        
                     let srNo = 1;
-    
-                    // Existing files
+        
                     if (data.files && data.files.length > 0) {
                         data.files.forEach((file) => {
                             let downloadIcon = file.status === 1
                                 ? `<a href="javascript:void(0);" onclick="downloadFile('${file.encrypted_url}')" title="Download File"><i class="fa-solid fa-download"></i></a>`
                                 : `--`;
-
+        
                             let deleteIcon = file.status === 1
                                 ? `<a href="javascript:void(0);" onclick="deleteFile('${file.encrypted_url}', '${file.file_id}')" ><i class="fa fa-trash" style="color:red;" aria-hidden="true"></i></a>`
                                 : `--`;
-    
+        
                             tableHTML += `
                                 <tr>
                                     <td style="padding: 8px;">${srNo++}</td>
                                     <td style="padding: 8px;">${file.name}</td>
-                                    <td style="padding: 8px;">${downloadIcon}</td>
-                                    <td style="padding: 8px;">${deleteIcon}</td>
-                                </tr>
-                            `;
+                                    <td style="padding: 8px;">${downloadIcon}</td>`;
+        
+                            if (showDelete) {
+                                tableHTML += `<td style="padding: 8px;">${deleteIcon}</td>`;
+                            }
+        
+                            tableHTML += `</tr>`;
                         });
                     }
-    
-                    // New files added but not uploaded yet
+        
                     selectedNewFiles.forEach((file, index) => {
                         tableHTML += `
                             <tr>
@@ -535,26 +554,29 @@
                                 <td style="padding: 8px;">${file.name}</td>
                                 <td style="padding: 8px;">
                                     <i class="fa-solid fa-file-circle-plus" title="File will be uploaded after saving"></i>
-                                </td>
-                                <td style="padding: 8px;">
-                                     
-                                </td>
-                            </tr>
-                        `;
+                                </td>`;
+        
+                        if (showDelete) {
+                            tableHTML += `<td style="padding: 8px;"></td>`;
+                        }
+        
+                        tableHTML += `</tr>`;
                     });
-    
+        
+                    const colspan = showDelete ? 4 : 3;
+        
                     if ((data.files?.length ?? 0) === 0 && selectedNewFiles.length === 0) {
                         tableHTML += `
                             <tr>
-                                <td colspan="4" style="padding: 8px; text-align: center; color: #111;">
+                                <td colspan="${colspan}" style="padding: 8px; text-align: center; color: #111;">
                                     No files available
                                 </td>
                             </tr>
                         `;
                     }
-    
+        
                     tableHTML += `</tbody></table>`;
-    
+        
                     Swal.fire({
                         title: 'Uploaded Files',
                         html: tableHTML,
@@ -568,19 +590,20 @@
                 }
             });
         }
-    
         
-    
+
+
+
     </script>
     <script>
-    
+
     function removeNewFile(index) {
         selectedNewFiles.splice(index, 1);
         // Refresh the popup
         const field_id = document.querySelector('[id^="file_input_"]').id.split('file_input_')[1];
         showScript('{{ form_data_id }}', field_id);
     }
-    
+
     function downloadFile(encryptedPath) {
         debugger;
         const baseUrl = "{% url 'download_file' %}";
@@ -593,9 +616,9 @@
         a.click();
         document.body.removeChild(a);
     }
-    
-        
-    
+
+
+
   </script>
 
   <script>
@@ -638,18 +661,18 @@
             }
         });
     }
-    
-    
-    
+
+
+
     </script>
-    
+
 
 <script>
 
     function showFile(input) {
         debugger;
         const files = input.files;
-    
+
         if (!files || files.length === 0) {
             Swal.fire({
                 icon: 'info',
@@ -659,7 +682,7 @@
             });
             return;
         }
-    
+
         let tableHTML = `
             <table style="width:100%; text-align:left; border-collapse: collapse;">
                 <thead>
@@ -670,7 +693,7 @@
                 </thead>
                 <tbody>
         `;
-    
+
         Array.from(files).forEach((file, index) => {
             tableHTML += `
                 <tr>
@@ -679,9 +702,9 @@
                 </tr>
             `;
         });
-    
+
         tableHTML += `</tbody></table>`;
-    
+
         Swal.fire({
             title: 'Selected Files',
             html: tableHTML,
@@ -689,13 +712,13 @@
             confirmButtonText: 'Close'
         });
     }
-    
+
     function removeNewFile(rowId, index) {
         document.getElementById(rowId)?.remove();
         if (newFiles) {
             newFiles.splice(index, 1); // remove the file from array
         }
-    
+
         // Optional: if all files removed, show "No files available"
         if (newFiles.length === 0 && (!data.files || data.files.length === 0)) {
             const tableBody = document.getElementById("your-table-body-id");
@@ -708,9 +731,9 @@
             `;
         }
     }
-    
 
-  
+
+
 </script>
 
 <script>
@@ -725,16 +748,16 @@
 
                 const workflow_YN = document.getElementById('workflow_YN');
                 //const dropdownContainer = document.getElementById('workflowDropdownContainer');
-                const confirmSubmitBtn = document.getElementById('confirmSubmitBtn'); 
+                const confirmSubmitBtn = document.getElementById('confirmSubmitBtn');
                 const cancelPopupBtn = document.getElementById('cancelPopupBtn');
                 const firstStep = document.getElementById('firstStep');
-                
+
                 const popup = document.getElementById('workflowPopup');
                 const overlay = document.getElementById('popupOverlay');
                 const operatorDropdown = document.getElementById('custom_dropdownOpr');
                 const editORcreate = document.getElementById('editORcreate');
 
-                
+
 
                 if (buttonType === 'Action') {
                     document.getElementById('clicked_action_id').value = actionId;
@@ -743,7 +766,7 @@
 
                 if (buttonType === 'Submit' && parseInt(workflow_YN.value) === 1 && parseInt(firstStep.value) === 1) {
                     debugger;
-                    
+
                     e.preventDefault();
 
                     const popup = document.getElementById('workflowPopup');
@@ -756,9 +779,9 @@
 
                     confirmSubmitBtn.onclick = function () {
                         form.action = "{% url 'common_form_post' %}";
-                        
+
                     };
-        
+
                     // Cancel button inside popup
                     cancelPopupBtn.onclick = function () {
                         workflowPopup.style.display = 'none';
@@ -785,10 +808,6 @@
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'reject_workflow_step' %}";
                 }
-
-    
-                
-    
                 // optional: if you want to submit the form manually
                 // form.submit();
             });
@@ -806,17 +825,17 @@
 
                 const workflow_YN = document.getElementById('workflow_YN');
                 //const dropdownContainer = document.getElementById('workflowDropdownContainer');
-                const confirmSubmitBtn = document.getElementById('confirmSubmitBtn'); 
+                const confirmSubmitBtn = document.getElementById('confirmSubmitBtn');
                 const cancelPopupBtn = document.getElementById('cancelPopupBtn');
                 const firstStep = document.getElementById('firstStep');
-                
+
                 const popup = document.getElementById('workflowPopup');
                 const overlay = document.getElementById('popupOverlay');
                 const operatorDropdown = document.getElementById('custom_dropdownOpr');
 
                 if (buttonType === 'Submit' && parseInt(workflow_YN.value) === 1 && parseInt(firstStep.value) === 1) {
                     debugger;
-                    
+
                     e.preventDefault();
 
                     const popup = document.getElementById('workflowPopup');
@@ -829,9 +848,9 @@
 
                     confirmSubmitBtn.onclick = function () {
                         form.action = "{% url 'common_form_post' %}";
-                        
+
                     };
-        
+
                     // Cancel button inside popup
                     cancelPopupBtn.onclick = function () {
                         workflowPopup.style.display = 'none';
@@ -842,20 +861,38 @@
                 else if (buttonType === 'Submit') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_post' %}";
-                    
+
 
                 } else if (buttonType === 'Action') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_action' %}";
-                   
+
                 }
-    
+
                 // optional: if you want to submit the form manually
                 // form.submit();
             });
         }); {% endcomment %}
 
 
+
+</script>
+
+<script>
+     $(document).ready(function() {
+        $('.field_select').selectize({
+            plugins: [],  // remove 'remove_button' since it's for multi-select
+            delimiter: ',',
+            placeholder: "--Select--",
+            persist: false,
+            create: false,
+            selectOnTab: false,
+            onInitialize: function() {
+                var control = this;
+                control.clear();
+            }
+        });
+    }); 
 
 </script>
 
