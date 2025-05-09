@@ -852,15 +852,10 @@ def form_master(request):
                         field["regex_description"] = ""
 
                 if field["field_type"] == "file_name":
-    # Filter records where baseline_date is not null and not 0
                     queryset = WorkflowVersionControl.objects.filter(
                         ~Q(baseline_date__isnull=True) & ~Q(baseline_date=0)
                     )
-
-                    # Get only file_name values
                     filtered_records = queryset.values("file_name")
-
-                    # Set the filtered file_name options
                     if queryset.exists():
                         field["file_name_options"] = [record["file_name"] for record in filtered_records]
 
@@ -1123,8 +1118,8 @@ def common_form_post(request):
 
         workflow_YN = request.POST.get('workflow_YN', '')
         form_id = request.POST.get("form_id")
+        editORcreate  = request.POST.get('editORcreate','')
         
-
         # form_id = request.POST.get(form_id_key, '').strip()
         form = get_object_or_404(Form, id=request.POST.get("form_id"))
 
@@ -1138,10 +1133,8 @@ def common_form_post(request):
             form_data = FormData.objects.create(form=form,action=action)
         if workflow_YN == '1':
             form_data.req_no = f"REQNO-00{form_data.id}"
-            form_data.is_workflow = 1
         else:
             form_data.req_no = f"UNIQ-NO-00{form_data.id}"
-            form_data.is_workflow = 0
         form_data.created_by = user
         form_data.save()
         
@@ -1164,10 +1157,13 @@ def common_form_post(request):
                 if field.field_type == "generative":
                     continue
 
-                
                 FormFieldValues.objects.create(
                     form_data=form_data,form=form, field=field, value=input_value, created_by=created_by
                 )
+
+                if field.field_type == "file_name":
+                    form_data.file_ref = input_value
+                    form_data.save()
                
         handle_uploaded_files(request, form_name, created_by, form_data, user)
         handle_generative_fields(form, form_data, created_by)
@@ -1319,8 +1315,6 @@ def common_form_edit(request):
                     input_value = request.POST.get(f"field_{field_id}", "").strip()
 
                 if field.field_type == "generative":
-                    continue
-                elif  field.field_type in ["file", "file multiple"]:
                     continue
 
                 if workflow_YN == '1':

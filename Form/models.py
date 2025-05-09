@@ -290,7 +290,7 @@ class FormFileHist(models.Model):
 class FormFieldValuesTemp(models.Model):
     form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_data_temp')
     form_data = models.ForeignKey('Form.FormData',null=True, blank=True, on_delete=models.CASCADE, related_name='form_value_temp_id')
-    old_field_id = models.TextField(null=True, blank=True)
+    old_field_value_id = models.TextField(null=True, blank=True)
     field = models.ForeignKey('Form.FormField',null=True, blank=True, on_delete=models.CASCADE, related_name='field_value_temp_id')
     value = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
@@ -304,7 +304,7 @@ class FormFileTemp(models.Model):
     file_name = models.TextField(null=True, blank=True)
     uploaded_name = models.TextField(null=True, blank=True)
     file_path = models.TextField(null=True, blank=True)
-    old_field_id = models.TextField(null=True, blank=True)
+    old_field_value_id = models.TextField(null=True, blank=True)
     file = models.ForeignKey('Form.FormFieldValues',null=True, blank=True, on_delete=models.CASCADE, related_name='file_temp_id')
     form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_file_temp_id')
     field = models.ForeignKey('Form.FormField',null=True, blank=True,  on_delete=models.CASCADE, related_name='field_file_temp_id')

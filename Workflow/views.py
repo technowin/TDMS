@@ -598,6 +598,10 @@ def workflow_form_step(request):
         WFoperator_dropdown = []
         for result in cursor.stored_results():
             WFoperator_dropdown = result.fetchall()
+
+        
+        
+
             
         workflow = get_object_or_404(workflow_matrix, id=id)
         form_id = workflow.form_id
@@ -608,15 +612,58 @@ def workflow_form_step(request):
         
 
         form  = get_object_or_404(Form,id = form_id)
+        matched_form_data_id = None  # Default
+
+        if wfdetailsid:
+            workflow_detail_id = dec(wfdetailsid)
+
+            try:
+                workflow_data = workflow_details.objects.get(id=workflow_detail_id)
+                inward_req_id = workflow_data.req_id
+                inward_form_data_id = workflow_data.form_data_id
+
+                if inward_form_data_id and inward_req_id:
+                    try:
+                        form_data = FormData.objects.get(id=inward_form_data_id)
+
+                        if form_data.file_ref:
+                            file_ref_value = form_data.file_ref
+
+                            # Check if this file_ref exists in FormFieldValues for this form
+                            try:
+                                field_value_entry = FormFieldValues.objects.get(
+                                    form=form, value=file_ref_value
+                                )
+                                matched_form_data_id = field_value_entry.form_data.id
+                            except FormFieldValues.DoesNotExist:
+                                matched_form_data_id = None
+                        else:
+                            file_ref_value = None
+                    except FormData.DoesNotExist:
+                        file_ref_value = None
+            except workflow_details.DoesNotExist:
+                pass  # Let it continue if workflow_details doesn't exist
+
 
         # Fetch form fields
         raw_fields = FormField.objects.filter(form_id=form_id).values(
-                "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name", "section"
-            ).order_by("order")
+            "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name", "section"
+        ).order_by("order")
+
+        # Step 1: Get prefilled values if matched_form_data_id exists
+        prefilled_values = {}
+        if matched_form_data_id:
+            values_qs = FormFieldValues.objects.filter(form_data_id=matched_form_data_id)
+            prefilled_values = {str(v.field_id): v.value for v in values_qs}
 
         sectioned_fields = {}
 
         for field in raw_fields:
+            field_id_str = str(field["id"])
+            field["value"] = prefilled_values.get(field_id_str, "")  # Set prefilled value if available
+
+    # (Rest of your code continues unchanged...)
+
             # Clean up values and attributes
             field["values"] = [v.strip() for v in field["values"].split(",")] if field.get("values") else []
             field["attributes"] = [a.strip() for a in field["attributes"].split(",")] if field.get("attributes") else []
@@ -648,9 +695,18 @@ def workflow_form_step(request):
                     field["regex_id"] = None
                     field["regex_description"] = ""
             # Accept type (file/text)
-            if field["field_type"] in ["file", "file multiple", "text"]:
-                file_validation = next((v for v in field["validations"]), None)
-                field["accept"] = file_validation["value"] if file_validation else ""
+            if matched_form_data_id:
+                if field["field_type"] in ["file", "file multiple"]:
+                    file_validation = next((v for v in field["validations"]), None)
+                    field["accept"] = file_validation["value"] if file_validation else ""
+                    file_exists = FormFile.objects.filter(field_id=field["id"], form_data_id=matched_form_data_id).exists()
+                    field["file_uploaded"] = 1 if file_exists else 0
+                    if file_exists and "required" in field["attributes"]:
+                        field["attributes"].remove("required")
+            else:
+                if field["field_type"] in ["file", "file multiple", "text"]:
+                    file_validation = next((v for v in field["validations"]), None)
+                    field["accept"] = file_validation["value"] if file_validation else ""
             # Field Dropdown (dynamic values)
             if field["field_type"] == "field_dropdown":
                 split_values = field["values"]
@@ -664,11 +720,7 @@ def workflow_form_step(request):
                     queryset = WorkflowVersionControl.objects.filter(
                         ~Q(baseline_date__isnull=True) & ~Q(baseline_date=0)
                     )
-
-                            # Get only file_name values
                     filtered_records = queryset.values("file_name")
-
-                    # Set the filtered file_name options
                     if queryset.exists():
                         field["file_name_options"] = [record["file_name"] for record in filtered_records]
 
@@ -704,15 +756,21 @@ def workflow_form_step(request):
                     form_action_url = reverse('common_form_action')
                     break
 
+        if matched_form_data_id:
+            type = "reference_inward"
+        else:
+            type = "create"
+
         if wfdetailsid:
             return render(request, "Form/_formfieldedit.html", {
                 "sectioned_fields": sectioned_fields,
-                "type":"create",
+                "type":type,
                 "form":form,
                 "action_fields": action_fields,
                 "form_action_url": form_action_url,
                 "workflow": 1,"WFoperator_dropdown":WFoperator_dropdown,
                 "role_id":role_id,"action_detail_id":action_detail_id,"form_id":form_id,
+                "matched_form_data_id":matched_form_data_id,
                 "action_id":action_id,"step_id":id,"wfdetailsid":wfdetailsid,"status_wfM":status_wfM,"firstStep":firstStep,"editORcreate":editORcreate,
             })
         else:
@@ -724,6 +782,7 @@ def workflow_form_step(request):
                 "form_action_url": form_action_url,
                 "workflow": 1,"WFoperator_dropdown":WFoperator_dropdown,
                 "role_id":role_id,"action_detail_id":action_detail_id,"form_id":form_id,
+                "matched_form_data_id":matched_form_data_id,
                 "action_id":action_id,"step_id":id,"status_wfM":status_wfM,"firstStep":firstStep,"editORcreate":editORcreate,
             })
             
