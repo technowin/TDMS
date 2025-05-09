@@ -348,7 +348,8 @@ def workflow_starts(request):
         step_id_str = str(item[3])
         
         # to get edit or create
-        req_num = item[0]        
+        req_num = item[0]    
+               
         detail = workflow_details.objects.get(req_id=req_num)
         current_EditCrtStep = detail.step_id
         editcrt = current_EditCrtStep + 1
@@ -465,6 +466,7 @@ def workflow_starts(request):
                 "created_by": item[4],
                 "created_at": item[5],
                 "increment_id": item[6],
+                "operator_email": item[11],
                 "step_name": current_step_info['step_name'] if current_step_info else '',
                 "form_id": current_step_info['form_id'] if current_step_info else '',
                 "but_type": current_step_info['but_type'] if current_step_info else '',

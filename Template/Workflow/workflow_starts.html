@@ -55,9 +55,10 @@
                 <th>Sr. No.</th>
                 <th>File No.</th>
                 <th>Request No.</th>
-                <th>Updated By</th>
-                <th>Updated At</th>
+                <th>Forwarded By</th>
+                <th>Forwarded On</th>
                 <th>Forwarded To</th>
+                <th>Operator</th>
                 <th>Status</th>
                 <th>Action</th>
             </tr>
@@ -70,22 +71,24 @@
                 <th><select><option>All</option></select></th>
                 <th><select><option>All</option></select></th>
                 <th><select><option>All</option></select></th>
+                <th></th>
                 
               </tr>
         </thead>
         <tbody>
           {% for item in WFIndexdata %}
           <tr>
-              <td>{{ forloop.counter }}</td>
-              <td>{{ item.file_number }}</td>
+              <td style="font-size: 15px;">{{ forloop.counter }}</td>
+              <td style="font-size: 15px;">{{ item.file_number }}</td>
               <td> 
-                <span class="badge badge-pill badge-secondary" style="font-size: 16px;background-color:#085984;">{{ item.req_num }}</span>
+                <span class="badge badge-pill badge-secondary" style="font-size: 13px;background-color:#085984;">{{ item.req_num }}</span>
               </td>
-              <td>{{ item.updated_by }}</td>
-              <td>{{ item.updated_at }}</td>
-              <td>{{item.next_matrix_role}}</td>
+              <td style="font-size: 15px;">{{ item.updated_by }}</td>
+              <td style="font-size: 13px;">{{ item.updated_at }}</td>
+              <td style="font-size: 15px;">{{item.next_matrix_role}}</td>
+              <td style="font-size: 15px;">{{ item.operator_email }}</td>
               <td>
-                <span class="badge badge-pill badge-secondary" style="font-size: 16px;background-color:{{ item.color_status }};">{{ item.status }}</span>
+                <span class="badge badge-pill badge-secondary" style="font-size: 15px; background-color: {{ item.color_status }}; margin-right: 5px;">{{ item.status }}</span>
               </td>
               <td>
 
@@ -100,7 +103,7 @@
                       <img 
                       src="{% static 'img/eye-open.png' %}" 
                       alt="View" 
-                      style="width: 30px; height: 30px; cursor: pointer;" 
+                      style="width: 20px; height: 20px; cursor: pointer;" 
                       onclick="startStepView('{{ item.form_data_id }}','{{ item.req_num }}','{{ item.user_prev_step_Check }}')"
                     />
                   {% else %}
@@ -114,7 +117,7 @@
                           <img 
                           src="{% static 'img/eye-open.png' %}" 
                           alt="View" 
-                          style="width: 30px; height: 30px; cursor: pointer;" 
+                          style="width: 20px; height: 20px; cursor: pointer;" 
                           onclick="startStepView('{{ item.form_data_id }}','{{ item.req_num }}','{{ item.user_prev_step_Check }}')"
                         />
                           
