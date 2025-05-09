@@ -300,10 +300,34 @@
         
         
 
-        <div class="form-group">
+        {% comment %} <div class="form-group">
             <label for="stepName">Status</label>
             <input type="text" class="form-control" id="statusName" placeholder="Enter Status" required>
         </div>
+        <div class="form-group" style="display: flex; align-items: center; gap: 15px; margin-bottom: 10px;">
+            <label for="favcolor" style="min-width: 120px;">Choose a color:</label>
+            <input type="color" id="favcolor" name="favcolor" style="border: none; background: transparent;">
+            
+            <div style="display: flex; align-items: center; gap: 10px;">
+                <span id="colorValue" style="font-family: monospace;"></span>
+                <div id="colorBox" style="width: 30px; height: 30px; border-radius: 4px; border: 1px solid #ccc;"></div>
+            </div>
+        </div> {% endcomment %}
+
+        <div class="form-row" style="display: flex; gap: 20px;">
+            <!-- Status -->
+            <div class="form-group">
+                <label for="statusName">Status</label>
+                <input type="text" class="form-control" id="statusName" placeholder="Enter Status" required>
+            </div>
+        
+            <!-- Color Picker -->
+            <div class="form-group">
+                <label for="favcolor">Choose a color for Status:</label>
+                <input type="color" id="favcolor" name="favcolor" class="form-control" style="height: 38px; padding: 5px;">
+            </div>
+        </div>
+        
         <!-- Submit Button -->
         <div class="submit-container">
             <button type="submit" class="btn-custom">Submit</button>
@@ -338,7 +362,19 @@
         });
     });
     </script>
+    <script>
+        const colorInput = document.getElementById('favcolor');
+        const colorValue = document.getElementById('colorValue');
+        const colorBox = document.getElementById('colorBox');
     
+        colorInput.addEventListener('input', function () {
+            colorValue.textContent = colorInput.value;
+            colorBox.style.backgroundColor = colorInput.value;
+        });
+    
+        // Show color on load
+        colorInput.dispatchEvent(new Event('input'));
+    </script>  
     
     
 <script>
@@ -421,6 +457,7 @@
         let actionDropdown = $("#actionDropdown").val();
         let selectedRoles = $("#customRoleDropdown").val();
         let statusName = $("#statusName").val();
+        let favcolor = $("#favcolor").val();
 
         // Validation: Ensure dropdowns are not empty or "Select"
         if (!workflowDropdown || workflowDropdown === "Select" ||
@@ -444,7 +481,7 @@
             formDropdown: formDropdown,
             buttonTypeDropdown: buttonTypeDropdown,
             actionDropdown: actionDropdown,
-            statusName: statusName,
+            statusName: statusName,favcolor: favcolor,
             roles: selectedRoles.join(","),
             csrfmiddlewaretoken: $("input[name=csrfmiddlewaretoken]").val()
             

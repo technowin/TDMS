@@ -324,9 +324,10 @@ def workflow_starts(request):
             'form_id': row[3],
             'but_type': row[4],
             'but_act': row[5],
-           
             'status': row[6],
+            'color_status': row[8],
             'step_id_flow': str(row[7]) if row[7] else None  
+            
         })
 
     # Map of step_id to step info for quick lookup
@@ -468,7 +469,7 @@ def workflow_starts(request):
                 "form_id": current_step_info['form_id'] if current_step_info else '',
                 "but_type": current_step_info['but_type'] if current_step_info else '',
                 "but_act": current_step_info['but_act'] if current_step_info else '',
-                
+                "color_status": current_step_info['color_status'] if current_step_info else '',
                 "idEncrypt": enc(str(current_step_info['id'])) if current_step_info else '',
                
                "form_data_id":form_data_id,
