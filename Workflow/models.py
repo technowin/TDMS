@@ -132,3 +132,15 @@ class history_workflow_details(models.Model):
     class Meta:
         db_table = 'history_workflow_details'
 
+class ReferenceFormStatus(models.Model):
+    form_data = models.IntegerField(null=True, blank=True)
+    old_form_data = models.IntegerField(null=True, blank=True)
+    status = models.IntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True)             
+    created_by = models.TextField(null=True, blank=True) 
+    updated_at = models.DateTimeField(null=True, blank=True)               
+    updated_by = models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'reference_form_status'
+
+

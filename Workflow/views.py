@@ -296,7 +296,9 @@ def workflow_starts(request):
     workflow_para = "CIDCO File Scanning and DMS Flow"
     param = [workflow_para]
 
-    # 1. Get ALL current requests and their steps
+    reference_workflow_status = request.GET.get("reference_workflow_status")
+
+
     cursor.callproc("stp_getdataWorkflowIndex")
     WFIndexdata_raw = []
     for result in cursor.stored_results():
@@ -476,6 +478,7 @@ def workflow_starts(request):
                
                "form_data_id":form_data_id,
                "editORcreate":editORcreate,
+               "reference_workflow_status":reference_workflow_status,
                
                 "next_step_name": next_step_name if next_step_name else 'No next step',
                 "next_step_id": next_step_id,
@@ -516,7 +519,7 @@ def workflow_starts(request):
         firstStep = '0'
     
     return render(request, "Workflow/workflow_starts.html", {
-        "WFIndexdata": WFIndexdata,'show_top_button': show_top_button,'firstStep': firstStep,
+        "WFIndexdata": WFIndexdata,'show_top_button': show_top_button,'firstStep': firstStep, "reference_workflow_status":reference_workflow_status,
     **top_button_context
     })
 
@@ -610,6 +613,7 @@ def workflow_form_step(request):
 
         form  = get_object_or_404(Form,id = form_id)
         matched_form_data_id = None  # Default
+        # type ="create"
 
         if wfdetailsid:
             workflow_detail_id = dec(wfdetailsid)
@@ -619,6 +623,10 @@ def workflow_form_step(request):
                 inward_req_id = workflow_data.req_id
                 inward_form_data_id = workflow_data.form_data_id
 
+                if inward_req_id:
+                    form
+
+
                 if inward_form_data_id and inward_req_id:
                     try:
                         form_data = FormData.objects.get(id=inward_form_data_id)
@@ -626,16 +634,32 @@ def workflow_form_step(request):
                         if form_data.file_ref:
                             file_ref_value = form_data.file_ref
 
-                            # Check if this file_ref exists in FormFieldValues for this form
                             try:
                                 field_value_entry = FormFieldValues.objects.get(
                                     form=form, value=file_ref_value
                                 )
                                 matched_form_data_id = field_value_entry.form_data.id
+                                if matched_form_data_id:
+                                    ref_status = ReferenceFormStatus.objects.filter(old_form_data=matched_form_data_id).first()
+
+                                    if ref_status:
+                                        if ref_status.status == 1:
+                                                    type = "compare"
+                                        elif ref_status.status == 2:
+                                                    type = "reference"
+                                        else:
+                                            type = "create"
+                                    else: 
+                                        type="save_data"
+                                else:
+                                    type = "create"
+
+
                             except FormFieldValues.DoesNotExist:
                                 matched_form_data_id = None
                         else:
                             file_ref_value = None
+                            type = "create"
                     except FormData.DoesNotExist:
                         file_ref_value = None
             except workflow_details.DoesNotExist:
@@ -753,10 +777,6 @@ def workflow_form_step(request):
                     form_action_url = reverse('common_form_action')
                     break
 
-        if matched_form_data_id:
-            type = "reference_inward"
-        else:
-            type = "create"
 
         if wfdetailsid:
             return render(request, "Form/_formfieldedit.html", {
@@ -764,7 +784,7 @@ def workflow_form_step(request):
                 "type":type,
                 "form":form,
                 "action_fields": action_fields,
-                "form_action_url": form_action_url,
+                "form_action_url": form_action_url,"file_ref_value":file_ref_value,
                 "workflow": 1,"WFoperator_dropdown":WFoperator_dropdown,
                 "role_id":role_id,"action_detail_id":action_detail_id,"form_id":form_id,
                 "matched_form_data_id":matched_form_data_id,
@@ -786,7 +806,7 @@ def workflow_form_step(request):
 
     except Exception as e:
         traceback.print_exc()
-        messages.error(request, "Oops...! Something went wrong!")
+        messages.error(request, "Oops...! Something went wrong!")   
         return render(request, "Form/_formfields.html", {"fields": []})
 
     finally:
@@ -971,5 +991,18 @@ def workflowcommon_form_post(request):
     finally:
         return redirect('/masters?entity=form_master&type=i')
 
+
+def redirect_to_workflow_start(request):
+    user = request.session.get('user_id', '')
+    matched_form_data_id = request.POST.get('matched_form_data_id')  # or retrieve from POST/session if needed
+
+    if matched_form_data_id:
+        ReferenceFormStatus.objects.update_or_create(
+            old_form_data=matched_form_data_id,  # Assuming form_data_id == req_id in model
+            defaults={'status': '2','updated_by':user}
+        )
+
+    messages.success(request, "Form data stored with reference successfully!")
+    return redirect(reverse('workflow_starts'))
 
 
