@@ -1119,6 +1119,8 @@ def common_form_post(request):
         workflow_YN = request.POST.get('workflow_YN', '')
         form_id = request.POST.get("form_id")
         editORcreate  = request.POST.get('editORcreate','')
+        firstStep = request.POST.get("firstStep")
+        
         
         # form_id = request.POST.get(form_id_key, '').strip()
         form = get_object_or_404(Form, id=request.POST.get("form_id"))
@@ -1139,6 +1141,7 @@ def common_form_post(request):
         form_data.save()
         
         form_dataID = form_data.id
+        first_field_checked = False
 
         # Process each field
         for key, value in request.POST.items():
@@ -1156,6 +1159,47 @@ def common_form_post(request):
 
                 if field.field_type == "generative":
                     continue
+                
+                # already_exists = FormFieldValues.objects.filter(
+                #     form_data=form_data,
+                #     field=field,
+                #     value=input_value
+                # ).exists()
+                totalStep_wf = workflow_matrix.objects.filter(workflow_name='CIDCO File Scanning and DMS Flow').count()
+                
+                if not first_field_checked and firstStep == '1':
+                    totalStep_wf = workflow_matrix.objects.filter(
+                        workflow_name='CIDCO File Scanning and DMS Flow'
+                    ).count()
+
+                    step_ids_list = list(
+                        workflow_details.objects.filter(
+                            file_number=input_value
+                        ).values_list('step_id', flat=True)
+                    )
+
+                    already_exists = FormFieldValues.objects.filter(
+                        value=input_value,
+                        field_id=field_id
+                    ).exists()
+                    fileNumber_input_WF =input_value
+
+                    # Logic:
+                    # If any of the step_ids for this file are not the final step number, then stop
+                    if already_exists:
+                        if any(step_id != totalStep_wf for step_id in step_ids_list):
+                            print("Same file is already in process and not at final step. Halting process.")
+                            break
+                        else:
+                            print("Same file is at final step. Proceeding.")
+                    else:
+                        print("File number not found before. Proceeding.")
+
+                    first_field_checked = True
+                else:
+                    already_exists = False
+                         
+
 
                 FormFieldValues.objects.create(
                     form_data=form_data,form=form, field=field, value=input_value, created_by=created_by
@@ -1164,13 +1208,13 @@ def common_form_post(request):
                 if field.field_type == "file_name":
                     form_data.file_ref = input_value
                     form_data.save()
-               
-        handle_uploaded_files(request, form_name, created_by, form_data, user)
-        handle_generative_fields(form, form_data, created_by)
+        if already_exists is not True:       
+            handle_uploaded_files(request, form_name, created_by, form_data, user)
+            handle_generative_fields(form, form_data, created_by)
 
         # callproc('create_dynamic_form_views')
         messages.success(request, "Form data saved successfully!")
-        if workflow_YN == '1':
+        if workflow_YN == '1' and already_exists is not True:
             wfdetailsid = request.POST.get('wfdetailsid', '')
             step_id = request.POST.get('step_id', '')
             if wfdetailsid and wfdetailsid != 'undefined':
@@ -1207,6 +1251,7 @@ def common_form_post(request):
                 status = status_from_matrix or '',
                 step_id=request.POST.get('step_id', ''),
                 operator=request.POST.get('custom_dropdownOpr', ''),
+                file_number=fileNumber_input_WF,
                 user_id=user,
                 created_by=user,
                 created_at=now(),
@@ -1267,7 +1312,8 @@ def common_form_post(request):
                                 )
             
             messages.success(request, "Workflow data saved successfully!")
-
+        else:
+            messages.error(request, 'File Number Already Exists!')
     except Exception as e:
         traceback.print_exc()
         messages.error(request, 'Oops...! Something went wrong!')
