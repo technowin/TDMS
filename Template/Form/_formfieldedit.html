@@ -827,10 +827,12 @@
                 } else if (buttonType === 'Submit' && type === 'reference') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_post' %}";
-                }else if (buttonType === 'Action' && type === 'edit') {
-                    operatorDropdown.removeAttribute('required');
-                    form.action = "{% url 'common_form_edit' %}";
-                }else if (buttonType === 'Action') {
+                }
+               //else if (buttonType === 'Action' && type === 'edit') {
+               //    operatorDropdown.removeAttribute('required');
+               //    form.action = "{% url 'common_form_edit' %}";
+               //}
+                else if (buttonType === 'Action') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_action' %}";
                 }else if (type == "save_data") {
