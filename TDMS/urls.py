@@ -52,6 +52,7 @@ urlpatterns = [
     path('get_field_names/', get_field_names, name='get_field_names'),
     path('get_regex_pattern/', get_regex_pattern, name='get_regex_pattern'),
     path('create_new_section/', create_new_section, name='create_new_section'),
+    path('reference_workflow/', reference_workflow, name='reference_workflow'),
 
 
     # Account
@@ -124,6 +125,7 @@ urlpatterns = [
     path('get_formdataid/', get_formdataid, name='get_formdataid'),
     path('get_formdataidEdit/', get_formdataidEdit, name='get_formdataidEdit'),
     path('reject_workflow_step/', reject_workflow_step, name='reject_workflow_step'),
+    path('redirect_to_workflow_start/', redirect_to_workflow_start, name='redirect_to_workflow_start'),
 
 ]
 

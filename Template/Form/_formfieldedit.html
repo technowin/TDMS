@@ -171,6 +171,7 @@
             <label class="fw-bold">{{ field.label }}</label>
             <input type="hidden" id = "type" name = "type" value ="{{type}}">
             <input type="hidden" id = "editORcreate" name = "editORcreate" value ="{{editORcreate}}">
+            <input type="hidden" id = "file_ref_value" name = "file_ref_value" value ="{{file_ref_value}}">
             <input type="hidden" id = "readonlyWF" name = "readonlyWF" value ="{{readonlyWF}}">
             <input type="hidden" id = "viewStepWFSeq" name = "viewStepWFSeq" value ="{{viewStepWFSeq}}">
 
@@ -263,6 +264,9 @@
                         <i class="fa-solid fa-eye eye-icon"
                            {% if type == "create" %}
                                onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
+                            {% elif type == "save_data" or type == "compare"  or type == "reference" %}
+                            onclick="showScript( {{ matched_form_data_id }}, {{ field.id }})"
+        
                            {% else %}
                                onclick="showScript({{ form_data_id }}, {{ field.id }})"
                            {% endif %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3' %} disabled {% endif %}>
@@ -278,8 +282,9 @@
                     <i class="fa-solid fa-eye eye-icon"
                        {% if type == "create" %}
                            onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
-                        {% elif type == "reference_inward" %}
+                        {% elif type == "save_data" or type == "compare"  or type == "reference"%}
                            onclick="showScript( {{ matched_form_data_id }}, {{ field.id }})"
+                        
                        {% else %}
                            onclick="showScript( {{ form_data_id }}, {{ field.id }})"
                        {% endif %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3' %} disabled {% endif %}>
@@ -375,13 +380,23 @@
 <div class="row col-md-12 justify-content-center">
     <input type="hidden" id="clicked_action_id" name="clicked_action_id">
 
-    {% if type == "reference_inward" %}
-    <div class="button-group">
-        <button type="button" class="btn btn-primary" id="compareButton" style="margin-right: 30px;">Compare</button>
-        <button type="submit" class="btn btn-success submit-btn" id="saveDataButton">Save Data</button>
+   
+    {% if type == "save_data"  %} 
+        <div class="button-group">
+            <button type="submit" class="btn btn-success submit-btn" id="saveDataButton">Save Data</button>
+        </div>
+    {% elif type == "compare" %}
+
+     <div class="button-group">
+            <button type="button" class="btn btn-primary" id="compareButton" style="margin-right: 30px;">Compare</button>
     </div>
 
-    {% else %}
+    <div class="button-group">
+            <button type="submit" class="btn btn-success submit-btn" id="compareButton" style="margin-right: 30px;">Update After Comparing</button>
+    </div>
+    {% else %} 
+
+
 
 
 
@@ -389,8 +404,6 @@
     {% for action in action_fields %}
     <div class="{% if action.type == 'button' %}col-md-2{% else %}col-md-3{% endif %} mt-1 text-center">
             <input type="hidden" name="action_field_id_{{ action.id }}" value="{{ action.action_id }}">
-
-            
 
             {% if action.type != "button" %}
                 <label class="fw-bold mb-1">{{ action.label_name }}</label>
@@ -407,7 +420,6 @@
                 {{ action.button_name }}
             </button>
 
-            </button>
 
 
             {% elif action.type == "textarea" %}
@@ -439,8 +451,8 @@
     </div>
 {% endif %}
 {% endif %}
-
 {% endif %}
+
 
 
 
@@ -812,14 +824,32 @@
                 } else if (buttonType === 'Submit' && type === 'edit') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_edit' %}";
-                } else if (buttonType === 'Action') {
+                } else if (buttonType === 'Submit' && type === 'reference') {
+                    operatorDropdown.removeAttribute('required');
+                    form.action = "{% url 'common_form_post' %}";
+                }
+               //else if (buttonType === 'Action' && type === 'edit') {
+               //    operatorDropdown.removeAttribute('required');
+               //    form.action = "{% url 'common_form_edit' %}";
+               //}
+                else if (buttonType === 'Action') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_action' %}";
-                }else if (type == "reference_inward") {
-                    form.action = "{% url 'common_form_edit' %}";
+                }else if (type == "save_data") {
+                    operatorDropdown.removeAttribute('required');
+                    form.action = "{% url 'reference_workflow' %}";
+                }else if (type == "compare") {
+                    operatorDropdown.removeAttribute('required');
+                    form.action = "{% url 'redirect_to_workflow_start' %}";
+                }else if (type == "reference") {
+                    operatorDropdown.removeAttribute('required');
+                    form.action = "{% url 'common_form_post' %}";
                 }else if (buttonType === 'Submit' && parseInt(editORcreate.value) === 1) {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_post' %}";
+                }else if (buttonType === 'Submit' && parseInt(editORcreate.value) === 2) {
+                    operatorDropdown.removeAttribute('required');
+                    form.action = "{% url 'common_form_edit' %}";
                 }else if (buttonType === 'Action' && parseInt(editORcreate.value) === 3) {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_action' %}";
@@ -827,75 +857,101 @@
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'reject_workflow_step' %}";
                 }
-                // optional: if you want to submit the form manually
-                // form.submit();
             });
         });
 
 
+</script>
 
+<script>
 
+    
 
-        {% comment %} document.querySelectorAll('.submit-btn').forEach(button => {
-            debugger;
-            button.addEventListener('click', function (e) {
-                const form = document.getElementById('dynamicForm');
-                const buttonType = this.getAttribute('data-button-type');
+    function validateRegexInput(inputElement) {
+    const pattern = inputElement.getAttribute("data-regex");
+    const value = inputElement.value.trim();
 
-                const workflow_YN = document.getElementById('workflow_YN');
-                //const dropdownContainer = document.getElementById('workflowDropdownContainer');
-                const confirmSubmitBtn = document.getElementById('confirmSubmitBtn');
-                const cancelPopupBtn = document.getElementById('cancelPopupBtn');
-                const firstStep = document.getElementById('firstStep');
+    if (!pattern) return true;
 
-                const popup = document.getElementById('workflowPopup');
-                const overlay = document.getElementById('popupOverlay');
-                const operatorDropdown = document.getElementById('custom_dropdownOpr');
+    let regex;
+    try {
+        regex = new RegExp(pattern);
+    } catch (e) {
+        console.error("Invalid regex:", pattern);
+        inputElement.setCustomValidity("Invalid pattern.");
+        return false;
+    }
 
-                if (buttonType === 'Submit' && parseInt(workflow_YN.value) === 1 && parseInt(firstStep.value) === 1) {
-                    debugger;
+    if (!regex.test(value)) {
+        inputElement.classList.add("is-invalid");
+        inputElement.setCustomValidity("Invalid input pattern.");
+        inputElement.reportValidity();
+        return false;
+    } else {
+        inputElement.classList.remove("is-invalid");
+        inputElement.setCustomValidity("");
+        return true;
+    }
+}
 
-                    e.preventDefault();
+function formatInputByPattern(inputElement, regexId) {
+    let value = inputElement.value;
 
-                    const popup = document.getElementById('workflowPopup');
-                    const overlay = document.getElementById('popupOverlay');
+    const numericOnly = v => v.replace(/\D/g, "");
+    const alnumUpper = v => v.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
-                    // ✅ Show popup and overlay
-                    popup.style.display = 'block';
-                    overlay.style.display = 'block';
-                    operatorDropdown.setAttribute('required', true);
+    switch (parseInt(regexId)) {
+        case 1: // Aadhar
+            value = numericOnly(value).substring(0, 12);
+            value = value.replace(/(\d{4})(?=\d)/g, "$1 ");
+            break;
+        case 2: // PAN
+            value = alnumUpper(value).substring(0, 10);
+            break;
+        case 3: // IFSC
+            value = alnumUpper(value).substring(0, 11);
+            break;
+        case 4: // Mobile Number
+            value = numericOnly(value).substring(0, 10);
+            break;
+        case 5: // Pincode (✅ Fix here)
+            // Allow input but limit to 6 digits
+            value = numericOnly(value);
+            if (value.length > 6) value = value.slice(0, 6);
+            break;
+        case 6: // Passport
+            value = alnumUpper(value).substring(0, 8);
+            break;
+        case 7: // Voter ID
+            value = alnumUpper(value).substring(0, 10);
+            break;
+        case 8: // Driving License
+            value = alnumUpper(value).substring(0, 16);
+            break;
+        case 9: // UPI
+            value = value.replace(/[^\w@.]/g, "").substring(0, 50);
+            break;
+        case 10: // Credit Card
+            value = numericOnly(value).substring(0, 16);
+            value = value.replace(/(\d{4})(?=\d)/g, "$1 ");
+            break;
+        case 11: // Landline Number
+            value = numericOnly(value).substring(0, 11);
+            value = value.replace(/^(\d{3})(\d{0,8})/, "$1-$2");
+            break;
+        case 12: // PNR
+            value = numericOnly(value).substring(0, 10);
+            break;
+        default:
+            value = value.replace(/[^\w\s]/g, "");
+            break;
+    }
 
-                    confirmSubmitBtn.onclick = function () {
-                        form.action = "{% url 'common_form_post' %}";
-
-                    };
-
-                    // Cancel button inside popup
-                    cancelPopupBtn.onclick = function () {
-                        workflowPopup.style.display = 'none';
-                        popupOverlay.style.display = 'none';
-                    };
-
-                }
-                else if (buttonType === 'Submit') {
-                    operatorDropdown.removeAttribute('required');
-                    form.action = "{% url 'common_form_post' %}";
-
-
-                } else if (buttonType === 'Action') {
-                    operatorDropdown.removeAttribute('required');
-                    form.action = "{% url 'common_form_action' %}";
-
-                }
-
-                // optional: if you want to submit the form manually
-                // form.submit();
-            });
-        }); {% endcomment %}
-
-
+    inputElement.value = value;
+}
 
 </script>
+
 
 <script>
      $(document).ready(function() {
