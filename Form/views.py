@@ -1143,45 +1143,44 @@ def common_form_post(request):
         # form_id = request.POST.get(form_id_key, '').strip()
         form = get_object_or_404(Form, id=request.POST.get("form_id"))
 
-        if type != 'reference':
-            if type != 'master' or type != 'reference':
-                # action_id = request.PSOT.get("action_id")action_id = request.POST.get(action_id_key, '').strip()
-                action = get_object_or_404(FormAction,id  = request.POST.get("action_id"))
+        if type != 'master':
+            # action_id = request.PSOT.get("action_id")action_id = request.POST.get(action_id_key, '').strip()
+            action = get_object_or_404(FormAction,id  = request.POST.get("action_id"))
 
-            if type == 'master':
-                form_data = FormData.objects.create(form=form)
-            else:
-                form_data = FormData.objects.create(form=form,action=action)
-                form_data.req_no = f"UNIQ-NO-00{form_data.id}"
-            form_data.created_by = user
-            form_data.save()
-            
-            form_dataID = form_data.id
-            first_field_checked = False
-
+        if type == 'master':
+            form_data = FormData.objects.create(form=form)
+        else:
+            form_data = FormData.objects.create(form=form,action=action)
+            form_data.req_no = f"UNIQ-NO-00{form_data.id}"
+        form_data.created_by = user
+        form_data.save()
         
-            for key, value in request.POST.items():
-                if key.startswith("field_id_"):
-                    field_id = value.strip()
-                    field = get_object_or_404(FormField, id=field_id)
+        form_dataID = form_data.id
+        first_field_checked = False
+
+        # Process each field
+        for key, value in request.POST.items():
+            if key.startswith("field_id_"):
+                field_id = value.strip()
+                field = get_object_or_404(FormField, id=field_id)
 
 
-                    if field.field_type == "select multiple":
-                        selected_values = request.POST.getlist(f"field_{field_id}")
-                        input_value = ','.join([val.strip() for val in selected_values if val.strip()])
-                    else:
-                        input_value = request.POST.get(f"field_{field_id}", "").strip()
+                if field.field_type == "select multiple":
+                    selected_values = request.POST.getlist(f"field_{field_id}")
+                    input_value = ','.join([val.strip() for val in selected_values if val.strip()])
+                else:
+                    input_value = request.POST.get(f"field_{field_id}", "").strip()
 
 
-                    if field.field_type == "generative":
-                        continue
+                if field.field_type == "generative":                   
+                    continue
                 
                 # already_exists = FormFieldValues.objects.filter(
                 #     form_data=form_data,
                 #     field=field,
                 #     value=input_value
                 # ).exists()
-                totalStep_wf = workflow_matrix.objects.filter(workflow_name='CIDCO File Scanning and DMS Flow').count()
+                #totalStep_wf = workflow_matrix.objects.filter(workflow_name='CIDCO File Scanning and DMS Flow').count()
                 
                 if not first_field_checked and firstStep == '1':
                     totalStep_wf = workflow_matrix.objects.filter(
@@ -1217,22 +1216,23 @@ def common_form_post(request):
                          
 
 
-                    FormFieldValues.objects.create(
-                        form_data=form_data,form=form, field=field, value=input_value, created_by=created_by
-                    )
+                FormFieldValues.objects.create(
+                    form_data=form_data,form=form, field=field, value=input_value, created_by=created_by
+                )
 
-                    if field.field_type == "file_name":
-                        form_data.file_ref = input_value
-                        form_data.save()
-                    if already_exists is not True:       
-                            handle_uploaded_files(request, form_name, created_by, form_data, user)
-                            handle_generative_fields(form, form_data, created_by)
-        
+                if field.field_type == "file_name":
+                    form_data.file_ref = input_value
+                    form_data.save()
+        if already_exists is not True:       
+            handle_uploaded_files(request, form_name, created_by, form_data, user)
+            file_name = handle_generative_fields(form, form_data, created_by)
 
         # callproc('create_dynamic_form_views')
         messages.success(request, "Form data saved successfully!")
         if workflow_YN == '1' and already_exists is not True:
             wfdetailsid = request.POST.get('wfdetailsid', '')
+            role_idC = request.POST.get('role_id', '')
+            form_id = request.POST.get('form_id', '')
             step_id = request.POST.get('step_id', '')
             if wfdetailsid and wfdetailsid != 'undefined':
                 wfdetailsid=dec(wfdetailsid)
@@ -1245,6 +1245,7 @@ def common_form_post(request):
                     status_from_matrix = matrix_entry.status  # adjust field name if needed
                     
             if wfdetailsid and workflow_details.objects.filter(id=wfdetailsid).exists():
+                # Update existing record
                 workflow_detail = workflow_details.objects.get(id=wfdetailsid)
                 workflow_detail.form_data_id = form_dataID
                 workflow_detail.role_id = request.POST.get('role_id', '')
@@ -1256,9 +1257,9 @@ def common_form_post(request):
                 workflow_detail.updated_by = user  # Or use `modified_by` if applicable
                 workflow_detail.updated_at = now()
                 workflow_detail.save()    
-            else:
+            else:    
                 workflow_detail = workflow_details.objects.create(
-                form_data_id= form_dataID,
+                form_data_id=form_dataID,
                 role_id=request.POST.get('role_id', ''),
                 action_details_id=request.POST.get('action_detail_id', ''),
                 increment_id=1,
@@ -1273,6 +1274,7 @@ def common_form_post(request):
                 created_at=now(),
                 updated_by = user,
                 updated_at = now()
+                
                 )
 
             # Now set and save req_id using the generated ID
@@ -1280,7 +1282,7 @@ def common_form_post(request):
             workflow_detail.save()
             if wfdetailsid and workflow_details.objects.filter(id=wfdetailsid).exists():
                 history_workflow_details.objects.create(
-                    form_data_id = form_dataID,
+                    form_data_id=workflow_detail.form_data_id,
                     role_id=workflow_detail.role_id,
                     action_details_id=workflow_detail.action_details_id,
                     increment_id=workflow_detail.increment_id,
@@ -1295,7 +1297,7 @@ def common_form_post(request):
                 )
             else:
                 history_workflow_details.objects.create(
-                    form_data_id=form_dataID,
+                    form_data_id=workflow_detail.form_data_id,
                     role_id=workflow_detail.role_id,
                     action_details_id=workflow_detail.action_details_id,
                     increment_id=workflow_detail.increment_id,
@@ -1309,7 +1311,20 @@ def common_form_post(request):
                     # created_by=workflow_detail.updated_by,
                     created_at=workflow_detail.updated_at
                 )
+            # if role_idC == '2':
+            #     latest_file_category = WorkflowVersionControl.objects.filter(
+            #         file_name=file_name
+            #         ).order_by('-id').values_list('file_category', flat=True).first()
 
+            #     WorkflowVersionControl.objects.create(
+            #         file_name=file_name,
+            #         version_no=0,
+            #         modified_by=user,
+            #         modified_at=now(),
+            #         file_category=latest_file_category if latest_file_category else None,
+            #         form_data_id=form_dataID
+            #         )
+            
             for key, value in request.POST.items():
                     if key.startswith("action_field_") and not key.startswith("action_field_id_"):
                         match = re.match(r'action_field_(\d+)', key)
@@ -1614,7 +1629,7 @@ def handle_generative_fields(form, form_data, created_by):
 
         except Exception as e:
             traceback.print_exc()
-
+    return final_value
 
 
 def handle_uploaded_files(request, form_name, created_by, form_data, user):
