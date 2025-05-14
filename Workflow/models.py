@@ -106,6 +106,7 @@ class workflow_details(models.Model):
     increment_id= models.IntegerField(null=True, blank=True)
     operator = models.IntegerField(null=True, blank=True)
     form_id = models.IntegerField(null=True, blank=True)
+    file_number = models.TextField(null=True, blank=True)
     class Meta:
         db_table = 'workflow_details'
         
