@@ -994,6 +994,8 @@ def form_master(request):
 
                     if reference_type == '1':
                         field_values = FormFieldValuesTemp.objects.filter(form_data_id=form_data_id).values("field_id", "value")
+                        if not field_values.exists():
+                            field_values = FormFieldValues.objects.filter(form_data_id=form_data_id).values("field_id", "value")
                     else:
                         field_values = FormFieldValues.objects.filter(form_data_id=form_data_id).values("field_id", "value")
                     values_dict = {fv["field_id"]: fv["value"] for fv in field_values}
@@ -1367,11 +1369,11 @@ def common_form_edit(request):
         
         type = request.POST.get("type","")
         reference_type  = request.POST.get("reference_type","")
-        if reference_type != '1':
-            form_data_id = request.POST.get("form_data_id")
-        else:
+        if type == 'reference':
             workflow_YN = '1E'
             form_data_id = request.POST.get("new_data_id")
+        else:
+            form_data_id = request.POST.get("form_data_id")
         if not form_data_id:
             return JsonResponse({"error": "form_data_id is required"}, status=400)
 
@@ -1398,27 +1400,8 @@ def common_form_edit(request):
 
                 if field.field_type == "generative":
                     continue
-
-                if reference_type != '1':
-
-                    existing_value = FormFieldValues.objects.filter(
-                        form_data=form_data, form=form, field=field
-                    ).first()
-                    if existing_value:
-                        # Update existing entry
-                        existing_value.value = input_value
-                        existing_value.save()
-                    else:
-                        # Create new entry
-                        FormFieldValues.objects.create(
-                            form_data=form_data,
-                            form=form,
-                            field=field,
-                            value=input_value,
-                            created_by=created_by
-                        )
-                    handle_uploaded_files(request, form_name, created_by, form_data, user)
-                else:
+                    
+                if type == 'reference':
                     workflow_name = 'CIDCO File Scanning and DMS Flow'
                     form_id = form.id
 
@@ -1460,6 +1443,24 @@ def common_form_edit(request):
 
                         # Delete temp values after transfer
                         temp_values.delete()
+                else:
+                    existing_value = FormFieldValues.objects.filter(
+                        form_data=form_data, form=form, field=field
+                    ).first()
+                    if existing_value:
+                        # Update existing entry
+                        existing_value.value = input_value
+                        existing_value.save()
+                    else:
+                        # Create new entry
+                        FormFieldValues.objects.create(
+                            form_data=form_data,
+                            form=form,
+                            field=field,
+                            value=input_value,
+                            created_by=created_by
+                        )
+                    handle_uploaded_files(request, form_name, created_by, form_data, user)
 
 
         # callproc('create_dynamic_form_views')
