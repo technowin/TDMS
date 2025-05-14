@@ -53,7 +53,9 @@
             <label>Form Action Name:</label>
             <input type="text" placeholder="Enter Action Template Name" class="form-control" name="action_name" value="{{ form.name }}" required>
         </div>
+        {% if form %}
 
+        {% else %}
         <div class="col-md-3">
             <label>Master Actions</label>
                 <select name="action_master" id="dropdown" class="form-control" >
@@ -63,6 +65,7 @@
                     {% endfor %}
                 </select>
         </div>
+        {% endif %}
 
         <div class="col-md-2">
             <label for="add_into_master">Add to Master</label><br>
