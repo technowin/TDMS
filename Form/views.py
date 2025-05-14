@@ -1273,7 +1273,6 @@ def common_form_post(request):
                 created_at=now(),
                 updated_by = user,
                 updated_at = now()
-                
                 )
 
             # Now set and save req_id using the generated ID
