@@ -252,7 +252,7 @@ class WorkflowVersionControl(models.Model):
     file_name = models.TextField(null=True, blank=True)
     version_no = models.FloatField(null=True, blank=True)
     baseline_date = models.TextField(null=True, blank=True)
-    modified_by = models.TextField(null=True, blank=True)
+    file_category = models.TextField(null=True, blank=True)
     modified_at = models.DateTimeField(auto_now_add=False, null=True, blank=True)
     approved_by = models.DateTimeField(auto_now_add=False, null=True, blank=True)
     approved_at = models.DateTimeField(auto_now_add=False, null=True, blank=True)
@@ -288,11 +288,10 @@ class FormFileHist(models.Model):
         db_table = 'form_file_hist'
 
 class FormFieldValuesTemp(models.Model):
-    form = models.IntegerField(null=True, blank=True)
-    form_data =  models.IntegerField(null=True, blank=True)
-    old_field_value_id = models.TextField(null=True, blank=True)
-    old_form_data = models.IntegerField(null=True, blank=True)
-    field =  models.IntegerField(null=True, blank=True)
+    form_id = models.IntegerField(null=True, blank=True)
+    form_data_id =  models.IntegerField(null=True, blank=True)
+    old_form_data_id = models.IntegerField(null=True, blank=True)
+    field_id =  models.IntegerField(null=True, blank=True)
     value = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
@@ -306,7 +305,6 @@ class FormFileTemp(models.Model):
     uploaded_name = models.TextField(null=True, blank=True)
     file_path = models.TextField(null=True, blank=True)
     old_form_data = models.IntegerField(null=True, blank=True)
-    old_field_value_id = models.TextField(null=True, blank=True)
     file_id = models.IntegerField(null=True, blank=True)
     form_id = models.IntegerField(null=True, blank=True)
     field_id = models.IntegerField(null=True, blank=True)

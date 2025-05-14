@@ -163,6 +163,8 @@
             <input type="hidden" id="step_id" name="step_id" value="{{ step_id }}">
             <input type="hidden" id="wfdetailsid" name="wfdetailsid" value="{{ wfdetailsid }}">
             <input type="hidden" id="status_wfM" name="status_wfM" value="{{ status_wfM }}">
+            <input type="hidden" id="new_data_id" name="new_data_id" value="{{ new_data_id }}">
+            <input type="hidden" id="reference_type" name="reference_type" value="{{ reference_type }}">
 
 
             <input type="hidden" id="custom_dropdownOpr" name="custom_dropdownOpr">
@@ -174,10 +176,12 @@
             <input type="hidden" id = "file_ref_value" name = "file_ref_value" value ="{{file_ref_value}}">
             <input type="hidden" id = "readonlyWF" name = "readonlyWF" value ="{{readonlyWF}}">
             <input type="hidden" id = "viewStepWFSeq" name = "viewStepWFSeq" value ="{{viewStepWFSeq}}">
+            <input type="hidden" id = "new_form_data_id" name = "new_form_data_id" value ="{{new_form_data_id}}">
+            <input type="hidden" id = "inward_req_id" name = "inward_req_id" value ="{{inward_req_id}}">
 
             {% if field.field_type == "select"  %}
                 <select class="form-control select" name="field_{{ field.id }}"
-                    {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
+                    {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' or viewStepWFSeq == '3'  %} disabled {% endif %}>
                     <option value="" selected disabled>-- Select --</option>
                     {% for option in field.values %}
                         <option value="{{ option }}" {% if option == field.value %} selected {% endif %}>{{ option }}</option>
@@ -186,7 +190,7 @@
 
             {% elif field.field_type == "master dropdown" %}
                 <select class="form-control select" name="field_{{ field.id }}"
-                    {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
+                    {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' or viewStepWFSeq == '3'  %} disabled {% endif %}>
                     <option value="" disabled {% if not field.value %} selected {% endif %}>Select</option>
                     {% for option in field.values %}
                         <option value="{{ option.id }}" {% if option.id|stringformat:"s" == field.value|stringformat:"s" %} selected {% endif %}>{{ option.name }}</option>
@@ -198,7 +202,7 @@
 
             {% elif field.field_type == "select multiple" %}
                 <select class="form-control select_multiple" name="field_{{ field.id }}" multiple
-                    {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
+                    {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' or viewStepWFSeq == '3'   %} disabled {% endif %}>
                     {% for option in field.values %}
                         <option value="{{ option }}" {% if option in field.value %}selected{% endif %}>{{ option }}</option>
                     {% endfor %}
@@ -259,16 +263,16 @@
                     <div class="file-upload-wrapper" style="position: relative; display: inline-block; width: 100%;">
                         <input type="file" accept="{{ field.accept }}"  name="field_{{ field.id }}"
                                class="form-control custom-file-input" style="padding-right: 100px;" id="file_input_{{ field.id }}"
-                               {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3' %} disabled {% endif %}>
+                               {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3'  %} disabled {% endif %}>
 
                         <i class="fa-solid fa-eye eye-icon"
                            {% if type == "create" %}
                                onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
-                            {% elif type == "save_data" or type == "compare"  or type == "reference" %}
-                            onclick="showScript( {{ matched_form_data_id }}, {{ field.id }})"
+                            {% elif  type == "reference" %}
+                            onclick="showScript( {{ matched_form_data_id }}, {{ field.id }}, {{reference_type}})"
         
                            {% else %}
-                               onclick="showScript({{ form_data_id }}, {{ field.id }})"
+                               onclick="showScript({{ form_data_id }}, {{ field.id }},{{reference_type}})"
                            {% endif %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3' %} disabled {% endif %}>
                         </i>
                     </div>
@@ -282,12 +286,12 @@
                     <i class="fa-solid fa-eye eye-icon"
                        {% if type == "create" %}
                            onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
-                        {% elif type == "save_data" or type == "compare"  or type == "reference"%}
-                           onclick="showScript( {{ matched_form_data_id }}, {{ field.id }})"
+                        {% elif type == "reference"%}
+                           onclick="showScript( {{ matched_form_data_id }}, {{ field.id }},{{reference_type}})"
                         
                        {% else %}
-                           onclick="showScript( {{ form_data_id }}, {{ field.id }})"
-                       {% endif %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3' %} disabled {% endif %}>
+                           onclick="showScript( {{ form_data_id }}, {{ field.id }},{{reference_type}})"
+                       {% endif %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3'  %} disabled {% endif %}>
                     </i>
                 </div>
 
@@ -305,14 +309,14 @@
                        name="field_{{ field.id }}"
                        value="{{ field.value }}"
                        placeholder="This Field is System Generated"
-                       {% for attr in field.attributes %}{{ attr }} {% endfor %}{% if readonlyWF == '1' or viewStepWFSeq == '3' %}readonly{% endif %}/>
+                       {% for attr in field.attributes %}{{ attr }} {% endfor %}{% if readonlyWF == '1' or viewStepWFSeq == '3'  %}readonly{% endif %}/>
 
             {% elif field.field_type == "number" %}
                 <input type="number" class="form-control"
                        name="field_{{ field.id }}"
                        value="{{ field.value }}"
                        placeholder="Enter Numeric Value"
-                       {% for attr in field.attributes %}{{ attr }} {% endfor %} {% if readonlyWF == '1' or viewStepWFSeq == '3' %}readonly{% endif %}/>
+                       {% for attr in field.attributes %}{{ attr }} {% endfor %} {% if readonlyWF == '1' or viewStepWFSeq == '3'  %}readonly{% endif %}/>
 
             {% elif field.field_type == "text" %}
                 <input type="text" class="form-control"
@@ -380,22 +384,17 @@
 <div class="row col-md-12 justify-content-center">
     <input type="hidden" id="clicked_action_id" name="clicked_action_id">
 
-   
-    {% if type == "save_data"  %} 
+   {% if viewStepWFSeq != '3' %}
+    {% if reference_type == "1" or type == 'reference' %} 
         <div class="button-group">
             <button type="submit" class="btn btn-success submit-btn" id="saveDataButton">Save Data</button>
         </div>
-    {% elif type == "compare" %}
 
      <div class="button-group">
             <button type="button" class="btn btn-primary" id="compareButton" style="margin-right: 30px;">Compare</button>
     </div>
-
-    <div class="button-group">
-            <button type="submit" class="btn btn-success submit-btn" id="compareButton" style="margin-right: 30px;">Update After Comparing</button>
-    </div>
-    {% else %} 
-
+    {% endif %}  
+ {% endif %} 
 
 
 
@@ -451,7 +450,7 @@
     </div>
 {% endif %}
 {% endif %}
-{% endif %}
+{% comment %} {% endif %} {% endcomment %}
 
 
 
@@ -517,7 +516,9 @@
 
         let selectedNewFiles = []; // Global array to store new files
 
-        function showScript(form_data_id, field_id) {
+        function showScript(form_data_id, field_id,reference_type) {
+            debugger;
+            
             const inputElement = document.getElementById('file_input_' + field_id);
             const newFiles = inputElement.files;
         
@@ -531,6 +532,7 @@
                 data: {
                     field_id: field_id,
                     form_data_id: form_data_id,
+                    reference_type:reference_type,
                     csrfmiddlewaretoken: '{{ csrf_token }}'
                 },
                 success: function (data) {
@@ -792,6 +794,7 @@
                     document.getElementById('clicked_action_id').value = actionId;
                 }
                 const type = $('#type').val();
+                const reference_type = $('#reference_type').val();
 
                 if (buttonType === 'Submit' && parseInt(workflow_YN.value) === 1 && parseInt(firstStep.value) === 1) {
                     debugger;
@@ -824,26 +827,18 @@
                 } else if (buttonType === 'Submit' && type === 'edit') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_edit' %}";
-                } else if (buttonType === 'Submit' && type === 'reference') {
+                }else if (buttonType === 'Submit' && type === 'reference') {
                     operatorDropdown.removeAttribute('required');
-                    form.action = "{% url 'common_form_post' %}";
-                }
-               //else if (buttonType === 'Action' && type === 'edit') {
-               //    operatorDropdown.removeAttribute('required');
-               //    form.action = "{% url 'common_form_edit' %}";
-               //}
-                else if (buttonType === 'Action') {
-                    operatorDropdown.removeAttribute('required');
-                    form.action = "{% url 'common_form_action' %}";
-                }else if (type == "save_data") {
+                    form.action = "{% url 'common_form_edit' %}";
+                } else if (reference_type == "1" && viewStepWFSeq != '3') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'reference_workflow' %}";
-                }else if (type == "compare") {
+                } else if (buttonType === 'Action') {
                     operatorDropdown.removeAttribute('required');
-                    form.action = "{% url 'redirect_to_workflow_start' %}";
+                    form.action = "{% url 'common_form_action' %}";
                 }else if (type == "reference") {
                     operatorDropdown.removeAttribute('required');
-                    form.action = "{% url 'common_form_post' %}";
+                    form.action = "{% url 'reference_workflow' %}";
                 }else if (buttonType === 'Submit' && parseInt(editORcreate.value) === 1) {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_post' %}";

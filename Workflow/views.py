@@ -544,8 +544,10 @@ def get_formdataid(request):
     form=enc(str(form_data_id))
     # return redirect('form_master', form=form)
     # url = reverse('form_master') + f'?form={form}'
-    url = reverse('form_master') + f'?form={form}&readonlyWF={readonlyWF}'
+    url = reverse('form_master') + f'?form={form}&readonlyWF={readonlyWF}&step_id={step_id}'
     return redirect(url)
+
+
 
 def get_formdataidEdit(request):
     Db.closeConnection()
@@ -562,6 +564,7 @@ def get_formdataidEdit(request):
     form_id = request.GET.get("form_id")
     wfdetailsID = request.GET.get("wfdetailsID")
     viewStepWF = request.GET.get("editORcreate")
+    new_data_id = request.GET.get("new_data_id",'')
     button_type_id = None
     if step_id:
         step = workflow_matrix.objects.get(id=step_id)
@@ -575,7 +578,7 @@ def get_formdataidEdit(request):
     form=enc(str(form_data_id))
     # return redirect('form_master', form=form)
     # url = reverse('form_master') + f'?form={form}'
-    url = reverse('form_master') + f'?form={form}&button_type_id={button_type_id}&workflow_YN={workflow_YN}&step_id={step_id}&form_idWF={form_id}&role_id={role_id}&wfdetailsID={wfdetailsID}&viewStepWF={viewStepWF}'
+    url = reverse('form_master') + f'?form={form}&button_type_id={button_type_id}&workflow_YN={workflow_YN}&step_id={step_id}&form_idWF={form_id}&role_id={role_id}&wfdetailsID={wfdetailsID}&viewStepWF={viewStepWF}&new_data_id={new_data_id}'
     return redirect(url)
     
         
@@ -585,9 +588,14 @@ def workflow_form_step(request):
     cursor = m.cursor()
     
     id = request.GET.get("id")
+    
     wfdetailsid = request.GET.get("wfdetailsID")
     firstStep = request.GET.get("firstStep")
     editORcreate = request.GET.get("editORcreate")
+    new_data_id = request.GET.get("new_data_id")
+    reference_type = request.GET.get("reference_type")
+    if not new_data_id:
+        new_data_id = ''
     id = dec(id) 
     # if wfdetailsid:
     #     wfdetailsid = dec(wfdetailsid) 
@@ -624,7 +632,10 @@ def workflow_form_step(request):
                 inward_form_data_id = workflow_data.form_data_id
 
                 if inward_req_id:
-                    form
+                    inward_workflow = workflow_details.objects.get(req_id= inward_req_id)
+                    new_form_data_id = inward_workflow.form_data_id
+                else:
+                    pass
 
 
                 if inward_form_data_id and inward_req_id:
@@ -639,20 +650,7 @@ def workflow_form_step(request):
                                     form=form, value=file_ref_value
                                 )
                                 matched_form_data_id = field_value_entry.form_data.id
-                                if matched_form_data_id:
-                                    ref_status = ReferenceFormStatus.objects.filter(old_form_data=matched_form_data_id).first()
-
-                                    if ref_status:
-                                        if ref_status.status == 1:
-                                                    type = "compare"
-                                        elif ref_status.status == 2:
-                                                    type = "reference"
-                                        else:
-                                            type = "create"
-                                    else: 
-                                        type="save_data"
-                                else:
-                                    type = "create"
+                                type = "reference"
 
 
                             except FormFieldValues.DoesNotExist:
@@ -674,7 +672,10 @@ def workflow_form_step(request):
         # Step 1: Get prefilled values if matched_form_data_id exists
         prefilled_values = {}
         if matched_form_data_id:
-            values_qs = FormFieldValues.objects.filter(form_data_id=matched_form_data_id)
+            if reference_type == '1':
+                values_qs = FormFieldValuesTemp.objects.filter(old_form_data_id=matched_form_data_id)
+            else:
+                values_qs = FormFieldValues.objects.filter(form_data_id=matched_form_data_id)
             prefilled_values = {str(v.field_id): v.value for v in values_qs}
 
         sectioned_fields = {}
@@ -720,7 +721,10 @@ def workflow_form_step(request):
                 if field["field_type"] in ["file", "file multiple"]:
                     file_validation = next((v for v in field["validations"]), None)
                     field["accept"] = file_validation["value"] if file_validation else ""
-                    file_exists = FormFile.objects.filter(field_id=field["id"], form_data_id=matched_form_data_id).exists()
+                    if reference_type == '1':
+                        file_exists = FormFileTemp.objects.filter(field_id=field["id"], old_form_data=matched_form_data_id).exists()
+                    else:
+                        file_exists = FormFile.objects.filter(field_id=field["id"], form_data_id=matched_form_data_id).exists()
                     field["file_uploaded"] = 1 if file_exists else 0
                     if file_exists and "required" in field["attributes"]:
                         field["attributes"].remove("required")
@@ -737,7 +741,6 @@ def workflow_form_step(request):
                     field["dropdown_data"] = list(field_values)
 
             if field["field_type"] == "file_name":
-            # Filter records where baseline_date is not null and not 0
                     queryset = WorkflowVersionControl.objects.filter(
                         ~Q(baseline_date__isnull=True) & ~Q(baseline_date=0)
                     )
@@ -781,13 +784,12 @@ def workflow_form_step(request):
         if wfdetailsid:
             return render(request, "Form/_formfieldedit.html", {
                 "sectioned_fields": sectioned_fields,
-                "type":type,
-                "form":form,
+                "form":form,"type":type,
                 "action_fields": action_fields,
-                "form_action_url": form_action_url,"file_ref_value":file_ref_value,
+                "form_action_url": form_action_url,"file_ref_value":file_ref_value,"new_form_data_id":new_form_data_id,
                 "workflow": 1,"WFoperator_dropdown":WFoperator_dropdown,
-                "role_id":role_id,"action_detail_id":action_detail_id,"form_id":form_id,
-                "matched_form_data_id":matched_form_data_id,
+                "role_id":role_id,"action_detail_id":action_detail_id,"form_id":form_id,"inward_req_id":inward_req_id,
+                "matched_form_data_id":matched_form_data_id,"new_data_id":new_data_id,
                 "action_id":action_id,"step_id":id,"wfdetailsid":wfdetailsid,"status_wfM":status_wfM,"firstStep":firstStep,"editORcreate":editORcreate,
             })
         else:
@@ -994,11 +996,11 @@ def workflowcommon_form_post(request):
 
 def redirect_to_workflow_start(request):
     user = request.session.get('user_id', '')
-    matched_form_data_id = request.POST.get('matched_form_data_id')  # or retrieve from POST/session if needed
+    new_form_data_id = request.POST.get('new_form_data_id')  # or retrieve from POST/session if needed
 
-    if matched_form_data_id:
+    if new_form_data_id:
         ReferenceFormStatus.objects.update_or_create(
-            old_form_data=matched_form_data_id,  # Assuming form_data_id == req_id in model
+            form_data=new_form_data_id,  # Assuming form_data_id == req_id in model
             defaults={'status': '2','updated_by':user}
         )
 
