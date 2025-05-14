@@ -151,7 +151,7 @@ let buttontype = JSON.parse('{{ button_type|escapejs|safe }}');
     function addField() {
         let newField = {
             id: formFields.length + 1,
-            label: "Label Name",
+            label: "Label Name " + (formFields.length + 1),
             type: "text",
             value: "Submit",
             status:"",

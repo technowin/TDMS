@@ -252,7 +252,7 @@ class WorkflowVersionControl(models.Model):
     file_name = models.TextField(null=True, blank=True)
     version_no = models.FloatField(null=True, blank=True)
     baseline_date = models.TextField(null=True, blank=True)
-    file_category = models.TextField(null=True, blank=True)
+    modified_by = models.TextField(null=True, blank=True)
     modified_at = models.DateTimeField(auto_now_add=False, null=True, blank=True)
     approved_by = models.DateTimeField(auto_now_add=False, null=True, blank=True)
     approved_at = models.DateTimeField(auto_now_add=False, null=True, blank=True)
