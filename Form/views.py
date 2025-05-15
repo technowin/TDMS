@@ -1059,6 +1059,7 @@ def form_master(request):
                         else:
                             field["value"] = saved_value
 
+
                         # field_dropdown logic
                         if field["field_type"] == "field_dropdown":
                             split_values = field["values"]
@@ -1073,17 +1074,36 @@ def form_master(request):
                                     field["saved_value"] = ""
 
                         if field["field_type"] == "file_name":
-            # Filter records where baseline_date is not null and not 0
-                            queryset = WorkflowVersionControl.objects.filter(
-                                ~Q(baseline_date__isnull=True) & ~Q(baseline_date=0)
+                            # 1️⃣ get the “baseline” options
+                            qs = WorkflowVersionControl.objects.filter(
+                                ~Q(baseline_date__isnull=True),
+                                ~Q(baseline_date=0)
+                            )
+                            field["file_name_options"] = list(
+                                qs
+                                .values_list("file_name", flat=True)
+                                .distinct()
                             )
 
-                            # Get only file_name values
-                            filtered_records = queryset.values("file_name")
+                            # 2️⃣ pull the user’s *saved* value for this field (if any)
+                            saved = (
+                                FormFieldValuesTemp.objects
+                                .filter(form_data_id=form_data_id, field_id=field["id"])
+                                .values_list("value", flat=True)
+                                .first()
+                                or
+                                FormFieldValues.objects
+                                .filter(form_data_id=form_data_id, field_id=field["id"])
+                                .values_list("value", flat=True)
+                                .first()
+                            )
 
-                            # Set the filtered file_name options
-                            if queryset.exists():
-                                field["file_name_options"] = [record["file_name"] for record in filtered_records]
+                            # 3️⃣ keep it on the field dict so the template can see it
+                            field["saved_value"] = saved
+
+                            # 4️⃣ if it isn’t already in the baseline list, stick it on top
+                            if saved and saved not in field["file_name_options"]:
+                                field["file_name_options"].insert(0, saved)
 
                         # master dropdown logic
                         if field["field_type"] == "master dropdown" and field["values"]:
@@ -1400,59 +1420,16 @@ def common_form_edit(request):
 
                 if field.field_type == "generative":
                     continue
-                    
-                if type == 'reference':
-                    workflow_name = 'CIDCO File Scanning and DMS Flow'
-                    form_id = form.id
-
-                    # Check if this is the last step for the workflow and form
-                    last_step = workflow_matrix.objects.filter(
-                        workflow_name=workflow_name,
-                        form_id=form_id
-                    ).aggregate(max_step=Max('step_id_flow'))['max_step']
-
-                    current_step = int(step_id)
-
-                    if last_step and current_step == last_step:
-                        # Archive old FormFieldValues to FormFieldValuesHist
-                        old_values = FormFieldValues.objects.filter(form=form, form_data=form_data)
-                        for val in old_values:
-                            FormFieldValuesHist.objects.create(
-                                form=val.form,
-                                form_data=val.form_data,
-                                field=val.field,
-                                value=val.value,
-                                created_by=val.created_by,
-                                updated_by=created_by,
-                            )
-
-                        # Delete old FormFieldValues
-                        old_values.delete()
-                        # old_files.delete()  # Uncomment if file deletion is needed
-
-                        # Move temp values to FormFieldValues
-                        temp_values = FormFieldValuesTemp.objects.filter(form_id=form.id, form_data_id=form_data.id)
-                        for temp in temp_values:
-                            FormFieldValues.objects.create(
-                                form_id=temp.form_id,
-                                form_data_id=temp.form_data_id,
-                                field_id=temp.field_id,
-                                value=temp.value,
-                                created_by=temp.created_by
-                            )
-
-                        # Delete temp values after transfer
-                        temp_values.delete()
-                else:
+                if type != 'reference':
                     existing_value = FormFieldValues.objects.filter(
-                        form_data=form_data, form=form, field=field
+                            form_data=form_data, form=form, field=field
                     ).first()
                     if existing_value:
-                        # Update existing entry
+                            # Update existing entry
                         existing_value.value = input_value
                         existing_value.save()
                     else:
-                        # Create new entry
+                            # Create new entry
                         FormFieldValues.objects.create(
                             form_data=form_data,
                             form=form,
@@ -1461,6 +1438,45 @@ def common_form_edit(request):
                             created_by=created_by
                         )
                     handle_uploaded_files(request, form_name, created_by, form_data, user)
+                    
+        # Run only if type is reference
+        if type == 'reference':
+            workflow_name = 'CIDCO File Scanning and DMS Flow'
+            form_id = form.id
+
+            last_step = workflow_matrix.objects.filter(
+                workflow_name=workflow_name,
+                form_id=form_id
+            ).aggregate(max_step=Max('step_id_flow'))['max_step']
+
+            current_step = int(step_id)
+
+            if last_step and current_step == last_step:
+                # Archive existing values
+                old_values = FormFieldValues.objects.filter(form=form, form_data=form_data)
+                for val in old_values:
+                    FormFieldValuesHist.objects.create(
+                        form=val.form,
+                        form_data=val.form_data,
+                        field=val.field,
+                        value=val.value,
+                        created_by=val.created_by,
+                        updated_by=created_by,
+                    )
+                old_values.delete()
+
+                # Move temp to main table
+                temp_values = FormFieldValuesTemp.objects.filter(form_id=form.id, form_data_id=form_data.id)
+                for temp in temp_values:
+                    FormFieldValues.objects.create(
+                        form_id=temp.form_id,
+                        form_data_id=temp.form_data_id,
+                        field_id=temp.field_id,
+                        value=temp.value,
+                        created_by=temp.created_by
+                    )
+                temp_values.delete()
+
 
 
         # callproc('create_dynamic_form_views')
