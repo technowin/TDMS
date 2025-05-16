@@ -1311,19 +1311,34 @@ def common_form_post(request):
                     # created_by=workflow_detail.updated_by,
                     created_at=workflow_detail.updated_at
                 )
-            # if role_idC == '2':
-            #     latest_file_category = WorkflowVersionControl.objects.filter(
-            #         file_name=file_name
-            #         ).order_by('-id').values_list('file_category', flat=True).first()
+            if role_idC == '2':
+                latest_file_category = WorkflowVersionControl.objects.filter(
+                    file_name=file_name
+                    ).order_by('-id').values_list('file_category', flat=True).first()
 
-            #     WorkflowVersionControl.objects.create(
-            #         file_name=file_name,
-            #         version_no=0,
-            #         modified_by=user,
-            #         modified_at=now(),
-            #         file_category=latest_file_category if latest_file_category else None,
-            #         form_data_id=form_dataID
-            #         )
+                WorkflowVersionControl.objects.create(
+                    file_name=file_name,
+                    version_no=0,
+                    modified_by=user,
+                    modified_at=now(),
+                    file_category=latest_file_category if latest_file_category else None,
+                    form_data_id=form_dataID
+                    )
+            if role_idC == '5':
+                count_row = WorkflowVersionControl.objects.filter(file_name=file_name).count()
+                latest_row = WorkflowVersionControl.objects.filter(
+                    file_name=file_name
+                    ).order_by('-id').values_list('id', flat=True).first()
+                if latest_row and count_row == 1:
+                    latest_row.version_no = 1
+                    latest_row.save()
+                
+                # latest_file_category = WorkflowVersionControl.objects.filter(
+                #     file_name=file_name
+                #     ).order_by('-id').values_list('file_category', flat=True).first()
+
+
+                    
             
             for key, value in request.POST.items():
                     if key.startswith("action_field_") and not key.startswith("action_field_id_"):
@@ -1397,6 +1412,8 @@ def common_form_edit(request):
                     input_value = request.POST.get(f"field_{field_id}", "").strip()
 
                 if field.field_type == "generative":
+                    file_name = get_object_or_404(FormFieldValues,form_data_id=form_data,field_id= field).value
+                    
                     continue
 
                 if reference_type != '1':
@@ -1468,6 +1485,7 @@ def common_form_edit(request):
         
             wfdetailsid = request.POST.get('wfdetailsid', '')
             step_id = request.POST.get('step_id', '')
+            role_idC = request.POST.get('role_id', '')
             if wfdetailsid and wfdetailsid != 'undefined':
                 wfdetailsid=dec(wfdetailsid)
             else:
@@ -1544,6 +1562,25 @@ def common_form_edit(request):
                     # created_by=workflow_detail.updated_by,
                     created_at=workflow_detail.updated_at
                 )
+            if role_idC == '5':
+                count_row = WorkflowVersionControl.objects.filter(file_name=file_name).count()
+                latest_row = WorkflowVersionControl.objects.filter(
+                        file_name=file_name
+                        ).order_by('-id').first()
+                if latest_row and count_row == 1:
+                    latest_row.version_no = 1
+                    latest_row.baseline_date = now()
+                    latest_row.approved_by = user
+                    latest_row.approved_at = now()
+                    latest_row.save()
+                elif latest_row and count_row > 1:
+                        # latest_row.version_no = +0.1
+                        latest_row.version_no = round(latest_row.version_no + 0.1, 1)
+                        latest_row.baseline_date = now()
+                        latest_row.approved_by = user
+                        latest_row.approved_at = now()
+                        latest_row.save()
+                    
             for key, value in request.POST.items():
                     if key.startswith("action_field_") and not key.startswith("action_field_id_"):
                         match = re.match(r'action_field_(\d+)', key)
@@ -1857,7 +1894,7 @@ def common_form_action(request):
                             created_by=user,
                             updated_by=user,
                         )
-                
+                    
                 # Now process the non-button fields (text, textarea, dropdown)
                 for key, value in request.POST.items():
                     if key.startswith("action_field_") and not key.startswith("action_field_id_"):
@@ -1875,11 +1912,14 @@ def common_form_action(request):
                                     created_by=user,
                                     updated_by=user,
                                 )
+            
+        
             messages.success(request, "Action data saved successfully!")
             if workflow_YN == '1E':
         
                 wfdetailsid = request.POST.get('wfdetailsid', '')
                 step_id = request.POST.get('step_id', '')
+                role_idC = request.POST.get('role_id', '')
                 if wfdetailsid and wfdetailsid != 'undefined':
                     wfdetailsid=dec(wfdetailsid)
                 else:
@@ -1954,6 +1994,37 @@ def common_form_action(request):
                         # created_by=workflow_detail.updated_by,
                         created_at=workflow_detail.updated_at
                     )
+                    # field_values = FormFieldValues.objects.filter(form_data_id=form_data_id).values_list
+            
+                        
+                if role_idC == '5':
+                    field_ids = FormFieldValues.objects.filter(form_data_id=form_data_id).values_list('field_id', flat=True)
+                    for field_id in field_ids:
+                        matched_field = FormField.objects.filter(
+                                id=field_id,
+                                field_type='generative',
+                                label='File Name'
+                            ).first()
+                        if matched_field:
+                            value_entry = FormFieldValues.objects.filter(
+                                form_data_id=form_data_id,
+                                field_id=field_id
+                            ).first()
+                            if value_entry:
+                                file_name = value_entry.value
+                        
+                    count_row = WorkflowVersionControl.objects.filter(file_name=file_name).count()
+                    latest_row = WorkflowVersionControl.objects.filter(
+                            file_name=file_name
+                            ).order_by('-id').values_list('id', flat=True).first()
+                    if latest_row and count_row == 1:
+                        latest_row.version_no = 1
+                        latest_row.save()
+                    elif latest_row and count_row > 1:
+                            # latest_row.version_no = +0.1
+                            latest_row.version_no = round(latest_row.version_no + 0.1, 1)
+                            latest_row.save()    
+                    
                 
                 messages.success(request, "Workflow data saved successfully!")
         
