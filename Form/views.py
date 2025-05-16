@@ -952,7 +952,7 @@ def form_master(request):
                         'step_name': step_name,
                         'role_name': role_name,
                         'email': email,
-                        'comments': comment_list,  # list of dicts with value and created_at
+                        'comments': comment_list,  
                         'rowspan': len(comment_list)
                     })
                     sr_no_counter += 1
@@ -2240,7 +2240,7 @@ def reference_workflow(request):
                 )
 
         # handle_generative_fields_temp(form_id, matched_form_data_id, created_by,form_data)
-        handle_uploaded_files_temp(request, form_name, created_by, matched_form_data_id, user,form_data)
+        handle_uploaded_files_temp(request, form_name, created_by, matched_form_data, user,form_data,new_data_id)
         reference_type = '1'
         #      url = reverse('workflow_form_step') + f'?id={step_id}&wfdetailsID={wfdetailsid}&editORcreate={editORcreate}&new_data_id={form_data.id}&reference_type={reference_type}'
         # else:
@@ -2259,7 +2259,7 @@ def reference_workflow(request):
 
 
 
-def handle_uploaded_files_temp(request, form_name, created_by, form_data_id, user,form_data):
+def handle_uploaded_files_temp(request, form_name, created_by, matched_form_data, user,form_data,new_data_id):
     try:
         user = request.session.get('user_id', '')
         for field_key, uploaded_files in request.FILES.lists():
@@ -2271,6 +2271,10 @@ def handle_uploaded_files_temp(request, form_name, created_by, form_data_id, use
             is_multiple = field_type == "file multiple"
             form = get_object_or_404(Form,name = form_name)
             form_id = form.id
+            if new_data_id:
+                form_data_id= new_data_id
+            else:
+                form_data_id = form_data.id
 
             file_dir = os.path.join(settings.MEDIA_ROOT, form_name, created_by, form_data_id)
             os.makedirs(file_dir, exist_ok=True)
@@ -2292,7 +2296,7 @@ def handle_uploaded_files_temp(request, form_name, created_by, form_data_id, use
                     uploaded_name=uploaded_file_name,
                     file_path=relative_file_path,
                     form_data_id=form_data.id,
-                    old_form_data = form_data_id,
+                    old_form_data = matched_form_data,
                     form_id=form_id,  # if not available
                     created_by=user,
                     updated_by=user,
