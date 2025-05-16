@@ -420,13 +420,25 @@
 
    {% if viewStepWFSeq != '3' %}
     {% if reference_type == "1" or type == 'reference' %} 
-        <div class="button-group">
-            <button type="submit" class="btn btn-success btn w-100 mt-4 submit-btn" id="saveDataButton">Save Data</button>
-        </div>
-
-     <div class="button-group">
-            <button type="button" class="btn w-100 mt-4 btn btn-primary" id="compareButton" style="margin-right: 30px;">Compare</button>
+       {% comment %} <div class="row mt-4"> {% endcomment %}
+    <div class="col-md-2 mt-4 text-center">
+        <button type="submit"
+                class="btn btn-success submit-btn w-100"
+                id="saveDataButton"
+                style="border-radius: 15px;">
+            Save Data
+        </button>
     </div>
+    <div class="col-md-2 mt-4 text-center">
+        <button type="button"
+                class="btn btn-primary submit-btn w-100"
+                id="compareButton"
+                style="border-radius: 15px;">
+            Compare Data
+        </button>
+    {% comment %} </div> {% endcomment %}
+</div>
+
     {% endif %}  
  {% endif %} 
 

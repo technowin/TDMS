@@ -594,6 +594,7 @@ def workflow_form_step(request):
     editORcreate = request.GET.get("editORcreate")
     new_data_id = request.GET.get("new_data_id")
     reference_type = request.GET.get("reference_type")
+    data_save_status = request.GET.get("sdata_save_statusaved")
     if not new_data_id:
         new_data_id = ''
     id = dec(id) 
@@ -609,6 +610,9 @@ def workflow_form_step(request):
         WFoperator_dropdown = []
         for result in cursor.stored_results():
             WFoperator_dropdown = result.fetchall()
+
+        if not data_save_status :
+            data_save_status == '0'
 
         
         workflow = get_object_or_404(workflow_matrix, id=id)
@@ -790,7 +794,7 @@ def workflow_form_step(request):
                 "workflow": 1,"WFoperator_dropdown":WFoperator_dropdown,
                 "role_id":role_id,"action_detail_id":action_detail_id,"form_id":form_id,"inward_req_id":inward_req_id,
                 "matched_form_data_id":matched_form_data_id,"new_data_id":new_data_id,
-                "action_id":action_id,"step_id":id,"wfdetailsid":wfdetailsid,"status_wfM":status_wfM,"firstStep":firstStep,"editORcreate":editORcreate,
+                "action_id":action_id,"step_id":id,"wfdetailsid":wfdetailsid,"status_wfM":status_wfM,"firstStep":firstStep,"editORcreate":editORcreate,"data_save_status":data_save_status
             })
         else:
             return render(request, "Form/_formfieldedit.html", {

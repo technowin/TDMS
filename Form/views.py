@@ -2242,13 +2242,9 @@ def reference_workflow(request):
         # handle_generative_fields_temp(form_id, matched_form_data_id, created_by,form_data)
         handle_uploaded_files_temp(request, form_name, created_by, matched_form_data, user,form_data,new_data_id)
         reference_type = '1'
-        #      url = reverse('workflow_form_step') + f'?id={step_id}&wfdetailsID={wfdetailsid}&editORcreate={editORcreate}&new_data_id={form_data.id}&reference_type={reference_type}'
-        # else:
-        #     url = reverse('workflow_form_step') + f'?id={step_id}&wfdetailsID={wfdetailsid}&editORcreate={editORcreate}&new_data_id={form_data.id}'
-
-
+        data_save_status = '1'
         messages.success(request, "Workflow New Data has been saved successfully!")
-        url = reverse('workflow_form_step') + f'?id={step_id}&wfdetailsID={wfdetailsid}&editORcreate={editORcreate}&new_data_id={form_data.id}&reference_type={reference_type}'
+        url = reverse('workflow_form_step') + f'?id={step_id}&wfdetailsID={wfdetailsid}&editORcreate={editORcreate}&new_data_id={form_data.id}&reference_type={reference_type}&data_save_status={data_save_status}'
         return redirect(url)
         # return redirect('workflow_form_step')
 
