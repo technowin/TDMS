@@ -946,7 +946,7 @@ def form_master(request):
                 grouped_data = []
                 sr_no_counter = 1
 
-                for (step_id, step_name, role_name, email), comment_list in grouped_comments.items():
+                for (step_iid, step_name, role_name, email), comment_list in grouped_comments.items():
                     grouped_data.append({
                         'sr_no': sr_no_counter,
                         'step_name': step_name,
