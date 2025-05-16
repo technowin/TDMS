@@ -939,9 +939,8 @@ def form_master(request):
                 grouped_comments = defaultdict(list)
 
                 for comment in comments:
-                    key = ( comment['step_id'],comment['step_name'],comment['role_name'],comment['email'])
-                    # Store each value + created_at per comment
-                    grouped_comments[key].append({'value': comment['value'],'created_at': comment['created_at']})
+                    key = (comment['step_name'], comment['role_name'], comment['email'])
+                    grouped_comments[key].append({'value': comment['value'], 'created_at': comment['created_at']})
 
                 grouped_data = []
                 sr_no_counter = 1
@@ -952,10 +951,11 @@ def form_master(request):
                         'step_name': step_name,
                         'role_name': role_name,
                         'email': email,
-                        'comments': comment_list,  
+                        'comments': comment_list,
                         'rowspan': len(comment_list)
                     })
                     sr_no_counter += 1
+
                 
                 if form_instance:
                     form_id = form_instance["form_id"]
