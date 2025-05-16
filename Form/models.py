@@ -290,6 +290,7 @@ class FormFileHist(models.Model):
 class FormFieldValuesTemp(models.Model):
     form_id = models.IntegerField(null=True, blank=True)
     form_data_id =  models.IntegerField(null=True, blank=True)
+    old_form_data_id = models.IntegerField(null=True, blank=True)
     field_id =  models.IntegerField(null=True, blank=True)
     value = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
@@ -303,6 +304,7 @@ class FormFileTemp(models.Model):
     file_name = models.TextField(null=True, blank=True)
     uploaded_name = models.TextField(null=True, blank=True)
     file_path = models.TextField(null=True, blank=True)
+    old_form_data = models.IntegerField(null=True, blank=True)
     file_id = models.IntegerField(null=True, blank=True)
     form_id = models.IntegerField(null=True, blank=True)
     field_id = models.IntegerField(null=True, blank=True)
@@ -313,9 +315,6 @@ class FormFileTemp(models.Model):
     updated_by =  models.TextField(null=True, blank=True)
     class Meta:
         db_table = 'form_file_temp'
-
-
-        
 
 
 

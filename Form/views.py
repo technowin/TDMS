@@ -927,59 +927,35 @@ def form_master(request):
                 else:
                     reference_type = '0'
                     new_data_id = form_data_id
+                # tO sHOW 
+                step_name_subquery = Subquery(workflow_matrix.objects.filter(id=OuterRef('step_id')).values('step_name')[:1])
+                custom_user_role_id_subquery = Subquery(CustomUser.objects.filter(id=OuterRef('created_by')).values('role_id')[:1])
+                custom_email_subquery = Subquery(CustomUser.objects.filter(id=OuterRef('created_by')).values('email')[:1])
+                comments_base = ActionData.objects.filter(form_data_id=form_data_id,field__type__in=['text', 'textarea', 'select']
+                ).annotate(step_name=step_name_subquery,role_id=custom_user_role_id_subquery,email=custom_email_subquery)
+                comments = comments_base.annotate(role_name=Subquery(roles.objects.filter(id=OuterRef('role_id')).values('role_name')[:1])
+                ).values('field_id','value','step_id','created_at','created_by','step_name','role_name','email',)
 
-                # comments = ActionData.objects.filter(
-                #     form_data_id=form_data_id,
-                #     field__type__in=['text', 'textarea']
-                # ).values('field_id', 'value','step_id')
+                grouped_comments = defaultdict(list)
 
-                step_name_subquery = Subquery(
-                    workflow_matrix.objects
-                    .filter(id=OuterRef('step_id'))
-                    .values('step_name')[:1]
-                )
+                for comment in comments:
+                    key = ( comment['step_id'],comment['step_name'],comment['role_name'],comment['email'])
+                    # Store each value + created_at per comment
+                    grouped_comments[key].append({'value': comment['value'],'created_at': comment['created_at']})
 
-                # Subquery to get role_id from CustomUser using created_by
-                custom_user_role_id_subquery = Subquery(
-                    CustomUser.objects
-                    .filter(id=OuterRef('created_by'))
-                    .values('role_id')[:1]
-                )
+                grouped_data = []
+                sr_no_counter = 1
 
-                # Subquery to get email from CustomUser using created_by
-                custom_email_subquery = Subquery(
-                    CustomUser.objects
-                    .filter(id=OuterRef('created_by'))
-                    .values('email')[:1]
-                )
-
-                # First annotate role_id separately
-                comments_base = ActionData.objects.filter(
-                    form_data_id=form_data_id,
-                    field__type__in=['text', 'textarea', 'select']
-                ).annotate(
-                    step_name=step_name_subquery,
-                    role_id=custom_user_role_id_subquery,
-                    email=custom_email_subquery
-                )
-
-                # Now use annotated role_id to get role_name from roles table
-                comments = comments_base.annotate(
-                    role_name=Subquery(
-                        roles.objects
-                        .filter(id=OuterRef('role_id'))
-                        .values('role_name')[:1]
-                    )
-                ).values(
-                    'field_id',
-                    'value',
-                    'step_id',
-                    'created_at',
-                    'created_by',
-                    'step_name',
-                    'role_name',
-                    'email',
-                )
+                for (step_id, step_name, role_name, email), comment_list in grouped_comments.items():
+                    grouped_data.append({
+                        'sr_no': sr_no_counter,
+                        'step_name': step_name,
+                        'role_name': role_name,
+                        'email': email,
+                        'comments': comment_list,  # list of dicts with value and created_at
+                        'rowspan': len(comment_list)
+                    })
+                    sr_no_counter += 1
                 
                 if form_instance:
                     form_id = form_instance["form_id"]
@@ -1132,9 +1108,9 @@ def form_master(request):
                         af["dropdown_values"] = af["dropdown_values"].split(",") if af.get("dropdown_values") else []
                     if workflow_YN == '1E':
                         return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"workflow":workflow_YN,"reference_type":reference_type,
-                                    "step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF,"action_data":action_data,"comments":comments,"new_data_id":new_data_id})
+                                    "step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF,"action_data":action_data,"new_data_id":new_data_id,"grouped_data":grouped_data})
                     else:
-                        return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"readonlyWF":readonlyWF,"viewStepWFSeq":'0',"action_data":action_data,"comments":comments,"type":type,"reference_type":reference_type})
+                        return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"readonlyWF":readonlyWF,"viewStepWFSeq":'0',"action_data":action_data,"type":type,"reference_type":reference_type,"grouped_data":grouped_data})
             else:
                 type = request.GET.get("type")
                 form = Form.objects.all()
