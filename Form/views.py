@@ -927,59 +927,35 @@ def form_master(request):
                 else:
                     reference_type = '0'
                     new_data_id = form_data_id
+                # tO sHOW 
+                step_name_subquery = Subquery(workflow_matrix.objects.filter(id=OuterRef('step_id')).values('step_name')[:1])
+                custom_user_role_id_subquery = Subquery(CustomUser.objects.filter(id=OuterRef('created_by')).values('role_id')[:1])
+                custom_email_subquery = Subquery(CustomUser.objects.filter(id=OuterRef('created_by')).values('email')[:1])
+                comments_base = ActionData.objects.filter(form_data_id=form_data_id,field__type__in=['text', 'textarea', 'select']
+                ).annotate(step_name=step_name_subquery,role_id=custom_user_role_id_subquery,email=custom_email_subquery)
+                comments = comments_base.annotate(role_name=Subquery(roles.objects.filter(id=OuterRef('role_id')).values('role_name')[:1])
+                ).values('field_id','value','step_id','created_at','created_by','step_name','role_name','email',)
 
-                # comments = ActionData.objects.filter(
-                #     form_data_id=form_data_id,
-                #     field__type__in=['text', 'textarea']
-                # ).values('field_id', 'value','step_id')
+                grouped_comments = defaultdict(list)
 
-                step_name_subquery = Subquery(
-                    workflow_matrix.objects
-                    .filter(id=OuterRef('step_id'))
-                    .values('step_name')[:1]
-                )
+                for comment in comments:
+                    key = ( comment['step_id'],comment['step_name'],comment['role_name'],comment['email'])
+                    # Store each value + created_at per comment
+                    grouped_comments[key].append({'value': comment['value'],'created_at': comment['created_at']})
 
-                # Subquery to get role_id from CustomUser using created_by
-                custom_user_role_id_subquery = Subquery(
-                    CustomUser.objects
-                    .filter(id=OuterRef('created_by'))
-                    .values('role_id')[:1]
-                )
+                grouped_data = []
+                sr_no_counter = 1
 
-                # Subquery to get email from CustomUser using created_by
-                custom_email_subquery = Subquery(
-                    CustomUser.objects
-                    .filter(id=OuterRef('created_by'))
-                    .values('email')[:1]
-                )
-
-                # First annotate role_id separately
-                comments_base = ActionData.objects.filter(
-                    form_data_id=form_data_id,
-                    field__type__in=['text', 'textarea', 'select']
-                ).annotate(
-                    step_name=step_name_subquery,
-                    role_id=custom_user_role_id_subquery,
-                    email=custom_email_subquery
-                )
-
-                # Now use annotated role_id to get role_name from roles table
-                comments = comments_base.annotate(
-                    role_name=Subquery(
-                        roles.objects
-                        .filter(id=OuterRef('role_id'))
-                        .values('role_name')[:1]
-                    )
-                ).values(
-                    'field_id',
-                    'value',
-                    'step_id',
-                    'created_at',
-                    'created_by',
-                    'step_name',
-                    'role_name',
-                    'email',
-                )
+                for (step_id, step_name, role_name, email), comment_list in grouped_comments.items():
+                    grouped_data.append({
+                        'sr_no': sr_no_counter,
+                        'step_name': step_name,
+                        'role_name': role_name,
+                        'email': email,
+                        'comments': comment_list,  
+                        'rowspan': len(comment_list)
+                    })
+                    sr_no_counter += 1
                 
                 if form_instance:
                     form_id = form_instance["form_id"]
@@ -994,6 +970,8 @@ def form_master(request):
 
                     if reference_type == '1':
                         field_values = FormFieldValuesTemp.objects.filter(form_data_id=form_data_id).values("field_id", "value")
+                        if not field_values.exists():
+                            field_values = FormFieldValues.objects.filter(form_data_id=form_data_id).values("field_id", "value")
                     else:
                         field_values = FormFieldValues.objects.filter(form_data_id=form_data_id).values("field_id", "value")
                     values_dict = {fv["field_id"]: fv["value"] for fv in field_values}
@@ -1057,6 +1035,7 @@ def form_master(request):
                         else:
                             field["value"] = saved_value
 
+
                         # field_dropdown logic
                         if field["field_type"] == "field_dropdown":
                             split_values = field["values"]
@@ -1071,17 +1050,36 @@ def form_master(request):
                                     field["saved_value"] = ""
 
                         if field["field_type"] == "file_name":
-            # Filter records where baseline_date is not null and not 0
-                            queryset = WorkflowVersionControl.objects.filter(
-                                ~Q(baseline_date__isnull=True) & ~Q(baseline_date=0)
+                            # 1️⃣ get the “baseline” options
+                            qs = WorkflowVersionControl.objects.filter(
+                                ~Q(baseline_date__isnull=True),
+                                ~Q(baseline_date=0)
+                            )
+                            field["file_name_options"] = list(
+                                qs
+                                .values_list("file_name", flat=True)
+                                .distinct()
                             )
 
-                            # Get only file_name values
-                            filtered_records = queryset.values("file_name")
+                            # 2️⃣ pull the user’s *saved* value for this field (if any)
+                            saved = (
+                                FormFieldValuesTemp.objects
+                                .filter(form_data_id=form_data_id, field_id=field["id"])
+                                .values_list("value", flat=True)
+                                .first()
+                                or
+                                FormFieldValues.objects
+                                .filter(form_data_id=form_data_id, field_id=field["id"])
+                                .values_list("value", flat=True)
+                                .first()
+                            )
 
-                            # Set the filtered file_name options
-                            if queryset.exists():
-                                field["file_name_options"] = [record["file_name"] for record in filtered_records]
+                            # 3️⃣ keep it on the field dict so the template can see it
+                            field["saved_value"] = saved
+
+                            # 4️⃣ if it isn’t already in the baseline list, stick it on top
+                            if saved and saved not in field["file_name_options"]:
+                                field["file_name_options"].insert(0, saved)
 
                         # master dropdown logic
                         if field["field_type"] == "master dropdown" and field["values"]:
@@ -1110,9 +1108,9 @@ def form_master(request):
                         af["dropdown_values"] = af["dropdown_values"].split(",") if af.get("dropdown_values") else []
                     if workflow_YN == '1E':
                         return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"workflow":workflow_YN,"reference_type":reference_type,
-                                    "step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF,"action_data":action_data,"comments":comments,"new_data_id":new_data_id})
+                                    "step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF,"action_data":action_data,"new_data_id":new_data_id,"grouped_data":grouped_data})
                     else:
-                        return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"readonlyWF":readonlyWF,"viewStepWFSeq":'0',"action_data":action_data,"comments":comments,"type":type,"reference_type":reference_type})
+                        return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"readonlyWF":readonlyWF,"viewStepWFSeq":'0',"action_data":action_data,"type":type,"reference_type":reference_type,"grouped_data":grouped_data})
             else:
                 type = request.GET.get("type")
                 form = Form.objects.all()
@@ -1341,20 +1339,20 @@ def common_form_post(request):
                     
             
             for key, value in request.POST.items():
-                    if key.startswith("action_field_") and not key.startswith("action_field_id_"):
-                        match = re.match(r'action_field_(\d+)', key)
-                        if match:
-                            field_id = int(match.group(1))
-                            action_field = get_object_or_404(FormActionField, pk=field_id)
-                            if action_field.type in ['text', 'textarea', 'select']:
-                                ActionData.objects.create(
-                                    value=value,
-                                    form_data=form_data,
-                                    field=action_field,
-                                    step_id=step_id,
-                                    created_by=user,
-                                    updated_by=user,
-                                )
+                if key.startswith("action_field_") and not key.startswith("action_field_id_"):
+                    match = re.match(r'action_field_(\d+)', key)
+                    if match:
+                        field_id = int(match.group(1))
+                        action_field = get_object_or_404(FormActionField, pk=field_id)
+                        if action_field.type in ['text', 'textarea', 'select']:
+                            ActionData.objects.create(
+                                value=value,
+                                form_data=form_data,
+                                field=action_field,
+                                step_id=step_id,
+                                created_by=user,
+                                updated_by=user,
+                            )
             
             messages.success(request, "Workflow data saved successfully!")
         else:
@@ -1382,11 +1380,11 @@ def common_form_edit(request):
         
         type = request.POST.get("type","")
         reference_type  = request.POST.get("reference_type","")
-        if reference_type != '1':
-            form_data_id = request.POST.get("form_data_id")
-        else:
+        if type == 'reference':
             workflow_YN = '1E'
             form_data_id = request.POST.get("new_data_id")
+        else:
+            form_data_id = request.POST.get("form_data_id")
         if not form_data_id:
             return JsonResponse({"error": "form_data_id is required"}, status=400)
 
@@ -1415,18 +1413,16 @@ def common_form_edit(request):
                     file_name = get_object_or_404(FormFieldValues,form_data_id=form_data,field_id= field).value
                     
                     continue
-
-                if reference_type != '1':
-
+                if type != 'reference':
                     existing_value = FormFieldValues.objects.filter(
-                        form_data=form_data, form=form, field=field
+                            form_data=form_data, form=form, field=field
                     ).first()
                     if existing_value:
-                        # Update existing entry
+                            # Update existing entry
                         existing_value.value = input_value
                         existing_value.save()
                     else:
-                        # Create new entry
+                            # Create new entry
                         FormFieldValues.objects.create(
                             form_data=form_data,
                             form=form,
@@ -1435,48 +1431,45 @@ def common_form_edit(request):
                             created_by=created_by
                         )
                     handle_uploaded_files(request, form_name, created_by, form_data, user)
-                else:
-                    workflow_name = 'CIDCO File Scanning and DMS Flow'
-                    form_id = form.id
+                    
+        # Run only if type is reference
+        if type == 'reference':
+            workflow_name = 'CIDCO File Scanning and DMS Flow'
+            form_id = form.id
 
-                    # Check if this is the last step for the workflow and form
-                    last_step = workflow_matrix.objects.filter(
-                        workflow_name=workflow_name,
-                        form_id=form_id
-                    ).aggregate(max_step=Max('step_id_flow'))['max_step']
+            last_step = workflow_matrix.objects.filter(
+                workflow_name=workflow_name,
+                form_id=form_id
+            ).aggregate(max_step=Max('step_id_flow'))['max_step']
 
-                    current_step = int(step_id)
+            current_step = int(step_id)
 
-                    if last_step and current_step == last_step:
-                        # Archive old FormFieldValues to FormFieldValuesHist
-                        old_values = FormFieldValues.objects.filter(form=form, form_data=form_data)
-                        for val in old_values:
-                            FormFieldValuesHist.objects.create(
-                                form=val.form,
-                                form_data=val.form_data,
-                                field=val.field,
-                                value=val.value,
-                                created_by=val.created_by,
-                                updated_by=created_by,
-                            )
+            if last_step and current_step == last_step:
+                # Archive existing values
+                old_values = FormFieldValues.objects.filter(form=form, form_data=form_data)
+                for val in old_values:
+                    FormFieldValuesHist.objects.create(
+                        form=val.form,
+                        form_data=val.form_data,
+                        field=val.field,
+                        value=val.value,
+                        created_by=val.created_by,
+                        updated_by=created_by,
+                    )
+                old_values.delete()
 
-                        # Delete old FormFieldValues
-                        old_values.delete()
-                        # old_files.delete()  # Uncomment if file deletion is needed
+                # Move temp to main table
+                temp_values = FormFieldValuesTemp.objects.filter(form_id=form.id, form_data_id=form_data.id)
+                for temp in temp_values:
+                    FormFieldValues.objects.create(
+                        form_id=temp.form_id,
+                        form_data_id=temp.form_data_id,
+                        field_id=temp.field_id,
+                        value=temp.value,
+                        created_by=temp.created_by
+                    )
+                temp_values.delete()
 
-                        # Move temp values to FormFieldValues
-                        temp_values = FormFieldValuesTemp.objects.filter(form_id=form.id, form_data_id=form_data.id)
-                        for temp in temp_values:
-                            FormFieldValues.objects.create(
-                                form_id=temp.form_id,
-                                form_data_id=temp.form_data_id,
-                                field_id=temp.field_id,
-                                value=temp.value,
-                                created_by=temp.created_by
-                            )
-
-                        # Delete temp values after transfer
-                        temp_values.delete()
 
 
         # callproc('create_dynamic_form_views')
@@ -1582,20 +1575,20 @@ def common_form_edit(request):
                         latest_row.save()
                     
             for key, value in request.POST.items():
-                    if key.startswith("action_field_") and not key.startswith("action_field_id_"):
-                        match = re.match(r'action_field_(\d+)', key)
-                        if match:
-                            field_id = int(match.group(1))
-                            action_field = get_object_or_404(FormActionField, pk=field_id)
-                            if action_field.type in ['text', 'textarea', 'select']:
-                                ActionData.objects.create(
-                                    value=value,
-                                    form_data=form_data,
-                                    field=action_field,
-                                    step_id=step_id,
-                                    created_by=user,
-                                    updated_by=user,
-                                )
+                if key.startswith("action_field_") and not key.startswith("action_field_id_"):
+                    match = re.match(r'action_field_(\d+)', key)
+                    if match:
+                        field_id = int(match.group(1))
+                        action_field = get_object_or_404(FormActionField, pk=field_id)
+                        if action_field.type in ['text', 'textarea', 'select']:
+                            ActionData.objects.create(
+                                value=value,
+                                form_data=form_data,
+                                field=action_field,
+                                step_id=step_id,
+                                created_by=user,
+                                updated_by=user,
+                            )
             
             messages.success(request, "Workflow data saved successfully!")
 
@@ -2318,15 +2311,11 @@ def reference_workflow(request):
                 )
 
         # handle_generative_fields_temp(form_id, matched_form_data_id, created_by,form_data)
-        handle_uploaded_files_temp(request, form_name, created_by, matched_form_data_id, user,form_data)
+        handle_uploaded_files_temp(request, form_name, created_by, matched_form_data, user,form_data,new_data_id)
         reference_type = '1'
-        #      url = reverse('workflow_form_step') + f'?id={step_id}&wfdetailsID={wfdetailsid}&editORcreate={editORcreate}&new_data_id={form_data.id}&reference_type={reference_type}'
-        # else:
-        #     url = reverse('workflow_form_step') + f'?id={step_id}&wfdetailsID={wfdetailsid}&editORcreate={editORcreate}&new_data_id={form_data.id}'
-
-
+        data_save_status = '1'
         messages.success(request, "Workflow New Data has been saved successfully!")
-        url = reverse('workflow_form_step') + f'?id={step_id}&wfdetailsID={wfdetailsid}&editORcreate={editORcreate}&new_data_id={form_data.id}&reference_type={reference_type}'
+        url = reverse('workflow_form_step') + f'?id={step_id}&wfdetailsID={wfdetailsid}&editORcreate={editORcreate}&new_data_id={form_data.id}&reference_type={reference_type}&data_save_status={data_save_status}'
         return redirect(url)
         # return redirect('workflow_form_step')
 
@@ -2337,7 +2326,7 @@ def reference_workflow(request):
 
 
 
-def handle_uploaded_files_temp(request, form_name, created_by, form_data_id, user,form_data):
+def handle_uploaded_files_temp(request, form_name, created_by, matched_form_data, user,form_data,new_data_id):
     try:
         user = request.session.get('user_id', '')
         for field_key, uploaded_files in request.FILES.lists():
@@ -2349,6 +2338,10 @@ def handle_uploaded_files_temp(request, form_name, created_by, form_data_id, use
             is_multiple = field_type == "file multiple"
             form = get_object_or_404(Form,name = form_name)
             form_id = form.id
+            if new_data_id:
+                form_data_id= new_data_id
+            else:
+                form_data_id = form_data.id
 
             file_dir = os.path.join(settings.MEDIA_ROOT, form_name, created_by, form_data_id)
             os.makedirs(file_dir, exist_ok=True)
@@ -2370,7 +2363,7 @@ def handle_uploaded_files_temp(request, form_name, created_by, form_data_id, use
                     uploaded_name=uploaded_file_name,
                     file_path=relative_file_path,
                     form_data_id=form_data.id,
-                    old_form_data = form_data_id,
+                    old_form_data = matched_form_data,
                     form_id=form_id,  # if not available
                     created_by=user,
                     updated_by=user,

@@ -131,7 +131,7 @@
         {% csrf_token %}
         <div class="col-md-4">
             <label>Form Name:</label>
-            <input type="text" onchange="DublicateformName()" placeholder="Enter Form Name" class="form-control" name="form_name" id="form_name" value="{{ form.name }}" required>
+            <input type="text" onchange="DublicateformName()" pattern="^[A-Za-z ]+$" placeholder="Enter Form Name" class="form-control" name="form_name" id="form_name" value="{{ form.name }}" required>
         </div>
 
         <div class="col-md-4">
@@ -505,15 +505,30 @@
         
             let colSize = 'col-md-3';
 
+            let labelInputHtml = '';
+            if (field.type === "file_name") {
+                labelInputHtml = `
+                        <input class="form-control" type="text" 
+                            value="File Name" 
+                            disabled>
+                `;
+                field.label = "File Name"; // Update the field object as well, if needed
+            } else {
+                labelInputHtml = `
+                        <input class="form-control" type="text" 
+                            value="${field.label}" 
+                            onchange="validateAndUpdateLabel(this, ${fieldId})">
+                `;
+            }
+
+
           builder.innerHTML += `
             <div class="row col-md-12 draggable-field" data-id="${fieldId}">
                 <div class="col-md-custom-1 drag-handle" style="cursor: grab;">
                     &#x2630;
                 </div>
                 <div class="col-md-custom-2 mb-3">
-                    <input class="form-control" type="text" 
-                        value="${field.label}" 
-                        onchange="validateAndUpdateLabel(this, ${fieldId})">
+                    ${labelInputHtml}
                 </div>
                 <div class="col-md-2 mb-3">
                     ${dropdownHtml}
@@ -1434,20 +1449,32 @@
         });
     }
 
-    function validateAndUpdateLabel(inputElement, fieldId) {
-        
-    let newLabel = inputElement.value.replace(/[^a-zA-Z0-9 ]/g, '').trim();
-    
-    // Check for duplicates (excluding current field)
-    let isDuplicate = formFields.some(field => field.id !== fieldId && field.label.toLowerCase() === newLabel.toLowerCase());
+function validateAndUpdateLabel(inputElement, fieldId) {
+    debugger;
+
+    // Remove special characters
+    let cleanedValue = inputElement.value.replace(/[^a-zA-Z0-9 ]/g, '');
+
+    // Prevent starting with a number
+    if (/^[0-9]/.test(cleanedValue)) {
+        cleanedValue = cleanedValue.replace(/^[0-9]+/, '');
+    }
+
+    let newLabel = cleanedValue.trim();
+    inputElement.value = newLabel;
+
+    let isDuplicate = formFields.some(field =>
+        field.id !== fieldId &&
+        field.label.toLowerCase() === newLabel.toLowerCase()
+    );
 
     if (isDuplicate) {
         Swal.fire({
-            icon: 'error',
+            icon: 'warning',
             title: 'Duplicate Label',
             text: `A field with the label "${newLabel}" already exists.`,
         });
-        inputElement.value = ""; // Clear the input
+        inputElement.value = "";
         return;
     }
 
@@ -1512,9 +1539,21 @@
             ghostClass: 'sortable-ghost',
         });
     });
+    
 </script>
 
-    
+<script>
+    document.getElementById("form_name").addEventListener("input", function () {
+        // Allow only alphanumeric and spaces
+        this.value = this.value.replace(/[^A-Za-z0-9 ]/g, '');
+
+        // Prevent first character from being a number
+        if (/^[0-9]/.test(this.value)) {
+            this.value = this.value.replace(/^[0-9]+/, '');
+        }
+    });
+</script>
+
 
 
 {% if messages %}

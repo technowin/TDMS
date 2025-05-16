@@ -53,7 +53,9 @@
             <label>Form Action Name:</label>
             <input type="text" placeholder="Enter Action Template Name" class="form-control" name="action_name" value="{{ form.name }}" required>
         </div>
+        {% if form %}
 
+        {% else %}
         <div class="col-md-3">
             <label>Master Actions</label>
                 <select name="action_master" id="dropdown" class="form-control" >
@@ -63,6 +65,7 @@
                     {% endfor %}
                 </select>
         </div>
+        {% endif %}
 
         <div class="col-md-2">
             <label for="add_into_master">Add to Master</label><br>
@@ -172,7 +175,7 @@ let formFields = [];
 function addField() {
     let newField = {
         id: formFields.length + 1,
-        label: "Label Name",
+        label: "Label Name " + (formFields.length + 1),
         type: "text",
         value: "Submit",
         status:"",
@@ -302,23 +305,28 @@ function renderFormBuilder() {
 
 function validateAndUpdateLabel(inputElement, fieldId) {
     debugger;
-let newLabel = inputElement.value.replace(/[^a-zA-Z0-9 ]/g, '').trim();
+    let newLabel = inputElement.value.replace(/[^a-zA-Z0-9 ]/g, '').trim();
 
-// Check for duplicates (excluding current field)
-let isDuplicate = formFields.some(field => field.id !== fieldId && field.label.toLowerCase() === newLabel.toLowerCase());
-
-if (isDuplicate) {
-    Swal.fire({
-        icon: 'error',
-        title: 'Duplicate Label',
-        text: `A field with the label "${newLabel}" already exists.`,
+    // Check for duplicates (excluding current field)
+    let isDuplicate = formFields.some(field => {
+        if (field.id === fieldId) return false;
+        const label = field.label || "";
+        return label.toLowerCase() === newLabel.toLowerCase();
     });
-    inputElement.value = ""; // Clear the input
-    return;
-}
 
-updateField(fieldId, 'label', newLabel);
-}
+
+    if (isDuplicate) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Duplicate Label',
+            text: `A field with the label "${newLabel}" already exists.`,
+        });
+        inputElement.value = ""; // Clear the input
+        return;
+    }
+
+    updateField(fieldId, 'label', newLabel);
+    }
 
 
 
@@ -360,12 +368,14 @@ document.getElementById("main-form").addEventListener("submit", function() {
 });
 
 
-function updateField(id, key, value) {
-    formFields = formFields.map(f => f.id === id ? { ...f, [key]: value } : f);
-    renderFormBuilder();
-    renderFormPreview();
+function updateField(fieldId, key, value) {
+    const index = formFields.findIndex(field => field.id === fieldId);
+    if (index !== -1) {
+        formFields[index][key] = value;
+        renderFormBuilder(); // Re-render the form with the updated field
+    }
 }
-    
+
 function removeField(id) {
     formFields = formFields.filter(f => f.id !== id);
     renderFormBuilder();
