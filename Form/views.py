@@ -1219,12 +1219,13 @@ def common_form_post(request):
                 if field.field_type == "file_name":
                     form_data.file_ref = input_value
                     form_data.save()
+                    if input_value:
 
-                    form_field_value_obj = FormFieldValues.objects.filter(value=input_value).first()
-                    if form_field_value_obj:
-                        form_data_id = form_field_value_obj.form_data_id
-                    if form_data_id:
-                        VersionControlFileMap.objects.create(form_data=form_data_id,file_name= input_value)
+                        form_field_value_obj = FormFieldValues.objects.filter(value=input_value).first()
+                        if form_field_value_obj:
+                            form_data_id = form_field_value_obj.form_data_id
+                        if form_data_id:
+                            VersionControlFileMap.objects.create(form_data=form_data_id,file_name= input_value)
 
         if already_exists is not True:       
             handle_uploaded_files(request, form_name, created_by, form_data, user)
