@@ -146,6 +146,7 @@ class FormFieldValues(models.Model):
     form_data = models.ForeignKey('Form.FormData',null=True, blank=True, on_delete=models.CASCADE, related_name='form_value_id')
     field = models.ForeignKey('Form.FormField',null=True, blank=True, on_delete=models.CASCADE, related_name='field_value_id')
     value = models.TextField(null=True, blank=True)
+    file_ref = models.TextField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
@@ -316,6 +317,16 @@ class FormFileTemp(models.Model):
     updated_by =  models.TextField(null=True, blank=True)
     class Meta:
         db_table = 'form_file_temp'
+
+class VersionControlFileMap(models.Model):
+    file_name = models.TextField(null=True, blank=True)
+    form_data = models.IntegerField(null=True, blank=True)
+    created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
+    created_by =  models.TextField(null=True, blank=True)
+    updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
+    updated_by =  models.TextField(null=True, blank=True)
+    class Meta:
+        db_table = 'version_control_file_map'
 
 
 

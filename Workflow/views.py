@@ -338,7 +338,6 @@ def workflow_starts(request):
         for step in workflow_steps
     }
 
-    # Build the final filtered + enriched WFIndexdata
     WFIndexdata = [] 
     
     # for handling involves person
@@ -564,7 +563,6 @@ def get_formdataidEdit(request):
     form_id = request.GET.get("form_id")
     wfdetailsID = request.GET.get("wfdetailsID")
     viewStepWF = request.GET.get("editORcreate")
-    new_data_id = request.GET.get("new_data_id",'')
     button_type_id = None
     if step_id:
         step = workflow_matrix.objects.get(id=step_id)
@@ -578,7 +576,7 @@ def get_formdataidEdit(request):
     form=enc(str(form_data_id))
     # return redirect('form_master', form=form)
     # url = reverse('form_master') + f'?form={form}'
-    url = reverse('form_master') + f'?form={form}&button_type_id={button_type_id}&workflow_YN={workflow_YN}&step_id={step_id}&form_idWF={form_id}&role_id={role_id}&wfdetailsID={wfdetailsID}&viewStepWF={viewStepWF}&new_data_id={new_data_id}'
+    url = reverse('form_master') + f'?form={form}&button_type_id={button_type_id}&workflow_YN={workflow_YN}&step_id={step_id}&form_idWF={form_id}&role_id={role_id}&wfdetailsID={wfdetailsID}&viewStepWF={viewStepWF}'
     return redirect(url)
     
         
@@ -597,6 +595,8 @@ def workflow_form_step(request):
     data_save_status = request.GET.get("sdata_save_statusaved")
     if not new_data_id:
         new_data_id = ''
+    if new_data_id:
+        matched_form_data_id = new_data_id
     id = dec(id) 
     # if wfdetailsid:
     #     wfdetailsid = dec(wfdetailsid) 
@@ -613,6 +613,9 @@ def workflow_form_step(request):
 
         if not data_save_status :
             data_save_status == '0'
+        
+        if not reference_type:
+            reference_type = '0'
 
         
         workflow = get_object_or_404(workflow_matrix, id=id)
@@ -665,7 +668,9 @@ def workflow_form_step(request):
                     except FormData.DoesNotExist:
                         file_ref_value = None
             except workflow_details.DoesNotExist:
-                pass  # Let it continue if workflow_details doesn't exist
+                pass
+        else:
+            type = "create"  # Let it continue if workflow_details doesn't exist
 
 
         # Fetch form fields
@@ -673,11 +678,15 @@ def workflow_form_step(request):
             "id", "label", "field_type", "values", "attributes", "form_id", "form_id__name", "section"
         ).order_by("order")
 
+        if new_data_id:
+            matched_form_data_id = new_data_id
+            type = "reference"
+
         # Step 1: Get prefilled values if matched_form_data_id exists
         prefilled_values = {}
         if matched_form_data_id:
             if reference_type == '1':
-                values_qs = FormFieldValuesTemp.objects.filter(old_form_data_id=matched_form_data_id)
+                values_qs = FormFieldValuesTemp.objects.filter(form_data_id=matched_form_data_id)
             else:
                 values_qs = FormFieldValues.objects.filter(form_data_id=matched_form_data_id)
             prefilled_values = {str(v.field_id): v.value for v in values_qs}
@@ -686,7 +695,7 @@ def workflow_form_step(request):
 
         for field in raw_fields:
             field_id_str = str(field["id"])
-            field["value"] = prefilled_values.get(field_id_str, "")  # Set prefilled value if available
+            field["value"] = prefilled_values.get(field_id_str, "")  
 
     # (Rest of your code continues unchanged...)
 
@@ -726,7 +735,7 @@ def workflow_form_step(request):
                     file_validation = next((v for v in field["validations"]), None)
                     field["accept"] = file_validation["value"] if file_validation else ""
                     if reference_type == '1':
-                        file_exists = FormFileTemp.objects.filter(field_id=field["id"], old_form_data=matched_form_data_id).exists()
+                        file_exists = FormFileTemp.objects.filter(field_id=field["id"], form_data_id=matched_form_data_id).exists()
                     else:
                         file_exists = FormFile.objects.filter(field_id=field["id"], form_data_id=matched_form_data_id).exists()
                     field["file_uploaded"] = 1 if file_exists else 0
@@ -789,7 +798,7 @@ def workflow_form_step(request):
             return render(request, "Form/_formfieldedit.html", {
                 "sectioned_fields": sectioned_fields,
                 "form":form,"type":type,
-                "action_fields": action_fields,
+                "action_fields": action_fields,"reference_type":reference_type,
                 "form_action_url": form_action_url,"file_ref_value":file_ref_value,"new_form_data_id":new_form_data_id,
                 "workflow": 1,"WFoperator_dropdown":WFoperator_dropdown,
                 "role_id":role_id,"action_detail_id":action_detail_id,"form_id":form_id,"inward_req_id":inward_req_id,
@@ -800,7 +809,7 @@ def workflow_form_step(request):
             return render(request, "Form/_formfieldedit.html", {
                 "sectioned_fields": sectioned_fields,
                 "form":form,
-                "type":"create",
+                "type":type,
                 "action_fields": action_fields,
                 "form_action_url": form_action_url,
                 "workflow": 1,"WFoperator_dropdown":WFoperator_dropdown,
