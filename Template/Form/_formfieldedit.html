@@ -1030,9 +1030,10 @@ document.getElementById('compareButton').addEventListener('click', function () {
 
     let finalId = matchedId && matchedId.trim() !== "" ? matchedId : newId;
 
-    // Redirect to the Django view with selected ID
-    window.location.href = `/get_compare_data/${finalId}/`, '_blank';
+    // Open the compare data page in a new tab/window
+    window.open(`/get_compare_data/${finalId}/`, '_blank');
 });
+
 
 </script>
 
