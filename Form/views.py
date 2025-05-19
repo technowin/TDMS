@@ -1500,7 +1500,7 @@ def common_form_edit(request):
                         uploaded_name=temp_file.uploaded_name,
                         created_by=temp_file.created_by,
                     )
-                temp_files.delete()
+                callproc("stp_delete_temp_file",[form.id,form_data.id])
 
 
 
