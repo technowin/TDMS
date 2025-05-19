@@ -53,6 +53,7 @@ urlpatterns = [
     path('get_regex_pattern/', get_regex_pattern, name='get_regex_pattern'),
     path('create_new_section/', create_new_section, name='create_new_section'),
     path('reference_workflow/', reference_workflow, name='reference_workflow'),
+    path('get_compare_data/<int:final_id>/', get_compare_data, name='get_compare_data'),
 
 
     # Account

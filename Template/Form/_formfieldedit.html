@@ -429,15 +429,14 @@
             Save Data
         </button>
     </div>
-    <div class="col-md-2 mt-4 text-center">
+  <div class="col-md-2 mt-4 text-center">
         <button type="button"
-                class="btn btn-primary submit-btn w-100"
+                class="btn btn-primary w-100"
                 id="compareButton"
                 style="border-radius: 15px;">
             Compare Data
         </button>
-    {% comment %} </div> {% endcomment %}
-</div>
+    </div>
 
     {% endif %}  
  {% endif %} 
@@ -990,6 +989,50 @@ function formatInputByPattern(inputElement, regexId) {
 
     inputElement.value = value;
 }
+
+</script>
+
+<script>
+   {% comment %} $('#compareButton').click(function () {
+    // Assume you get these values from somewhere (input fields, data attributes, etc.)
+    let matched_form_data_id = $('#matched_form_data_id').val();  // or use a JS variable
+    let new_data_id = $('#new_data_id').val();
+
+    // Decide which one to send based on matched_form_data_id
+    let data_id_to_send = (matched_form_data_id === null || matched_form_data_id === '') 
+                          ? new_data_id 
+                          : matched_form_data_id;
+
+    $.ajax({
+        url: "{% url 'get_compare_data' %}",
+        type: 'POST',
+        data: {
+            data_id: data_id_to_send,
+            csrfmiddlewaretoken: '{{ csrf_token }}'  // if using Django
+        },
+        success: function (response) {
+            debugger;
+            console.log('Success:', response);
+            
+            // 🔁 Redirect to another page (example: /comparison-result/)
+           window.location.href = 'Form/compare_data.html' ;
+        },
+        error: function (xhr, status, error) {
+            console.error('Error:', error);
+            alert('Error occurred while comparing.');
+        }
+    });
+}); {% endcomment %}
+
+document.getElementById('compareButton').addEventListener('click', function () {
+    let matchedId = document.getElementById('matched_form_data_id').value;
+    let newId = document.getElementById('new_data_id').value;
+
+    let finalId = matchedId && matchedId.trim() !== "" ? matchedId : newId;
+
+    // Redirect to the Django view with selected ID
+    window.location.href = `/get_compare_data/${finalId}/`;
+});
 
 </script>
 

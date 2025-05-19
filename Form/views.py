@@ -2373,5 +2373,64 @@ def handle_uploaded_files_temp(request, form_name, created_by, matched_form_data
         traceback.print_exc()
         messages.error(request, "Oops...! Something went wrong!")
 
+def get_compare_data(request, final_id):
+    try:
+        form_data_id = final_id
 
+        # Fetch old values with field relation
+        old_values = FormFieldValues.objects.filter(form_data_id=form_data_id).select_related('field')
+
+        # Fetch new values
+        new_values = FormFieldValuesTemp.objects.filter(form_data_id=form_data_id)
+
+        # Fetch files
+        old_files = FormFile.objects.filter(form_data_id=form_data_id)
+        new_files = FormFileTemp.objects.filter(form_data_id=form_data_id)
+
+        # Build file maps for quick lookup
+        old_file_map = {}
+        for f in old_files:
+            old_file_map.setdefault(f.field_id, []).append(f.file_path)
+
+        new_file_map = {}
+        for f in new_files:
+            new_file_map.setdefault(f.field_id, []).append(f.file_path)
+
+        # Build comparison data
+        comparison_data = []
+        for old in old_values:
+            field = old.field
+            label = field.label if field else "Unknown Field"
+            field_type = field.field_type if field else ""
+
+            # Fetch new value
+            new_val = new_values.filter(field_id=field.id).first()
+
+            # For file fields, include file paths
+            if field_type in ['file', 'file_multiple']:
+                old_val = old_file_map.get(field.id, [])
+                new_val_list = new_file_map.get(field.id, [])
+                comparison_data.append({
+                    'label': label,
+                    'old_value': old_val,
+                    'new_value': new_val_list,
+                    'is_file': True
+                })
+            else:
+                comparison_data.append({
+                    'label': label,
+                    'old_value': old.value,
+                    'new_value': new_val.value if new_val else "",
+                    'is_file': False
+                })
+
+        context = {
+            'comparison_data': comparison_data,
+        }
+        return render(request, 'Form/compare_data.html', context)
+
+    except Exception:
+        traceback.print_exc()
+        messages.error(request, "Oops...! Something went wrong!")
+        return render(request, 'form/error.html', {"message": "Something went wrong!"})
 

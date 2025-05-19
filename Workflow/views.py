@@ -739,8 +739,8 @@ def workflow_form_step(request):
                     else:
                         file_exists = FormFile.objects.filter(field_id=field["id"], form_data_id=matched_form_data_id).exists()
                     field["file_uploaded"] = 1 if file_exists else 0
-                    if file_exists and "required" in field["attributes"]:
-                        field["attributes"].remove("required")
+                    # if file_exists and "required" in field["attributes"]:
+                    field["attributes"].remove("required")
             else:
                 if field["field_type"] in ["file", "file multiple", "text"]:
                     file_validation = next((v for v in field["validations"]), None)
