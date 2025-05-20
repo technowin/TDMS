@@ -872,6 +872,9 @@
                 else if (buttonType === 'Submit' && type === 'create') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_post' %}";
+                }else if (buttonType === 'Reject' && parseInt(workflow_YN.value) === 1) {
+                    operatorDropdown.removeAttribute('required');
+                    form.action = "{% url 'reject_workflow_step' %}";
                 } else if (buttonType === 'Submit' && type === 'edit') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_edit' %}";

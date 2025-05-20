@@ -779,22 +779,22 @@ def workflow_form_step(request):
             "id", "type", "label_name", "button_name", "bg_color", "text_color", 
             "button_type", "dropdown_values", "status"
         ))
-        for action in action_fields:
-            if matched_form_data_id:
-                form_data = matched_form_data_id
-            elif new_data_id:
-                form_data = new_data_id
-            else:
-                form_data = form_data
-            if action['label_name'] == 'Previous Version':
-                version = WorkflowVersionControl.objects.filter(form_data_id=form_data).order_by('-id').values_list('version_no', flat=True).first()
-                action['version_value'] = version or ''
+        if reference_type == '1':
+            for action in action_fields:
+                if matched_form_data_id:
+                    form_data = matched_form_data_id
+                elif new_data_id:
+                    form_data = new_data_id
+                else:
+                    form_data = form_data
+                if action['label_name'] == 'Previous Version':
+                    version = WorkflowVersionControl.objects.filter(form_data_id=form_data).order_by('-id').values_list('version_no', flat=True).first()
+                    action['version_value'] = version or ''
 
         # Process action fields
         for action in action_fields:
             action["dropdown_values"] = action["dropdown_values"].split(",") if action["dropdown_values"] else []
 
-            # Set form_action_url based on button_type (first matched)
             if action["type"] == "button":
                 if action["button_type"] == "Submit":
                     form_action_url = reverse('common_form_post')
