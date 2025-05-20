@@ -1218,6 +1218,8 @@ def common_form_post(request):
 
                 if field.field_type == "file_name":
                     form_data.file_ref = input_value
+                    if input_value:
+                        VersionControlFileMap.objects.create(form_data=form_dataID,file_name= input_value)
                     form_data.save()
                     if input_value:
 
