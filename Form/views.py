@@ -1228,6 +1228,29 @@ def common_form_post(request):
                             form_data_id = form_field_value_obj.form_data_id
                         if form_data_id:
                             VersionControlFileMap.objects.create(form_data=form_data_id,file_name= input_value)
+                if field.field_type == 'field_dropdown':
+                    values = field.values  # e.g., "1,2"
+                    
+                    if values:
+                        parts = values.split(',')
+                        if len(parts) == 2:
+                            form_id = parts[0].strip()
+                            field_id = parts[1].strip()
+
+                            try:
+                                # Lookup FormField with the extracted form_id and field_id
+                                linked_field = FormField.objects.get(id=field_id, form_id=form_id)
+
+                                if linked_field.label == "File Name":
+                                    VersionControlFileMap.objects.create(
+                                        form_data=form_dataID,
+                                        file_name=input_value
+                                    )
+                            except FormField.DoesNotExist:
+                                pass  # Handle error or log as needed
+
+                
+
 
         if already_exists is not True:       
             handle_uploaded_files(request, form_name, created_by, form_data, user)
