@@ -464,6 +464,9 @@
                 {{ action.button_name }}
             </button>
 
+            {% elif action.label_name == "Previous Version" %}
+                <input type="text" class="form-control" value="{{ action.version_value }}" readonly>
+
 
 
             {% elif action.type == "textarea" %}

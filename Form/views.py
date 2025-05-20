@@ -1101,6 +1101,14 @@ def form_master(request):
                     action_fields = list(action_fields)
 
                     action_data = list(ActionData.objects.filter(form_data_id=form_data_id).values())
+                    for action in action_fields:
+                        if new_data_id:
+                            form_data = new_data_id
+                        else:
+                            form_data = form_data
+                        if action['label_name'] == 'Previous Version':
+                            version = WorkflowVersionControl.objects.filter(form_data_id=form_data).order_by('-id').values_list('version_no', flat=True).first()
+                            action['version_value'] = version or ''
 
                     for af in action_fields:
                         af["dropdown_values"] = af["dropdown_values"].split(",") if af.get("dropdown_values") else []
@@ -1257,7 +1265,7 @@ def common_form_post(request):
             file_name = handle_generative_fields(form, form_data, created_by)
 
         # callproc('create_dynamic_form_views')
-        messages.success(request, "Form data saved successfully!")
+        messages.success(request, "Form data saved successfully!") 
         if workflow_YN == '1' and already_exists is not True:
             wfdetailsid = request.POST.get('wfdetailsid', '')
             role_idC = request.POST.get('role_id', '')
