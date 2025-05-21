@@ -390,7 +390,12 @@ def workflow_starts(request):
         except workflow_matrix.DoesNotExist:
             editORcreate = ''
         # editORcreate = workflow_matrix.objects.get(id=editcrt).button_act_details
-        
+        formDataId_Status= item[7]
+        revised_Status = VersionControlFileMap.objects.filter(form_data=formDataId_Status)
+        if revised_Status.exists():
+            status = f"{item[1]} - Revised"
+        else:
+            status = item[1]
         form_data_id= enc(str(item[7]))
         updated_by= item[9]
         updated_at= item[10]
@@ -460,7 +465,7 @@ def workflow_starts(request):
             user_prev_step_id_val = user_prev_step['id'] if user_prev_step else ''
             WFIndexdata.append({
                 "req_num": item[0],
-                "status": item[1],
+                "status": status,
                 "id_wfd": item[2],
                 "step_id": item[3],
                 "enc_id_wfd": enc(str(item[2])),
