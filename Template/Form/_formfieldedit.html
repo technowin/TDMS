@@ -461,7 +461,7 @@
                         data-button-type="{{ action.button_type|default:'button' }}"
                         data-action-id="{{ action.id }}"
                         {% if viewStepWFSeq != '3' %}
-                            {% if reference_type == "1" or type == 'reference' %}
+                            {% if  type == 'reference' %}
                                 {% if data_save_status != '1' %} disabled {% endif %}
                             {% else %}
                                 {% if readonlyWF == '1' %} disabled {% endif %}
