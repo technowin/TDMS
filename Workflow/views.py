@@ -597,7 +597,7 @@ def workflow_form_step(request):
     editORcreate = request.GET.get("editORcreate")
     new_data_id = request.GET.get("new_data_id")
     reference_type = request.GET.get("reference_type")
-    data_save_status = request.GET.get("sdata_save_statusaved")
+    data_save_status = request.GET.get("data_save_status")
     if not new_data_id:
         new_data_id = ''
     if new_data_id:

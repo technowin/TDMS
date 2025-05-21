@@ -2371,7 +2371,7 @@ def handle_uploaded_files_temp(request, form_name, created_by, matched_form_data
             req_no = get_object_or_404(FormData, id = matched_form_data_id).req_no
             form_id = form.id
 
-            file_dir = os.path.join(settings.MEDIA_ROOT, form_name, created_by, matched_form_data_id)
+            file_dir = os.path.join(settings.MEDIA_ROOT, form_name, created_by, req_no)
             os.makedirs(file_dir, exist_ok=True)
 
             for uploaded_file in uploaded_files:
@@ -2423,44 +2423,38 @@ def get_compare_data(request, final_id):
     try:
         form_data_id = final_id
 
-        # Fetch old values with field relation
         old_values = FormFieldValues.objects.filter(form_data_id=form_data_id).select_related('field')
-
-        # Fetch new values
         new_values = FormFieldValuesTemp.objects.filter(form_data_id=form_data_id)
 
-        # Fetch files
         old_files = FormFile.objects.filter(form_data_id=form_data_id)
         new_files = FormFileTemp.objects.filter(form_data_id=form_data_id)
 
-        # Build file maps for quick lookup
+        # Build file maps
         old_file_map = {}
         for f in old_files:
-            old_file_map.setdefault(f.field_id, []).append(f.file_path)
+            file_info = {'path': enc(str(f.file_path)), 'name': os.path.basename(f.file_path)}
+            old_file_map.setdefault(f.field_id, []).append(file_info)
 
         new_file_map = {}
         for f in new_files:
-            new_file_map.setdefault(f.field_id, []).append(f.file_path)
+            file_info = {'path': enc(str(f.file_path)), 'name': os.path.basename(f.file_path)}
+            new_file_map.setdefault(f.field_id, []).append(file_info)
 
-        # Build comparison data
         comparison_data = []
+        file_comparison_data = []
+
         for old in old_values:
             field = old.field
             label = field.label if field else "Unknown Field"
             field_type = field.field_type if field else ""
 
-            # Fetch new value
             new_val = new_values.filter(field_id=field.id).first()
 
-            # For file fields, include file paths
-            if field_type in ['file', 'file_multiple']:
-                old_val = old_file_map.get(field.id, [])
-                new_val_list = new_file_map.get(field.id, [])
-                comparison_data.append({
+            if field_type in ['file', 'file multiple']:
+                file_comparison_data.append({
                     'label': label,
-                    'old_value': old_val,
-                    'new_value': new_val_list,
-                    'is_file': True
+                    'old_files': old_file_map.get(field.id, []),
+                    'new_files': new_file_map.get(field.id, []),
                 })
             else:
                 comparison_data.append({
@@ -2472,6 +2466,7 @@ def get_compare_data(request, final_id):
 
         context = {
             'comparison_data': comparison_data,
+            'file_comparison_data': file_comparison_data,
         }
         return render(request, 'Form/compare_data.html', context)
 
@@ -2479,4 +2474,23 @@ def get_compare_data(request, final_id):
         traceback.print_exc()
         messages.error(request, "Oops...! Something went wrong!")
         return render(request, 'form/error.html', {"message": "Something went wrong!"})
+    
 
+def preview_file(request):
+    if request.method == 'POST':
+        try:
+            encrpt_path = request.POST.get("encrypted_path")
+            decrypted_path = dec(encrpt_path)  # your custom decrypt function
+            full_path = os.path.normpath(os.path.join(settings.MEDIA_ROOT, decrypted_path))
+
+            if os.path.exists(full_path):
+                # Create a file URL using MEDIA_URL
+                file_url = os.path.join(settings.MEDIA_URL, decrypted_path).replace('\\', '/')
+                return JsonResponse({'success': True, 'file_url': file_url})
+            else:
+                return JsonResponse({'success': False, 'error': 'File does not exist'})
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return JsonResponse({'success': False, 'error': 'Invalid method'})
