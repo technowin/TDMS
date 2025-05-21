@@ -303,6 +303,45 @@ function previewNewFile(encryptedPath) {
 }
 </script>
 
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const totalFields = {{ comparison_data|length }};
+        let changedCount = 0;
+
+        for (let i = 0; i < totalFields; i++) {
+            const oldInput = document.querySelector(`input[data-type="old"][data-index="${i}"]`);
+            const newInput = document.querySelector(`input[data-type="new"][data-index="${i}"]`);
+
+            if (!oldInput || !newInput) continue;
+
+            const oldValue = oldInput.value.trim();
+            const newValue = newInput.value.trim();
+
+            if (oldValue !== newValue) {
+                changedCount++;
+            }
+
+            // Optional: hover effect to highlight matching pairs
+            [oldInput, newInput].forEach(input => {
+                input.addEventListener('mouseenter', () => {
+                    oldInput.classList.add('border-primary', 'border-2');
+                    newInput.classList.add('border-primary', 'border-2');
+                });
+
+                input.addEventListener('mouseleave', () => {
+                    oldInput.classList.remove('border-primary', 'border-2');
+                    newInput.classList.remove('border-primary', 'border-2');
+                });
+            });
+        }
+
+        // Update counters
+        document.getElementById('total-fields').textContent = totalFields;
+        document.getElementById('changed-fields').textContent = changedCount;
+        document.getElementById('unchanged-fields').textContent = totalFields - changedCount;
+    });
+</script>
+
 
 
 

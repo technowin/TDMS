@@ -2487,7 +2487,6 @@ def get_compare_data(request, final_id):
         return render(request, 'form/error.html', {"message": "Something went wrong!"})
     
 @xframe_options_exempt
-
 def preview_file(request):
     if request.method == 'POST':
         try:
