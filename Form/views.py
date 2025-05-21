@@ -1101,6 +1101,7 @@ def form_master(request):
                     action_fields = list(action_fields)
 
                     action_data = list(ActionData.objects.filter(form_data_id=form_data_id).values())
+                    
 
                     for af in action_fields:
                         af["dropdown_values"] = af["dropdown_values"].split(",") if af.get("dropdown_values") else []
@@ -1218,20 +1219,46 @@ def common_form_post(request):
 
                 if field.field_type == "file_name":
                     form_data.file_ref = input_value
+                    if input_value:
+                        VersionControlFileMap.objects.create(form_data=form_dataID,file_name= input_value)
                     form_data.save()
+                    if input_value:
 
-                    form_field_value_obj = FormFieldValues.objects.filter(value=input_value).first()
-                    if form_field_value_obj:
-                        form_data_id = form_field_value_obj.form_data_id
-                    if form_data_id:
-                        VersionControlFileMap.objects.create(form_data=form_data_id,file_name= input_value)
+                        form_field_value_obj = FormFieldValues.objects.filter(value=input_value).first()
+                        if form_field_value_obj:
+                            form_data_id = form_field_value_obj.form_data_id
+                        if form_data_id:
+                            VersionControlFileMap.objects.create(form_data=form_data_id,file_name= input_value)
+                if field.field_type == 'field_dropdown':
+                    values = field.values  # e.g., "1,2"
+                    
+                    if values:
+                        parts = values.split(',')
+                        if len(parts) == 2:
+                            form_id = parts[0].strip()
+                            field_id = parts[1].strip()
+
+                            try:
+                                # Lookup FormField with the extracted form_id and field_id
+                                linked_field = FormField.objects.get(id=field_id, form_id=form_id)
+
+                                if linked_field.label == "File Name":
+                                    VersionControlFileMap.objects.create(
+                                        form_data=form_dataID,
+                                        file_name=input_value
+                                    )
+                            except FormField.DoesNotExist:
+                                pass  # Handle error or log as needed
+
+                
+
 
         if already_exists is not True:       
             handle_uploaded_files(request, form_name, created_by, form_data, user)
             file_name = handle_generative_fields(form, form_data, created_by)
 
         # callproc('create_dynamic_form_views')
-        messages.success(request, "Form data saved successfully!")
+        messages.success(request, "Form data saved successfully!") 
         if workflow_YN == '1' and already_exists is not True:
             wfdetailsid = request.POST.get('wfdetailsid', '')
             role_idC = request.POST.get('role_id', '')
@@ -1500,7 +1527,7 @@ def common_form_edit(request):
                         uploaded_name=temp_file.uploaded_name,
                         created_by=temp_file.created_by,
                     )
-                temp_files.delete()
+                callproc("stp_delete_temp_file",[form.id,form_data.id])
 
 
 
@@ -2390,5 +2417,64 @@ def handle_uploaded_files_temp(request, form_name, created_by, matched_form_data
         traceback.print_exc()
         messages.error(request, "Oops...! Something went wrong!")
 
+def get_compare_data(request, final_id):
+    try:
+        form_data_id = final_id
 
+        # Fetch old values with field relation
+        old_values = FormFieldValues.objects.filter(form_data_id=form_data_id).select_related('field')
+
+        # Fetch new values
+        new_values = FormFieldValuesTemp.objects.filter(form_data_id=form_data_id)
+
+        # Fetch files
+        old_files = FormFile.objects.filter(form_data_id=form_data_id)
+        new_files = FormFileTemp.objects.filter(form_data_id=form_data_id)
+
+        # Build file maps for quick lookup
+        old_file_map = {}
+        for f in old_files:
+            old_file_map.setdefault(f.field_id, []).append(f.file_path)
+
+        new_file_map = {}
+        for f in new_files:
+            new_file_map.setdefault(f.field_id, []).append(f.file_path)
+
+        # Build comparison data
+        comparison_data = []
+        for old in old_values:
+            field = old.field
+            label = field.label if field else "Unknown Field"
+            field_type = field.field_type if field else ""
+
+            # Fetch new value
+            new_val = new_values.filter(field_id=field.id).first()
+
+            # For file fields, include file paths
+            if field_type in ['file', 'file_multiple']:
+                old_val = old_file_map.get(field.id, [])
+                new_val_list = new_file_map.get(field.id, [])
+                comparison_data.append({
+                    'label': label,
+                    'old_value': old_val,
+                    'new_value': new_val_list,
+                    'is_file': True
+                })
+            else:
+                comparison_data.append({
+                    'label': label,
+                    'old_value': old.value,
+                    'new_value': new_val.value if new_val else "",
+                    'is_file': False
+                })
+
+        context = {
+            'comparison_data': comparison_data,
+        }
+        return render(request, 'Form/compare_data.html', context)
+
+    except Exception:
+        traceback.print_exc()
+        messages.error(request, "Oops...! Something went wrong!")
+        return render(request, 'form/error.html', {"message": "Something went wrong!"})
 

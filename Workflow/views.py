@@ -744,8 +744,8 @@ def workflow_form_step(request):
                     else:
                         file_exists = FormFile.objects.filter(field_id=field["id"], form_data_id=matched_form_data_id).exists()
                     field["file_uploaded"] = 1 if file_exists else 0
-                    if file_exists and "required" in field["attributes"]:
-                        field["attributes"].remove("required")
+                    # if file_exists and "required" in field["attributes"]:
+                    field["attributes"].remove("required")
             else:
                 if field["field_type"] in ["file", "file multiple", "text"]:
                     file_validation = next((v for v in field["validations"]), None)
@@ -789,7 +789,6 @@ def workflow_form_step(request):
         for action in action_fields:
             action["dropdown_values"] = action["dropdown_values"].split(",") if action["dropdown_values"] else []
 
-            # Set form_action_url based on button_type (first matched)
             if action["type"] == "button":
                 if action["button_type"] == "Submit":
                     form_action_url = reverse('common_form_post')
@@ -1003,7 +1002,6 @@ def workflowcommon_form_post(request):
         #         form_field_value.save()
 
         messages.success(request, "Form data saved successfully!")
-
     except Exception as e:
         traceback.print_exc()
         messages.error(request, 'Oops...! Something went wrong!')
