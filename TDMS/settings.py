@@ -195,6 +195,7 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'TDMS.wsgi.application'
+X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases

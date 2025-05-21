@@ -179,7 +179,7 @@
                                 <h5 class="mb-0">File Preview</h5>
                             </div>
                             <div class="card-body" style="height: 600px; overflow-y: auto;">
-                                <div id="new-file-preview-content"></div>
+                                <div id="new-file-preview-content" style="height: 100%;"></div>
                             </div>
                         </div>
                     </div>
@@ -210,11 +210,25 @@
             if (response.success) {
                 const ext = response.file_url.split('.').pop().toLowerCase();
 
-                if (['pdf'].includes(ext)) {
+                if (['pdf','xls','xlxs'].includes(ext)) {
                     content.innerHTML = `<iframe src="${response.file_url}" width="100%" height="500px" style="border: none;"></iframe>`;
                 } else if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(ext)) {
                     content.innerHTML = `<img src="${response.file_url}" alt="Image Preview" class="img-fluid">`;
-                } else {
+                } else if (['xls', 'xlsx'].includes(ext)) {
+                    fetch(response.file_url)
+                        .then(res => res.arrayBuffer())
+                        .then(data => {
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            const sheetName = workbook.SheetNames[0];
+                            const sheet = workbook.Sheets[sheetName];
+                            const html = XLSX.utils.sheet_to_html(sheet);
+                            content.innerHTML = html;
+                        })
+                        .catch(err => {
+                            content.innerHTML = `<p class="text-danger">Unable to preview Excel file.</p>`;
+                            console.error("Excel Preview Error:", err);
+                        });
+                }else {
                     content.innerHTML = `<p class="text-muted">Preview not available. <a href="${response.file_url}" target="_blank">Download file</a>.</p>`;
                 }
             } else {
@@ -249,12 +263,27 @@ function previewNewFile(encryptedPath) {
             content.innerHTML = ''; // Clear previous preview
 
             if (response.success) {
+                debugger;
                 const ext = response.file_url.split('.').pop().toLowerCase();
 
                 if (['pdf'].includes(ext)) {
-                    content.innerHTML = `<iframe src="${response.file_url}" width="100%" height="500px" style="border: none;"></iframe>`;
+                    content.innerHTML = `<iframe src="${response.file_url}" style="width: 100%; height: 100%; border: none;"></iframe>`;
                 } else if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(ext)) {
                     content.innerHTML = `<img src="${response.file_url}" alt="Image Preview" class="img-fluid">`;
+                } else if (['xls', 'xlsx'].includes(ext)) {
+                    fetch(response.file_url)
+                        .then(res => res.arrayBuffer())
+                        .then(data => {
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            const sheetName = workbook.SheetNames[0];
+                            const sheet = workbook.Sheets[sheetName];
+                            const html = XLSX.utils.sheet_to_html(sheet);
+                            content.innerHTML = html;
+                        })
+                        .catch(err => {
+                            content.innerHTML = `<p class="text-danger">Unable to preview Excel file.</p>`;
+                            console.error("Excel Preview Error:", err);
+                        });
                 } else {
                     content.innerHTML = `<p class="text-muted">Preview not available. <a href="${response.file_url}" target="_blank">Download file</a>.</p>`;
                 }
@@ -272,49 +301,6 @@ function previewNewFile(encryptedPath) {
         }
     });
 }
-</script>
-
-
-
-
-<!-- JavaScript for Count -->
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const totalFields = {{ comparison_data|length }};
-        let changedCount = 0;
-
-        for (let i = 0; i < totalFields; i++) {
-            const oldInput = document.querySelector(`input[data-type="old"][data-index="${i}"]`);
-            const newInput = document.querySelector(`input[data-type="new"][data-index="${i}"]`);
-
-            if (!oldInput || !newInput) continue;
-
-            const oldValue = oldInput.value.trim();
-            const newValue = newInput.value.trim();
-
-            if (oldValue !== newValue) {
-                changedCount++;
-            }
-
-            // Optional: hover effect to highlight matching pairs
-            [oldInput, newInput].forEach(input => {
-                input.addEventListener('mouseenter', () => {
-                    oldInput.classList.add('border-primary', 'border-2');
-                    newInput.classList.add('border-primary', 'border-2');
-                });
-
-                input.addEventListener('mouseleave', () => {
-                    oldInput.classList.remove('border-primary', 'border-2');
-                    newInput.classList.remove('border-primary', 'border-2');
-                });
-            });
-        }
-
-        // Update counters
-        document.getElementById('total-fields').textContent = totalFields;
-        document.getElementById('changed-fields').textContent = changedCount;
-        document.getElementById('unchanged-fields').textContent = totalFields - changedCount;
-    });
 </script>
 
 
