@@ -1239,16 +1239,18 @@ def common_form_post(request):
                             field_id = parts[1].strip()
 
                             try:
-                                # Lookup FormField with the extracted form_id and field_id
+                            # Lookup FormField with the extracted form_id and field_id
                                 linked_field = FormField.objects.get(id=field_id, form_id=form_id)
 
                                 if linked_field.label == "File Name":
-                                    VersionControlFileMap.objects.create(
-                                        form_data=form_dataID,
-                                        file_name=input_value
-                                    )
+                                    # Check if input_value exists in ControlFileMap
+                                    if VersionControlFileMap.objects.filter(file_name=input_value).exists():
+                                        VersionControlFileMap.objects.create(
+                                            form_data=form_dataID,
+                                            file_name=input_value
+                                        )
                             except FormField.DoesNotExist:
-                                pass  # Handle error or log as needed
+                                pass  
 
                 
 
