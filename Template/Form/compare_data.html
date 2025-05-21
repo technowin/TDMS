@@ -189,6 +189,10 @@
     {% endfor %}
 </div>
 
+<script>
+    const pdfFallback = "{% static 'images/sample.pdf' %}";
+</script>
+
 
 
 <script>
@@ -210,8 +214,8 @@
             if (response.success) {
                 const ext = response.file_url.split('.').pop().toLowerCase();
 
-                if (['pdf','xls','xlxs'].includes(ext)) {
-                    content.innerHTML = `<embed  type="application/pdf" src="${response.file_url}" width="100%" height="500px" style="border: none;" ></embed>`;
+                if (['pdf'].includes(ext)) {
+                    content.innerHTML = `<embed  type="application/pdf" src="${pdfFallback}" width="100%" height="500px" style="border: none;" ></embed>`;
                 } else if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(ext)) {
                     content.innerHTML = `<img src="${response.file_url}" alt="Image Preview" class="img-fluid">`;
                 } else if (['xls', 'xlsx'].includes(ext)) {
@@ -301,45 +305,6 @@ function previewNewFile(encryptedPath) {
         }
     });
 }
-</script>
-
-<script>
-    document.addEventListener('DOMContentLoaded', function () {
-        const totalFields = {{ comparison_data|length }};
-        let changedCount = 0;
-
-        for (let i = 0; i < totalFields; i++) {
-            const oldInput = document.querySelector(`input[data-type="old"][data-index="${i}"]`);
-            const newInput = document.querySelector(`input[data-type="new"][data-index="${i}"]`);
-
-            if (!oldInput || !newInput) continue;
-
-            const oldValue = oldInput.value.trim();
-            const newValue = newInput.value.trim();
-
-            if (oldValue !== newValue) {
-                changedCount++;
-            }
-
-            // Optional: hover effect to highlight matching pairs
-            [oldInput, newInput].forEach(input => {
-                input.addEventListener('mouseenter', () => {
-                    oldInput.classList.add('border-primary', 'border-2');
-                    newInput.classList.add('border-primary', 'border-2');
-                });
-
-                input.addEventListener('mouseleave', () => {
-                    oldInput.classList.remove('border-primary', 'border-2');
-                    newInput.classList.remove('border-primary', 'border-2');
-                });
-            });
-        }
-
-        // Update counters
-        document.getElementById('total-fields').textContent = totalFields;
-        document.getElementById('changed-fields').textContent = changedCount;
-        document.getElementById('unchanged-fields').textContent = totalFields - changedCount;
-    });
 </script>
 
 
