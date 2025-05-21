@@ -32,51 +32,140 @@
   }
 </style>
 
-      <div class="card-header text-center ">
-   
-        <h4><strong>Compare Data</strong></h4>
-      </div>
-    
-        <div class="row">
-
-            <div class="col-md-6">
-                <div class="card border-primary">
-                    <div class="card-header bg-primary text-white">
-                        <strong>Old Values</strong>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            {% for item in comparison_data %}
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">{{ item.label }}</label>
-                                    <input type="text" class="form-control" value="{{ item.old_value }}" disabled>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
+      <!-- Statistics Summary -->
+<!-- Statistics Summary -->
+<!-- Top Summary Card -->
+<div class="card mb-4 shadow-sm">
+    <div class="card-body">
+        <div class="row text-center">
+            <div class="col-md-4 border-end">
+                <h6 class="text-muted text-uppercase">Total Fields</h6>
+                <h2 class="fw-bold" id="total-fields">{{ comparison_data|length }}</h2>
             </div>
-
-            <!-- New Values Card -->
-            <div class="col-md-6">
-                <div class="card border-success">
-                    <div class="card-header bg-success text-white">
-                        <strong>New Values</strong>
-                    </div>
-                    <div class="card-body">
-                        <div class="row">
-                            {% for item in comparison_data %}
-                                <div class="col-md-4 mb-3">
-                                    <label class="form-label">{{ item.label }}</label>
-                                    <input type="text" class="form-control" value="{{ item.new_value }}" disabled>
-                                </div>
-                            {% endfor %}
-                        </div>
-                    </div>
-                </div>
+            <div class="col-md-4 border-end">
+                <h6 class="text-muted text-uppercase">Changed Values</h6>
+                <h2 class="fw-bold text-warning" id="changed-fields">0</h2>
             </div>
-
+            <div class="col-md-4">
+                <h6 class="text-muted text-uppercase">Unchanged</h6>
+                <h2 class="fw-bold text-success" id="unchanged-fields">0</h2>
+            </div>
         </div>
+    </div>
+</div>
+
+<!-- Comparison Section -->
+<div class="row mb-4">
+    <!-- Old Values Card -->
+    <div class="col-md-6">
+        <div class="card border-start border-primary border-4 shadow-sm h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">Previous Values</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for item in comparison_data %}
+                        {% with index=forloop.counter0 %}
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">{{ item.label }}</label>
+                            <div class="position-relative">
+                                <input type="text"
+                                    class="form-control {% if item.old_value != item.new_value %}border-warning{% endif %}"
+                                    style="{% if item.old_value != item.new_value %}background-color: #fcff33;{% endif %}"
+                                    value="{{ item.old_value }}"
+                                    disabled
+                                    data-index="{{ forloop.counter0 }}"
+                                    data-type="old">
+
+
+
+                            </div>
+                        </div>
+                        {% endwith %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Values Card -->
+    <div class="col-md-6">
+        <div class="card border-start border-success border-4 shadow-sm h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">New Values</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for item in comparison_data %}
+                        {% with index=forloop.counter0 %}
+                        <div class="col-md-4 mb-3">
+                            <label class="form-label">{{ item.label }}</label>
+                            <div class="position-relative">
+                               <input type="text"
+                                    class="form-control {% if item.old_value != item.new_value %}border-warning{% endif %}"
+                                    style="{% if item.old_value != item.new_value %}background-color: #fcff33;{% endif %}"
+                                    value="{{ item.new_value }}"
+                                    disabled
+                                    data-index="{{ forloop.counter0 }}"
+                                    data-type="new">
+
+
+                                {% comment %} {% if item.old_value != item.new_value %}
+                                    <span class="position-absolute top-0 end-0 translate-middle badge bg-danger">!</span>
+                                {% endif %} {% endcomment %}
+                            </div>
+                        </div>
+                        {% endwith %}
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
+
+<!-- JavaScript for Count -->
+<script>
+    document.addEventListener('DOMContentLoaded', function () {
+        const totalFields = {{ comparison_data|length }};
+        let changedCount = 0;
+
+        for (let i = 0; i < totalFields; i++) {
+            const oldInput = document.querySelector(`input[data-type="old"][data-index="${i}"]`);
+            const newInput = document.querySelector(`input[data-type="new"][data-index="${i}"]`);
+
+            if (!oldInput || !newInput) continue;
+
+            const oldValue = oldInput.value.trim();
+            const newValue = newInput.value.trim();
+
+            if (oldValue !== newValue) {
+                changedCount++;
+            }
+
+            // Optional: hover effect to highlight matching pairs
+            [oldInput, newInput].forEach(input => {
+                input.addEventListener('mouseenter', () => {
+                    oldInput.classList.add('border-primary', 'border-2');
+                    newInput.classList.add('border-primary', 'border-2');
+                });
+
+                input.addEventListener('mouseleave', () => {
+                    oldInput.classList.remove('border-primary', 'border-2');
+                    newInput.classList.remove('border-primary', 'border-2');
+                });
+            });
+        }
+
+        // Update counters
+        document.getElementById('total-fields').textContent = totalFields;
+        document.getElementById('changed-fields').textContent = changedCount;
+        document.getElementById('unchanged-fields').textContent = totalFields - changedCount;
+    });
+</script>
+
+
 
 
 
