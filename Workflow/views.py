@@ -393,7 +393,7 @@ def workflow_starts(request):
         formDataId_Status= item[7]
         revised_Status = VersionControlFileMap.objects.filter(form_data=formDataId_Status)
         if revised_Status.exists():
-            status = f"{item[1]} - Revised"
+            status = f"{item[1]}<br>Revised"
         else:
             status = item[1]
         form_data_id= enc(str(item[7]))
@@ -407,6 +407,7 @@ def workflow_starts(request):
         if latest_entry and latest_entry.sent_back == '1':
             last_rejected_step = latest_entry.step_id
             last_rejected_status = latest_entry.status
+            status = f"{status}-Rejected"
         else:
             last_rejected_step = None
             last_rejected_status = None

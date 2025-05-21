@@ -88,7 +88,7 @@
               <td style="font-size: 15px;">{{item.next_matrix_role}}</td>
               <td style="font-size: 15px;">{{ item.operator_email }}</td>
               <td>
-                <span class="badge badge-pill badge-secondary" style="font-size: 15px; background-color: {{ item.color_status }}; margin-right: 5px;">{{ item.status }}</span>
+                <span class="badge badge-pill badge-secondary" style="font-size: 15px; background-color: {{ item.color_status }}; margin-right: 5px;">{{ item.status|safe }}</span>
               </td>
               <td>
 
