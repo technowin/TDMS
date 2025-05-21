@@ -31,6 +31,7 @@
 <input type="hidden" id="butAct_idH" name="butAct_idH" value={{but_act}}>
 <input type="hidden" id="firstStep " name="firstStep " value={{firstStep }}>
 
+
     <div class="card mb-4" style="padding: 10px;border: 2px solid #b3b3b3;border-radius: 15px;margin-left:0px;">
     {% comment %} {% if step %} {% endcomment %}
 
@@ -88,7 +89,7 @@
               <td style="font-size: 15px;">{{item.next_matrix_role}}</td>
               <td style="font-size: 15px;">{{ item.operator_email }}</td>
               <td>
-                <span class="badge badge-pill badge-secondary" style="font-size: 15px; background-color: {{ item.color_status }}; margin-right: 5px;">{{ item.status }}</span>
+                <span class="badge badge-pill badge-secondary" style="font-size: 15px; background-color: {{ item.color_status }}; margin-right: 5px;">{{ item.status|safe }}</span>
               </td>
               <td>
 
