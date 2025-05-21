@@ -2442,12 +2442,12 @@ def get_compare_data(request, final_id):
         # Build file maps
         old_file_map = {}
         for f in old_files:
-            file_info = {'path': enc(str(f.file_path)), 'name': os.path.basename(f.file_path)}
+            file_info = {'path': enc(str(f.file_path)), 'name': os.path.basename(f.uploaded_name)}
             old_file_map.setdefault(f.field_id, []).append(file_info)
 
         new_file_map = {}
         for f in new_files:
-            file_info = {'path': enc(str(f.file_path)), 'name': os.path.basename(f.file_path)}
+            file_info = {'path': enc(str(f.file_path)), 'name': os.path.basename(f.uploaded_name)}
             new_file_map.setdefault(f.field_id, []).append(file_info)
 
         comparison_data = []
