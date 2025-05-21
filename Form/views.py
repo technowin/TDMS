@@ -59,6 +59,7 @@ from Workflow.models import workflow_matrix, workflow_action_master
 from Workflow.models import *
 from django.utils.timezone import now
 from django.db.models import OuterRef, Subquery, F
+from django.views.decorators.clickjacking import xframe_options_exempt
 
 # Create your views here.
 def format_label_name(parameter_name):
@@ -2485,6 +2486,7 @@ def get_compare_data(request, final_id):
         messages.error(request, "Oops...! Something went wrong!")
         return render(request, 'form/error.html', {"message": "Something went wrong!"})
     
+@xframe_options_exempt
 
 def preview_file(request):
     if request.method == 'POST':
