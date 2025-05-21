@@ -1344,18 +1344,23 @@ def common_form_post(request):
                     created_at=workflow_detail.updated_at
                 )
             if role_idC == '2':
-                latest_file_category = WorkflowVersionControl.objects.filter(
+                reject_case = WorkflowVersionControl.objects.filter(
+                file_name=file_name,
+                version_no=0
+                ).exists()
+                
+                if not reject_case:
+                    latest_file_category = WorkflowVersionControl.objects.filter(
                     file_name=file_name
                     ).order_by('-id').values_list('file_category', flat=True).first()
-
-                WorkflowVersionControl.objects.create(
-                    file_name=file_name,
-                    version_no=0,
-                    modified_by=user,
-                    modified_at=now(),
-                    file_category=latest_file_category if latest_file_category else None,
-                    form_data_id=form_dataID
-                    )
+                    WorkflowVersionControl.objects.create(
+                        file_name=file_name,
+                        version_no=0,
+                        modified_by=user,
+                        modified_at=now(),
+                        file_category=latest_file_category if latest_file_category else None,
+                        form_data_id=form_dataID
+                        )
             if role_idC == '5':
                 count_row = WorkflowVersionControl.objects.filter(file_name=file_name).count()
                 latest_row = WorkflowVersionControl.objects.filter(
@@ -1617,18 +1622,23 @@ def common_form_edit(request):
                     created_at=workflow_detail.updated_at
                 )
             if role_idC == '2':
-                latest_file_category = WorkflowVersionControl.objects.filter(
+                reject_case = WorkflowVersionControl.objects.filter(
+                    file_name=file_name,
+                    version_no=0
+                ).exists()
+                
+                if not reject_case:
+                    latest_file_category = WorkflowVersionControl.objects.filter(
                     file_name=file_name
                     ).order_by('-id').values_list('file_category', flat=True).first()
-
-                WorkflowVersionControl.objects.create(
-                    file_name=file_name,
-                    version_no=0,
-                    modified_by=user,
-                    modified_at=now(),
-                    file_category=latest_file_category if latest_file_category else None,
-                    form_data_id=form_data_id
-                    )
+                    WorkflowVersionControl.objects.create(
+                        file_name=file_name,
+                        version_no=0,
+                        modified_by=user,
+                        modified_at=now(),
+                        file_category=latest_file_category if latest_file_category else None,
+                        form_data_id=form_data_id
+                        )
             if role_idC == '5':
                 versions = WorkflowVersionControl.objects.filter(file_name=file_name).order_by('-id')
                 count = versions.count()  # performs SELECT COUNT(*):contentReference[oaicite:5]{index=5}
