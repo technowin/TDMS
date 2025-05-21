@@ -889,6 +889,9 @@
                 } else if (reference_type == "1" && viewStepWFSeq != '3') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'reference_workflow' %}";
+                }else if (type  == "reference" ) {
+                    operatorDropdown.removeAttribute('required');
+                    form.action = "{% url 'reference_workflow' %}";
                 } else if (buttonType === 'Action') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_action' %}";
