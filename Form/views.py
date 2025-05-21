@@ -1587,7 +1587,22 @@ def common_form_edit(request):
                     # created_by=workflow_detail.updated_by,
                     created_at=workflow_detail.updated_at
                 )
+            if role_idC == '2':
+                latest_file_category = WorkflowVersionControl.objects.filter(
+                    file_name=file_name
+                    ).order_by('-id').values_list('file_category', flat=True).first()
+
+                WorkflowVersionControl.objects.create(
+                    file_name=file_name,
+                    version_no=0,
+                    modified_by=user,
+                    modified_at=now(),
+                    file_category=latest_file_category if latest_file_category else None,
+                    form_data_id=form_data_id
+                    )
             if role_idC == '5':
+                versions = WorkflowVersionControl.objects.filter(file_name=file_name).order_by('-id')
+                count = versions.count()  # performs SELECT COUNT(*):contentReference[oaicite:5]{index=5}
                 count_row = WorkflowVersionControl.objects.filter(file_name=file_name).count()
                 latest_row = WorkflowVersionControl.objects.filter(
                         file_name=file_name
@@ -1600,7 +1615,9 @@ def common_form_edit(request):
                     latest_row.save()
                 elif latest_row and count_row > 1:
                         # latest_row.version_no = +0.1
-                        latest_row.version_no = round(latest_row.version_no + 0.1, 1)
+                        second_latest = versions[1]   
+                        latest_row.version_no = round(second_latest.version_no + 0.1, 1)
+                        # latest_row.version_no = round(latest_row.version_no + 0.1, 1)
                         latest_row.baseline_date = now()
                         latest_row.approved_by = user
                         latest_row.approved_at = now()
