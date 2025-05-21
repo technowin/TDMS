@@ -211,7 +211,7 @@
                 const ext = response.file_url.split('.').pop().toLowerCase();
 
                 if (['pdf','xls','xlxs'].includes(ext)) {
-                    content.innerHTML = `<embed src="${response.file_url}" width="100%" height="500px" style="border: none;"></embed>`;
+                    content.innerHTML = `<embed  type="application/pdf" src="${response.file_url}" width="100%" height="500px" style="border: none;" ></embed>`;
                 } else if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(ext)) {
                     content.innerHTML = `<img src="${response.file_url}" alt="Image Preview" class="img-fluid">`;
                 } else if (['xls', 'xlsx'].includes(ext)) {
