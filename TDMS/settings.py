@@ -23,12 +23,12 @@ SECRET_KEY = config("DB_SECRET_KEY")
 fernet = Fernet(SECRET_KEY)
 DECRYPTED_PASSWORD = fernet.decrypt(ENCRYPTED_PASSWORD.encode()).decode()
 
-ALLOWED_HOSTS = ['15.207.169.98']
+# ALLOWED_HOSTS = ['15.207.169.98']
 # ALLOWED_HOSTS = ['127.0.0.1']
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = False
-# DEBUG = True   
+# DEBUG = False
+DEBUG = True   
 
 DATABASES = {
     'default': {
@@ -37,8 +37,8 @@ DATABASES = {
         'NAME': 'tdms',      # Replace with your database name
         'USER': 'root',      # Replace with your database user
         'PASSWORD': DECRYPTED_PASSWORD,  # Replace with your database password
-        # 'HOST': '15.207.169.98',       # IP FOR TEST
-        'HOST': '127.0.0.1',       # IP FOR LOCAL VM
+        'HOST': '15.207.169.98',       # IP FOR TEST
+        # 'HOST': '127.0.0.1',       # IP FOR LOCAL VM
         'PORT': '3306',            
         'OPTIONS': {
             'init_command': "SET sql_mode='STRICT_TRANS_TABLES'",
@@ -49,8 +49,8 @@ DATABASES = {
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# MEDIA_ROOT = os.path.join(BASE_DIR, 'D:/Python Projects/Documents/')
-MEDIA_ROOT = os.path.join(BASE_DIR, '/home/ubuntu/Documents/')
+MEDIA_ROOT = os.path.join(BASE_DIR, 'D:/Python Projects/Documents/')
+# MEDIA_ROOT = os.path.join(BASE_DIR, '/home/ubuntu/Documents/')
 MEDIA_URL = '/media/'
 
 SECURE_CROSS_ORIGIN_OPENER_POLICY = None
@@ -73,7 +73,7 @@ SESSION_EXPIRE_AFTER_LAST_ACTIVITY = True
 SESSION_EXPIRE_AT_BROWSER_CLOSE = True
 SESSION_COOKIE_AGE = 3600  # 1-hour session timeout
 # Clickjacking Protection
-X_FRAME_OPTIONS = 'DENY'
+# X_FRAME_OPTIONS = 'DENY'
 
 # Security Headers
 SECURE_HSTS_SECONDS = 3600
@@ -156,8 +156,8 @@ LOGGING = {
         'file': {
             'level': 'WARNING',
             'class': 'logging.FileHandler',
-            # 'filename': os.path.join(BASE_DIR, 'D:/Python Projects/TDMS logs', 'django.log'),  
-            'filename': os.path.join(BASE_DIR, '/home/ubuntu/TDMS logs', 'django.log'),  
+            'filename': os.path.join(BASE_DIR, 'D:/Python Projects/TDMS logs', 'django.log'),  
+            # 'filename': os.path.join(BASE_DIR, '/home/ubuntu/TDMS logs', 'django.log'),  
         },
     },
     'loggers': {
@@ -175,6 +175,7 @@ AUTHENTICATION_BACKENDS = [
 ]
 
 ROOT_URLCONF = 'TDMS.urls'
+X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 TEMPLATES = [
     {
@@ -195,7 +196,6 @@ TEMPLATES = [
 ]
 
 WSGI_APPLICATION = 'TDMS.wsgi.application'
-X_FRAME_OPTIONS = 'SAMEORIGIN'
 
 # Database
 # https://docs.djangoproject.com/en/4.2/ref/settings/#databases
