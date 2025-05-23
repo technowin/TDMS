@@ -2534,5 +2534,25 @@ def get_versiondata(request):
         print(f"Error in get_versiondata: {e}")
         return JsonResponse({'error': 'An unexpected error occurred!'}, status=500)
     # return JsonResponse({'error': 'Version Not Found!'}, status=404)
+    
+@xframe_options_exempt
+def preview_file(request):
+    if request.method == 'POST':
+        try:
+            encrpt_path = request.POST.get("encrypted_path")
+            decrypted_path = dec(encrpt_path)  # your custom decrypt function
+            full_path = os.path.normpath(os.path.join(settings.MEDIA_ROOT, decrypted_path))
+
+            if os.path.exists(full_path):
+                # Create a file URL using MEDIA_URL
+                file_url = os.path.join(settings.MEDIA_URL, decrypted_path).replace('\\', '/')
+                return JsonResponse({'success': True, 'file_url': file_url})
+            else:
+                return JsonResponse({'success': False, 'error': 'File does not exist'})
+
+        except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return JsonResponse({'success': False, 'error': 'Invalid method'})
         
 

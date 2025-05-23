@@ -764,13 +764,13 @@ def workflow_form_step(request):
                     field_values = FormFieldValues.objects.filter(field_id=dropdown_field_id).values("value").distinct()
                     field["dropdown_data"] = list(field_values)
 
-            if field["field_type"] == "file_name":
-                    queryset = WorkflowVersionControl.objects.filter(
-                        ~Q(baseline_date__isnull=True) & ~Q(baseline_date=0)
-                    )
-                    filtered_records = queryset.values("file_name")
-                    if queryset.exists():
-                        field["file_name_options"] = [record["file_name"] for record in filtered_records]
+            # if field["field_type"] == "file_name":
+            #         queryset = WorkflowVersionControl.objects.filter(
+            #             ~Q(baseline_date__isnull=True) & ~Q(baseline_date=0)
+            #         )
+            #         filtered_records = queryset.values("file_name")
+            #         if queryset.exists():
+            #             field["file_name_options"] = [record["file_name"] for record in filtered_records]
 
             
             # Master Dropdown
