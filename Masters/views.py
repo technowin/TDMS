@@ -56,6 +56,7 @@ def masters(request):
     pre_url = request.META.get('HTTP_REFERER')
     header, data = [], []
     entity = type = name = id = text_name = dpl = dp = em = mb = forms = sf = ''
+    MEDIA_ROOT = os.path.join(BASE_DIR, '/home/ubuntu/Documents/')
 
     try:
         if request.user.is_authenticated ==True:                

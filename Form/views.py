@@ -926,11 +926,15 @@ def form_master(request):
                 else:
                     reference_type = '0'
                     new_data_id = form_data_id
-                # tO sHOW 
+                if step_id == '1' or step_id == '6':
+                    version_no = 0
+                else:
+                    version_no = WorkflowVersionControl.objects.filter(form_data=form_data_id).order_by('-version_no').first().temp_version
+
                 step_name_subquery = Subquery(workflow_matrix.objects.filter(id=OuterRef('step_id')).values('step_name')[:1])
                 custom_user_role_id_subquery = Subquery(CustomUser.objects.filter(id=OuterRef('created_by')).values('role_id')[:1])
                 custom_email_subquery = Subquery(CustomUser.objects.filter(id=OuterRef('created_by')).values('email')[:1])
-                comments_base = ActionData.objects.filter(form_data_id=form_data_id,field__type__in=['text', 'textarea', 'select']
+                comments_base = ActionData.objects.filter(form_data_id=form_data_id,version=version_no,field__type__in=['text', 'textarea', 'select']
                 ).annotate(step_name=step_name_subquery,role_id=custom_user_role_id_subquery,email=custom_email_subquery)
                 comments = comments_base.annotate(role_name=Subquery(roles.objects.filter(id=OuterRef('role_id')).values('role_name')[:1])
                 ).values('field_id','value','step_id','created_at','created_by','step_name','role_name','email',)
@@ -1155,13 +1159,13 @@ def common_form_post(request):
         
         form_dataID = form_data.id
         first_field_checked = False
+        version_no = 0
 
         # Process each field
         for key, value in request.POST.items():
             if key.startswith("field_id_"):
                 field_id = value.strip()
                 field = get_object_or_404(FormField, id=field_id)
-
 
                 if field.field_type == "select multiple":
                     selected_values = request.POST.getlist(f"field_{field_id}")
@@ -1172,13 +1176,6 @@ def common_form_post(request):
 
                 if field.field_type == "generative":                   
                     continue
-                
-                # already_exists = FormFieldValues.objects.filter(
-                #     form_data=form_data,
-                #     field=field,
-                #     value=input_value
-                # ).exists()
-                #totalStep_wf = workflow_matrix.objects.filter(workflow_name='CIDCO File Scanning and DMS Flow').count()
                 
                 if not first_field_checked and firstStep == '1':
                     totalStep_wf = workflow_matrix.objects.filter(
@@ -1219,6 +1216,7 @@ def common_form_post(request):
                 )
 
                 if field.field_type == "file_name":
+
                     form_data.file_ref = input_value
                     if input_value:
                         VersionControlFileMap.objects.create(form_data=form_dataID,file_name= input_value)
@@ -1230,8 +1228,9 @@ def common_form_post(request):
                             form_data_id = form_field_value_obj.form_data_id
                         if form_data_id:
                             VersionControlFileMap.objects.create(form_data=form_data_id,file_name= input_value)
+
                 if field.field_type == 'field_dropdown':
-                    values = field.values  # e.g., "1,2"
+                    values = field.values 
                     
                     if values:
                         parts = values.split(',')
@@ -1253,10 +1252,7 @@ def common_form_post(request):
                             except FormField.DoesNotExist:
                                 pass  
 
-                
-
-
-        if already_exists is not True:       
+        if already_exists is not True:
             handle_uploaded_files(request, form_name, created_by, form_data, user)
             file_name = handle_generative_fields(form, form_data, created_by)
 
@@ -1357,6 +1353,7 @@ def common_form_post(request):
                     WorkflowVersionControl.objects.create(
                         file_name=file_name,
                         version_no=0,
+                        temp_version = 1.0,
                         modified_by=user,
                         modified_at=now(),
                         file_category=latest_file_category if latest_file_category else None,
@@ -1390,6 +1387,8 @@ def common_form_post(request):
                                 form_data=form_data,
                                 field=action_field,
                                 step_id=step_id,
+                                version = 0,
+                                temp_version = 1,
                                 created_by=user,
                                 updated_by=user,
                             )
@@ -1623,23 +1622,61 @@ def common_form_edit(request):
                     created_at=workflow_detail.updated_at
                 )
             if role_idC == '2':
+                # reject_case = WorkflowVersionControl.objects.filter(
+                #     file_name=file_name,
+                #     version_no=0
+                # ).exists()
+                
+                # if not reject_case:
+                #     latest_file_category = WorkflowVersionControl.objects.filter(
+                #     file_name=file_name
+                #     ).order_by('-id').values_list('file_category', flat=True).first()
+                #     WorkflowVersionControl.objects.create(
+                #         file_name=file_name,
+                #         version_no=0,
+                #         temp_version = 1.0,
+                #         modified_by=user,
+                #         modified_at=now(),
+                #         file_category=latest_file_category if latest_file_category else None,
+                #         form_data_id=form_data_id
+                #         )
                 reject_case = WorkflowVersionControl.objects.filter(
                     file_name=file_name,
                     version_no=0
                 ).exists()
-                
+
                 if not reject_case:
+                    # No version 0 exists, insert with temp_version = 1.0
                     latest_file_category = WorkflowVersionControl.objects.filter(
-                    file_name=file_name
+                        file_name=file_name
                     ).order_by('-id').values_list('file_category', flat=True).first()
+
                     WorkflowVersionControl.objects.create(
                         file_name=file_name,
                         version_no=0,
+                        temp_version=1.0,
                         modified_by=user,
                         modified_at=now(),
                         file_category=latest_file_category if latest_file_category else None,
                         form_data_id=form_data_id
-                        )
+                    )
+                else:
+                    # version_no=0 exists; insert with temp_version = last temp_version + 0.1
+                    last_row = WorkflowVersionControl.objects.filter(file_name=file_name).order_by('-id').first()
+                    new_temp_version = round((last_row.temp_version or 0) + 0.1, 1)
+
+                    WorkflowVersionControl.objects.create(
+                        file_name=file_name,
+                        version_no=0,
+                        temp_version=new_temp_version,
+                        modified_by=user,
+                        modified_at=now(),
+                        file_category=last_row.file_category,
+                        form_data_id=form_data_id
+                    )
+
+                
+
             if role_idC == '5':
                 versions = WorkflowVersionControl.objects.filter(file_name=file_name).order_by('-id')
                 count = versions.count()  # performs SELECT COUNT(*):contentReference[oaicite:5]{index=5}
@@ -1662,10 +1699,55 @@ def common_form_edit(request):
                         latest_row.approved_by = user
                         latest_row.approved_at = now()
                         latest_row.save()
-                    
+    #         if role_idC == '5':
+    #             versions = WorkflowVersionControl.objects.filter(file_name=file_name).order_by('-id')
+    #             count_row = versions.count()
+    #             latest_row = versions.first()
+
+    #             prev_version_no = None
+    #             new_version_no = None
+
+    #             if latest_row and count_row == 1:
+    #                 prev_version_no = latest_row.version_no
+    #                 new_version_no = 1
+    #                 latest_row.version_no = new_version_no
+    #                 latest_row.baseline_date = now()
+    #                 latest_row.approved_by = user
+    #                 latest_row.approved_at = now()
+    #                 latest_row.save()
+
+    #             elif latest_row and count_row > 1:
+    #                 second_latest = versions[1]
+    #                 prev_version_no = latest_row.version_no
+    #                 new_version_no = round(second_latest.version_no + 0.1, 1)
+    #                 latest_row.version_no = new_version_no
+    #                 latest_row.baseline_date = now()
+    #                 latest_row.approved_by = user
+    #                 latest_row.approved_at = now()
+    #                 latest_row.save()
+
+    # # 🔄 Update ActionData table with new version_no for that form_data_id
+    #             if new_version_no is not None:
+    #                 ActionData.objects.filter(form_data_id=form_data_id).update(version=new_version_no)
+
+    #                 # 📝 Insert into WorkflowVersionDetails for tracking
+    #                 WorkflowVersionDetails.objects.create(
+    #                     form_id=form.id,  # If you have it available
+    #                     form_data_id=form_data_id,
+    #                     prev_version=str(prev_version_no),
+    #                     curr_version=str(new_version_no),
+    #                     created_by=str(user),
+    #                     updated_by=str(user)
+    #                 )
             for key, value in request.POST.items():
                 if key.startswith("action_field_") and not key.startswith("action_field_id_"):
                     match = re.match(r'action_field_(\d+)', key)
+                    if type == 'reference' or reference_type == '1':
+                        version = WorkflowVersionControl.objects.filter(form_data=form_data_id).order_by('-version_no').first()
+                        if version:
+                            vers_no = version.temp_version
+                    else:
+                        vers_no = 0
                     if match:
                         field_id = int(match.group(1))
                         action_field = get_object_or_404(FormActionField, pk=field_id)
@@ -1675,6 +1757,7 @@ def common_form_edit(request):
                                 form_data=form_data,
                                 field=action_field,
                                 step_id=step_id,
+                                version=vers_no,
                                 created_by=user,
                                 updated_by=user,
                             )
@@ -1946,6 +2029,8 @@ def form_preview(request):
 def common_form_action(request):
     user = request.session.get('user_id', '')
     workflow_YN = request.POST.get("workflow_YN")
+    type = request.POST.get("type")
+    reference_type = request.POST.get("reference_type")
     try:
         if request.method == 'POST':
             form_data_id = request.POST.get('form_data_id')
@@ -1954,6 +2039,13 @@ def common_form_action(request):
             clicked_action_id = request.POST.get('clicked_action_id')
             if workflow_YN == '1E':
                 step_id = request.POST.get('step_id', '')
+
+            if type == 'reference' or reference_type == '1':
+                version = WorkflowVersionControl.objects.filter(form_data=form_data_id).order_by('-version_no').first()
+                if version:
+                    vers_no = version.version_no
+            else:
+                vers_no = 0
             
             # Process only if it's an Action button
             if button_type == 'Action':
@@ -1973,6 +2065,7 @@ def common_form_action(request):
                             form_data=form_data,
                             field=action_field,
                             step_id=step_id,
+                            version = vers_no,
                             created_by=user,
                             updated_by=user,
                         )
@@ -1992,6 +2085,7 @@ def common_form_action(request):
                                     field=action_field,
                                     step_id=step_id,
                                     created_by=user,
+                                    version = vers_no,
                                     updated_by=user,
                                 )
             

@@ -765,12 +765,13 @@ def workflow_form_step(request):
                     field["dropdown_data"] = list(field_values)
 
             if field["field_type"] == "file_name":
-                    queryset = WorkflowVersionControl.objects.filter(
-                        ~Q(baseline_date__isnull=True) & ~Q(baseline_date=0)
-                    )
+                queryset = WorkflowVersionControl.objects.filter(
+                    baseline_date__isnull=False
+                )
+                if queryset.exists():
                     filtered_records = queryset.values("file_name")
-                    if queryset.exists():
-                        field["file_name_options"] = [record["file_name"] for record in filtered_records]
+                    field["file_name_options"] = [record["file_name"] for record in filtered_records]
+
 
             
             # Master Dropdown
