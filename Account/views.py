@@ -65,6 +65,7 @@ def Login(request):
             request.session["full_name"]=(str(user.full_name))
             request.session["user_id"]=(str(user.id))
             request.session["role_id"] = str(user.role_id)
+            
             # if user.role_id in [2,3]:
             #     return redirect('/index')
             # if remember_me == 'on':

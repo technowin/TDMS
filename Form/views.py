@@ -1128,6 +1128,7 @@ def form_master(request):
 
 def common_form_post(request):
     user = request.session.get('user_id', '')
+    user_name = request.session.get('username', '')
     try:
         if request.method != "POST":
             return JsonResponse({"error": "Invalid request method"}, status=400)
@@ -1354,7 +1355,7 @@ def common_form_post(request):
                         file_name=file_name,
                         version_no=0,
                         temp_version = 1.0,
-                        modified_by=user,
+                        modified_by=user_name,
                         modified_at=now(),
                         file_category=latest_file_category if latest_file_category else None,
                         form_data_id=form_dataID
@@ -1410,6 +1411,7 @@ def common_form_post(request):
 def common_form_edit(request):
 
     user = request.session.get('user_id', '')
+    user_name = request.session.get('username', '')
     workflow_YN = request.POST.get("workflow_YN")
     step_id  = request.POST.get("step_id")
     
@@ -1655,7 +1657,7 @@ def common_form_edit(request):
                         file_name=file_name,
                         version_no=0,
                         temp_version=1.0,
-                        modified_by=user,
+                        modified_by=user_name,
                         modified_at=now(),
                         file_category=latest_file_category if latest_file_category else None,
                         form_data_id=form_data_id
@@ -1687,7 +1689,7 @@ def common_form_edit(request):
                 if latest_row and count_row == 1:
                     latest_row.version_no = 1
                     latest_row.baseline_date = now()
-                    latest_row.approved_by = user
+                    latest_row.approved_by = user_name
                     latest_row.approved_at = now()
                     latest_row.save()
                 elif latest_row and count_row > 1:
@@ -1696,7 +1698,7 @@ def common_form_edit(request):
                         latest_row.version_no = round(second_latest.version_no + 0.1, 1)
                         # latest_row.version_no = round(latest_row.version_no + 0.1, 1)
                         latest_row.baseline_date = now()
-                        latest_row.approved_by = user
+                        latest_row.approved_by = user_name
                         latest_row.approved_at = now()
                         latest_row.save()
     #         if role_idC == '5':
@@ -2580,6 +2582,53 @@ def get_compare_data(request, final_id):
         messages.error(request, "Oops...! Something went wrong!")
         return render(request, 'form/error.html', {"message": "Something went wrong!"})
     
+def get_versiondata(request):
+    newFormDataId = request.GET.get('newFormDataId')
+    if newFormDataId == '':
+        
+        newFormDataId = request.GET.get('newFormDataId_op')
+    else:
+        newFormDataId = request.GET.get('newFormDataId')
+        
+    try:
+        if newFormDataId != '' and newFormDataId != "None":
+            qs = WorkflowVersionControl.objects.filter(form_data_id=newFormDataId).select_related('modified_by', 'approved_by')
+            result = []
+            # result = qs.values(
+            #         'file_name',
+            #         'version_no',
+            #         'baseline_date',
+            #         'modified_at',
+            #         'approved_by',
+            #         'approved_at',
+            #         'modified_by',
+            #     )
+            result = list(qs.values(
+                'file_name',
+                'version_no',
+                'baseline_date',
+                'modified_at',
+                'approved_by',
+                'approved_at',
+                'modified_by',
+            ))
+            for row in result:
+                if row['modified_at']:
+                    # row['modified_at'] = row['modified_at'].strftime('%d-%m-%Y, %I:%M %p')
+                    row['modified_at'] = row['modified_at'].strftime('%d-%m-%Y')
+                if row['approved_at']:
+                    # row['approved_at'] = row['approved_at'].strftime('%Y-%m-%d %H:%M:%S')
+                    row['approved_at'] = row['approved_at'].strftime('%Y-%m-%d')
+                if row['baseline_date']:
+                    row['baseline_date'] = row['baseline_date'].strftime('%d-%m-%Y')
+            return JsonResponse({'data_versions': result})
+        else:
+            return JsonResponse({'error': 'Invalid form data ID'}, status=400)
+    except Exception as e:
+        print(f"Error in get_versiondata: {e}")
+        return JsonResponse({'error': 'An unexpected error occurred!'}, status=500)
+    # return JsonResponse({'error': 'Version Not Found!'}, status=404)
+    
 @xframe_options_exempt
 def preview_file(request):
     if request.method == 'POST':
@@ -2599,3 +2648,5 @@ def preview_file(request):
             return JsonResponse({'success': False, 'error': str(e)})
 
     return JsonResponse({'success': False, 'error': 'Invalid method'})
+        
+

@@ -772,7 +772,6 @@ def workflow_form_step(request):
                     filtered_records = queryset.values("file_name")
                     field["file_name_options"] = [record["file_name"] for record in filtered_records]
 
-
             
             # Master Dropdown
             if field["field_type"] == "master dropdown" and field["values"]:

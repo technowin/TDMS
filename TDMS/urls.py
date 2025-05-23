@@ -129,6 +129,8 @@ urlpatterns = [
     path('get_formdataidEdit/', get_formdataidEdit, name='get_formdataidEdit'),
     path('reject_workflow_step/', reject_workflow_step, name='reject_workflow_step'),
     path('redirect_to_workflow_start/', redirect_to_workflow_start, name='redirect_to_workflow_start'),
+    path('get_versiondata/', get_versiondata, name='get_versiondata'),
+    
 
 ]
 
