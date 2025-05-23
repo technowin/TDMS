@@ -1389,7 +1389,6 @@ def common_form_post(request):
                                 field=action_field,
                                 step_id=step_id,
                                 version = 0,
-                                temp_version = 1,
                                 created_by=user,
                                 updated_by=user,
                             )
