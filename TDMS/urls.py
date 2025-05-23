@@ -29,6 +29,12 @@ from django.urls import path
 urlpatterns = [
     path('admin/', admin.site.urls),
     # APP URLS
+    
+    # OCR File Upload
+    path('upload/', upload_document, name='upload_document'),
+    path('document_detail1/<int:pk>/', document_detail1, name='document_detail1'),
+    path('search/', search_documents, name='document_search'),
+    path('document/<int:document_id>/', document_detail, name='document_detail'),
 
     # Form 
     path('form_builder/', form_builder, name='form_builder'),
