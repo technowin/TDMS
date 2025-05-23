@@ -51,6 +51,174 @@ import mimetypes
 from Workflow.models import workflow_action_master
 logger = logging.getLogger(__name__)
 
+
+# utils/ocr_utils.py
+
+import pytesseract
+from pdf2image import convert_from_path
+from nltk.corpus import stopwords
+from nltk.tokenize import word_tokenize
+import os
+import tempfile
+import string
+
+def extract_text_from_pdf(pdf_path):
+    # Convert PDF to images
+    # images = convert_from_path(pdf_path, poppler_path=r'C:\poppler\poppler-24.08.0\Library\bin')
+    # ✅ On Linux, no need to set path if tesseract and poppler-utils are installed globally
+    images = convert_from_path(pdf_path)
+
+    full_text = ""
+    # pytesseract.pytesseract.tesseract_cmd = r'C:\Program Files\Tesseract-OCR\tesseract.exe'
+
+    for image in images:
+        text = pytesseract.image_to_string(image)
+        full_text += text + "\n"
+    
+    return full_text.strip()
+
+def extract_keywords(text, num_keywords=100):
+    stop_words = set(stopwords.words('english'))
+    from nltk.tokenize import word_tokenize
+    words = word_tokenize(text.lower())
+
+    words = [w for w in words if w.isalpha() and w not in stop_words]
+    
+    # Frequency distribution
+    freq = {}
+    for word in words:
+        freq[word] = freq.get(word, 0) + 1
+    
+    sorted_keywords = sorted(freq.items(), key=lambda x: x[1], reverse=True)
+    top_keywords = [kw for kw, _ in sorted_keywords[:num_keywords]]
+    return top_keywords
+
+
+
+import os
+from django.shortcuts import render, redirect
+from .models import Document
+from django.core.files.storage import FileSystemStorage
+from django.conf import settings
+
+def upload_document(request):
+    if request.method == 'POST':
+        title = request.POST.get('title')
+        pdf_file = request.FILES.get('pdf_file')
+
+        if title and pdf_file:
+            # Save file to media/documents/
+            fs = FileSystemStorage(location=os.path.join(settings.MEDIA_ROOT, 'documents'))
+            filename = fs.save(pdf_file.name, pdf_file)
+            file_path = os.path.join(fs.location, filename)
+
+            # OCR + Keyword extraction
+            text = extract_text_from_pdf(file_path)
+            keywords = extract_keywords(text)
+
+            # Save to DB
+            document = Document.objects.create(
+                title=title,
+                pdf_file=os.path.join('documents', filename),
+                extracted_text=text,
+                keywords=', '.join(keywords)
+            )
+            return redirect('document_detail1', pk=document.pk)
+    
+    return render(request, 'Master/upload.html')
+
+
+
+from django.shortcuts import get_object_or_404
+
+def document_detail1(request, pk):
+    document = get_object_or_404(Document, pk=pk)
+    return render(request, 'Master/document_detail.html', {'document': document})
+
+from django.shortcuts import render
+from django.db.models import Q
+from .models import Document
+
+def search_documents(request):
+    documents = Document.objects.all().order_by('-uploaded_at')
+     # Process documents to add keywords_list
+    def process_documents(docs):
+        processed = []
+        for doc in docs:
+            processed.append({
+                'id': doc.id,
+                'title': doc.title,
+                'pdf_file': doc.pdf_file,
+                'keywords': doc.keywords,
+                'uploaded_at': doc.uploaded_at,
+                'keywords_list': doc.keywords.split(',') if doc.keywords else []
+            })
+        return processed
+    context = {'documents': process_documents(documents),'search_type': None}
+    if request.method == 'GET':
+        # Simple search
+        if 'simple_query' in request.GET:
+            query = request.GET.get('simple_query', '').strip()
+            if query:
+                documents = documents.filter(
+                    Q(title__icontains=query) | 
+                    Q(keywords__icontains=query)
+                )
+                context['documents'] = process_documents(documents)
+                context['search_type'] = 'simple'
+                context['query'] = query
+                context['show_results'] = True
+        
+        # Advanced search
+        elif any(key in request.GET for key in ['title', 'keyword1', 'keyword2', 'keyword3']):
+            title = request.GET.get('title', '').strip()
+            keyword1 = request.GET.get('keyword1', '').strip()
+            keyword2 = request.GET.get('keyword2', '').strip()
+            keyword3 = request.GET.get('keyword3', '').strip()
+            keyword4 = request.GET.get('keyword4', '').strip()
+            keyword5 = request.GET.get('keyword5', '').strip()
+            keyword6 = request.GET.get('keyword6', '').strip()
+            match_all = request.GET.get('match_all', 'off') == 'on'
+            if title or keyword1 or keyword2 or keyword3 or keyword4 or keyword5 or keyword6:
+                documents = Document.objects.all()
+                if title:
+                    documents = documents.filter(title__icontains=title)
+
+                keywords = [kw for kw in [keyword1, keyword2, keyword3, keyword4, keyword5, keyword6] if kw]
+                if keywords:
+                    if match_all:
+                        for keyword in keywords:
+                            documents = documents.filter(keywords__icontains=keyword)
+                    else:
+                        query = Q()
+                        for keyword in keywords:
+                            query |= Q(keywords__icontains=keyword)
+                        documents = documents.filter(query)
+                context['show_results'] = True
+
+            context['documents'] = process_documents(documents)
+            context['search_type'] = 'advanced'
+            context['search_params'] = {'title': title,'keyword1': keyword1,'keyword2': keyword2,'keyword3': keyword3,'keyword4': keyword4,'keyword5': keyword5,'keyword6': keyword6,'match_all': match_all}
+
+    
+    return render(request, 'Master/search.html', context)
+
+def document_detail(request, document_id):
+    document = get_object_or_404(Document, id=document_id)
+    keywords = document.keywords.split(',')[:20]  # Top 20
+
+    text = document.extracted_text
+    for idx, keyword in enumerate(keywords):
+        pattern = r'\b' + re.escape(keyword) + r'\b'
+        span = f"<span class='kw kw{idx}'>{keyword}</span>"
+        text = re.sub(pattern, span, text, flags=re.IGNORECASE)
+
+    return render(request, 'Master/document_keyword.html', {
+        'document': document,
+        'keywords': keywords,
+        'highlighted_text': text
+    })
+
 @login_required
 def masters(request):
     pre_url = request.META.get('HTTP_REFERER')

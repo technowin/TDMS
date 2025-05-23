@@ -2,6 +2,17 @@ from django.db import models
 from django.db import models
 from Account.models import *
 
+class Document(models.Model):
+    title = models.CharField(max_length=255)
+    pdf_file = models.FileField(upload_to='ocr_docs/')
+    extracted_text = models.TextField(blank=True, null=True)
+    keywords = models.TextField(blank=True, null=True)
+    uploaded_at = models.DateTimeField(auto_now_add=True)
+    class Meta:
+        db_table = 'ocr_file_upload'
+    def __str__(self):
+        return self.title
+    
 class application_search(models.Model):
     id = models.AutoField(primary_key=True)
     name =models.TextField(null=True,blank=True)
