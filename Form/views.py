@@ -1055,8 +1055,7 @@ def form_master(request):
                         if field["field_type"] == "file_name":
                             # 1️⃣ get the “baseline” options
                             qs = WorkflowVersionControl.objects.filter(
-                                ~Q(baseline_date__isnull=True),
-                                ~Q(baseline_date=0)
+                                ~Q(baseline_date__isnull=True)
                             )
                             field["file_name_options"] = list(
                                 qs
