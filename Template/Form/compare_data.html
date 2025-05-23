@@ -76,9 +76,6 @@
                                     disabled
                                     data-index="{{ forloop.counter0 }}"
                                     data-type="old">
-
-
-
                             </div>
                         </div>
                         {% endwith %}
@@ -124,8 +121,188 @@
 </div>
 
 
+   <div class="row">
+    {% for file_item in file_comparison_data %}
+        <!-- OLD FILES -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-start border-primary border-4 shadow-sm h-100">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="mb-0">{{ file_item.label }} - Old Files</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for file in file_item.old_files %}
+                            <li class="list-group-item">
+                                <a href="javascript:void(0);" onclick="previewOldFile('{{ file.path }}')" class="text-decoration-none">{{ file.name }}</a>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item text-muted">No files</li>
+                        {% endfor %}
+                    </ul>
 
-<!-- JavaScript for Count -->
+                    <!-- Old File Preview Box -->
+                    <div id="old-file-preview-container" class="mt-4" style="display: none;">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-dark text-white">
+                                <h5 class="mb-0">File Preview</h5>
+                            </div>
+                            <div class="card-body" style="height: 600px; overflow-y: auto;">
+                                <div id="old-file-preview-content"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- NEW FILES -->
+        <div class="col-md-6 mb-4">
+            <div class="card border-start border-success border-4 shadow-sm h-100">
+                <div class="card-header bg-success text-white">
+                    <h5 class="mb-0">{{ file_item.label }} - New Files</h5>
+                </div>
+                <div class="card-body">
+                    <ul class="list-group list-group-flush">
+                        {% for file in file_item.new_files %}
+                            <li class="list-group-item">
+                                <a href="javascript:void(0);" onclick="previewNewFile('{{ file.path }}')" class="text-decoration-none">{{ file.name }}</a>
+                            </li>
+                        {% empty %}
+                            <li class="list-group-item text-muted">No files</li>
+                        {% endfor %}
+                    </ul>
+
+                    <!-- New File Preview Box -->
+                    <div id="new-file-preview-container" class="mt-4" style="display: none;">
+                        <div class="card shadow-sm">
+                            <div class="card-header bg-dark text-white">
+                                <h5 class="mb-0">File Preview</h5>
+                            </div>
+                            <div class="card-body" style="height: 600px; overflow-y: auto;">
+                                <div id="new-file-preview-content" style="height: 100%;"></div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    {% endfor %}
+</div>
+
+
+
+<script>
+
+
+ function previewOldFile(encryptedPath) {
+    $.ajax({
+        url: "{% url 'preview_file' %}",
+        type: 'POST',
+        data: {
+            encrypted_path: encryptedPath,
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+        },
+        success: function(response) {
+            const container = document.getElementById('old-file-preview-container');
+            const content = document.getElementById('old-file-preview-content');
+            content.innerHTML = ''; // Clear previous preview
+
+            if (response.success) {
+                const ext = response.file_url.split('.').pop().toLowerCase();
+
+                if (['pdf'].includes(ext)) {
+                    content.innerHTML = `<embed  type="application/pdf" src="${response.file_url}" width="100%" height="500px" style="border: none;" ></embed>`;
+                } else if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(ext)) {
+                    content.innerHTML = `<img src="${response.file_url}" alt="Image Preview" class="img-fluid">`;
+                } else if (['xls', 'xlsx'].includes(ext)) {
+                    fetch(response.file_url)
+                        .then(res => res.arrayBuffer())
+                        .then(data => {
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            const sheetName = workbook.SheetNames[0];
+                            const sheet = workbook.Sheets[sheetName];
+                            const html = XLSX.utils.sheet_to_html(sheet);
+                            content.innerHTML = html;
+                        })
+                        .catch(err => {
+                            content.innerHTML = `<p class="text-danger">Unable to preview Excel file.</p>`;
+                            console.error("Excel Preview Error:", err);
+                        });
+                }else {
+                    content.innerHTML = `<p class="text-muted">Preview not available. <a href="${response.file_url}" target="_blank">Download file</a>.</p>`;
+                }
+            } else {
+                content.innerHTML = `<p class="text-danger">Error loading file.</p>`;
+            }
+
+            container.style.display = 'block'; // Always show the container
+        },
+        error: function() {
+            const content = document.getElementById('old-file-preview-content');
+            const container = document.getElementById('old-file-preview-container');
+            content.innerHTML = `<p class="text-danger">Server error while loading the file.</p>`;
+            container.style.display = 'block';
+        }
+    });
+}
+
+</script>
+
+<script>
+function previewNewFile(encryptedPath) {
+    $.ajax({
+        url: "{% url 'preview_file' %}",
+        type: 'POST',
+        data: {
+            encrypted_path: encryptedPath,
+            csrfmiddlewaretoken: '{{ csrf_token }}'
+        },
+        success: function(response) {
+            const container = document.getElementById('new-file-preview-container');
+            const content = document.getElementById('new-file-preview-content');
+            content.innerHTML = ''; // Clear previous preview
+
+            if (response.success) {
+                debugger;
+                const ext = response.file_url.split('.').pop().toLowerCase();
+
+                if (['pdf'].includes(ext)) {
+                    content.innerHTML = `<embed src="${response.file_url}" style="width: 100%; height: 100%; border: none;"></embed>`;
+                } else if (['jpg', 'jpeg', 'png', 'gif', 'bmp', 'webp'].includes(ext)) {
+                    content.innerHTML = `<img src="${response.file_url}" alt="Image Preview" class="img-fluid">`;
+                } else if (['xls', 'xlsx'].includes(ext)) {
+                    fetch(response.file_url)
+                        .then(res => res.arrayBuffer())
+                        .then(data => {
+                            const workbook = XLSX.read(data, { type: 'array' });
+                            const sheetName = workbook.SheetNames[0];
+                            const sheet = workbook.Sheets[sheetName];
+                            const html = XLSX.utils.sheet_to_html(sheet);
+                            content.innerHTML = html;
+                        })
+                        .catch(err => {
+                            content.innerHTML = `<p class="text-danger">Unable to preview Excel file.</p>`;
+                            console.error("Excel Preview Error:", err);
+                        });
+                } else {
+                    content.innerHTML = `<p class="text-muted">Preview not available. <a href="${response.file_url}" target="_blank">Download file</a>.</p>`;
+                }
+            } else {
+                content.innerHTML = `<p class="text-danger">Error loading file.</p>`;
+            }
+
+            container.style.display = 'block'; // Always show the container
+        },
+        error: function() {
+            const content = document.getElementById('new-file-preview-content');
+            const container = document.getElementById('new-file-preview-container');
+            content.innerHTML = `<p class="text-danger">Server error while loading the file.</p>`;
+            container.style.display = 'block';
+        }
+    });
+}
+</script>
+
 <script>
     document.addEventListener('DOMContentLoaded', function () {
         const totalFields = {{ comparison_data|length }};
