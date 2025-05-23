@@ -1,0 +1,74 @@
+{% extends "Shared/Layout.html" %} {% block username %}{{username}}{% endblock %} 
+{% block content %} {% load static %}
+
+{% load custom_filters %}
+<link href="{% static 'css/masters.css' %}" rel="stylesheet" type="text/css" >
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.min.css">
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+<style>
+        .keyword-btn {
+            margin: 5px;
+        }
+        .highlight {
+            background-color: yellow !important;
+            color: black;
+        }
+        .kw { font-weight: bold; padding: 2px 4px; border-radius: 3px; }
+
+        {% for i in keywords %}
+        .kw{{ forloop.counter0 }} { background-color: hsl({{ forloop.counter0|stringformat:"d" }}0, 70%, 85%); }
+        {% endfor %}
+        .highlight { background-color: yellow !important; color: black !important; }
+
+        #pdf-viewer {
+            width: 100%;
+            height: 600px;
+            border: 1px solid #ccc;
+        }
+    </style>
+
+    <div class=" mb-2 shadow justify-content-center" style="padding: 15px;border: 2px solid #b3b3b3;border-radius: 15px;">
+        <h2 class="mb-2">{{ document.title }}</h2>
+
+        <div class="row mb-3">
+            <div class="col-md-12 d-flex flex-wrap">
+                {% for keyword in keywords %}
+                    <button class="btn btn-primary btn-sm keyword-btn" onclick="highlightKeyword('{{ keyword|escapejs }}')">
+                        {{ keyword }}
+                    </button>
+                {% endfor %}
+            </div>
+        </div>
+
+        <div class="row col-md-12 mb-2 shadow justify-content-center" style="padding: 10px;border: 2px solid #b3b3b3;border-radius: 15px;">
+            <div class="col-md-6 bg-white p-3 shadow" style="max-height: 650px; overflow-y: auto;">
+                <h5 style="font-weight:bold;">Extracted Text with Highlights:</h5>
+                <p id="text-content">{{ highlighted_text|safe }}</p>
+            </div>
+            <div class="col-md-6 bg-white p-3 shadow">
+                <embed id="pdf-viewer" src="{{ document.pdf_file.url }}" type="application/pdf">
+            </div>
+        </div>
+
+        <div class="row mb-3">
+         
+        </div>
+    </div>
+
+     <script>
+        function highlightKeyword(keyword) {
+            const container = document.getElementById("text-content");
+            const spans = container.querySelectorAll("span.kw");
+
+            spans.forEach(span => {
+                if (span.textContent.toLowerCase() === keyword.toLowerCase()) {
+                    span.classList.add("highlight");
+                } else {
+                    span.classList.remove("highlight");
+                }
+            });
+        }
+    </script>
+
+{% endblock %}
