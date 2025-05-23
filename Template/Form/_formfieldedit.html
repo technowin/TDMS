@@ -821,6 +821,7 @@
         document.querySelectorAll('.submit-btn').forEach(button => {
             debugger;
             button.addEventListener('click', function (e) {
+                
                 debugger;
                 const form = document.getElementById('dynamicForm');
                 const buttonType = this.getAttribute('data-button-type');
@@ -882,13 +883,13 @@
                 }else if (buttonType === 'Submit' && type === 'reference') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_edit' %}";
-                } else if (reference_type == "1" && viewStepWFSeq != '3') {
+                } else if (reference_type == "1" && viewStepWFSeq != '3' && buttonType != 'Version') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'reference_workflow' %}";
                 } else if (buttonType === 'Action') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_action' %}";
-                }else if (type == "reference") {
+                }else if (type == "reference" && buttonType != 'Version') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'reference_workflow' %}";
                 }else if (buttonType === 'Submit' && parseInt(editORcreate.value) === 1) {
@@ -903,6 +904,62 @@
                 }else if (buttonType === 'Reject' && parseInt(workflow_YN.value) === 1) {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'reject_workflow_step' %}";
+                }
+                else if (buttonType === 'Version') {
+                    e.preventDefault();
+                    const newFormDataId = document.getElementById('new_data_id').value;
+                    const newFormDataId_op = document.getElementById('matched_form_data_id').value;
+                    fetch(`/get_versiondata?newFormDataId=${newFormDataId}&newFormDataId_op=${newFormDataId_op}`)
+                    .then(response => response.json())
+                    .then(response_data => {
+
+                    // Simulate fetch or AJAX to get version data
+                    // get_dataVersion().then(response_data => {
+                        let tableHtml = '';
+                        response_data.data_versions.forEach((row, index) => {
+                            tableHtml += `
+                                <tr>
+                                    <td style="border: 1px solid #ddd; padding: 8px;">${index + 1}</td>
+                                    <td style="border: 1px solid #ddd; padding: 8px;">${row.file_name}</td>
+                                    <td style="border: 1px solid #ddd; padding: 8px;">${row.version_no}</td>
+                                    <td style="border: 1px solid #ddd; padding: 8px;">${row.baseline_date || ''}</td>
+                                    <td style="border: 1px solid #ddd; padding: 8px;">${row.modified_by}</td>
+                                    <td style="border: 1px solid #ddd; padding: 8px;">${row.modified_at}</td>
+                                    <td style="border: 1px solid #ddd; padding: 8px;">${row.approved_by || ''}</td>
+                                    <td style="border: 1px solid #ddd; padding: 8px;">${row.approved_at || ''}</td>
+                                </tr>`;
+                        });
+
+                        Swal.fire({
+                            title: `Version Details`,
+                            html: `
+                                <div style="max-height: 300px; overflow-y: auto; text-align: left;">
+                                    <table style="width:100%; border-collapse: collapse;" border="1">
+                                        <thead>
+                                            <tr>
+                                                <th>Sr No.</th>
+                                                <th>File Name</th>
+                                                <th style="width: 80px">Version</th>
+                                                <th>Baseline Date</th>
+                                                <th>Modified By</th>
+                                                <th>Modified At</th>
+                                                <th>Approved By</th>
+                                                <th>Approved At</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            ${tableHtml}
+                                        </tbody>
+                                    </table>
+                                </div>`,
+                            width: '80%',
+                            confirmButtonText: 'Close'
+                        });
+                    }).catch(err => {
+                        Swal.fire('Not Found', 'Version not found!', 'warning');
+                    });
+
+                    return;
                 }
             });
         });
