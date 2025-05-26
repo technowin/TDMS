@@ -1661,20 +1661,20 @@ def common_form_edit(request):
                         file_category=latest_file_category if latest_file_category else None,
                         form_data_id=form_data_id
                     )
-                else:
-                    # version_no=0 exists; insert with temp_version = last temp_version + 0.1
-                    last_row = WorkflowVersionControl.objects.filter(file_name=file_name).order_by('-id').first()
-                    new_temp_version = round((last_row.temp_version or 0) + 0.1, 1)
+                # else:
+                    
+                #     last_row = WorkflowVersionControl.objects.filter(file_name=file_name).order_by('-id').first()
+                #     new_temp_version = round((last_row.temp_version or 0) + 0.1, 1)
 
-                    WorkflowVersionControl.objects.create(
-                        file_name=file_name,
-                        version_no=0,
-                        temp_version=new_temp_version,
-                        modified_by=user,
-                        modified_at=now(),
-                        file_category=last_row.file_category,
-                        form_data_id=form_data_id
-                    )
+                #     WorkflowVersionControl.objects.create(
+                #         file_name=file_name,
+                #         version_no=0,
+                #         temp_version=new_temp_version,
+                #         modified_by=user,
+                #         modified_at=now(),
+                #         file_category=last_row.file_category,
+                #         form_data_id=form_data_id
+                #     )
 
                 
 
