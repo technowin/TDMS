@@ -209,7 +209,7 @@ def search_documents(request):
 def document_detail(request, document_id):
     document = get_object_or_404(Document, id=document_id)
     keywords = document.keywords.split(',')[:20]  # Top 20
-    full_path = os.path.join(MEDIA_ROOT, str(document.pdf_file))
+    full_path = os.path.join(MEDIA_URL,str(document.pdf_file)).replace('\\', '/')
     text = document.extracted_text
     for idx, keyword in enumerate(keywords):
         pattern = r'\b' + re.escape(keyword) + r'\b'
