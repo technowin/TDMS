@@ -1930,14 +1930,14 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
                     form_file.save()
 
                 # OCR + Keyword extraction
-                text = extract_text_from_pdf(os.path.join(MEDIA_ROOT,relative_file_path))
-                keywords = extract_keywords(text)
-                ocr_doc = Document.objects.create(
-                    title=saved_file_name,
-                    pdf_file=relative_file_path,
-                    extracted_text=text,
-                    keywords=', '.join(keywords)
-                ) 
+                # text = extract_text_from_pdf(os.path.join(MEDIA_ROOT,relative_file_path))
+                # keywords = extract_keywords(text)
+                # ocr_doc = Document.objects.create(
+                #     title=saved_file_name,
+                #     pdf_file=relative_file_path,
+                #     extracted_text=text,
+                #     keywords=', '.join(keywords)
+                # ) 
 
 
 
@@ -2532,14 +2532,14 @@ def handle_uploaded_files_temp(request, form_name, created_by, matched_form_data
                     form_file_temp.save()
                 
                  # OCR + Keyword extraction
-                text = extract_text_from_pdf(os.path.join(MEDIA_ROOT,relative_file_path))
-                keywords = extract_keywords(text)
-                ocr_doc = Document.objects.create(
-                    title=saved_file_name,
-                    pdf_file=relative_file_path,
-                    extracted_text=text,
-                    keywords=', '.join(keywords)
-                ) 
+                # text = extract_text_from_pdf(os.path.join(MEDIA_ROOT,relative_file_path))
+                # keywords = extract_keywords(text)
+                # ocr_doc = Document.objects.create(
+                #     title=saved_file_name,
+                #     pdf_file=relative_file_path,
+                #     extracted_text=text,
+                #     keywords=', '.join(keywords)
+                # ) 
 
     except Exception:
         traceback.print_exc()
