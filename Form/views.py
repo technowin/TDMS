@@ -1906,16 +1906,6 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
                     field=field
                 )
 
-                # OCR + Keyword extraction
-                # text = extract_text_from_pdf(os.path.join(MEDIA_ROOT,relative_file_path))
-                # keywords = extract_keywords(text)
-                # ocr_doc = Document.objects.create(
-                #     title=saved_file_name,
-                #     pdf_file=relative_file_path,
-                #     extracted_text=text,
-                #     keywords=', '.join(keywords)
-                # ) 
-
                 form_field_value = FormFieldValues.objects.filter(
                     form_id=form_data.form.id,
                     field_id=field.id,
@@ -1938,6 +1928,16 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
                     # 4. Update FormFile to add file_id (which is FormFieldValues' id)
                     form_file.file_id = form_field_value.id
                     form_file.save()
+
+                # OCR + Keyword extraction
+                text = extract_text_from_pdf(os.path.join(MEDIA_ROOT,relative_file_path))
+                keywords = extract_keywords(text)
+                ocr_doc = Document.objects.create(
+                    title=saved_file_name,
+                    pdf_file=relative_file_path,
+                    extracted_text=text,
+                    keywords=', '.join(keywords)
+                ) 
 
 
 
@@ -2512,17 +2512,7 @@ def handle_uploaded_files_temp(request, form_name, created_by, matched_form_data
                     updated_by=user,
                     field_id=field_id
                 )
-
-                # OCR + Keyword extraction
-                # text = extract_text_from_pdf(os.path.join(MEDIA_ROOT,relative_file_path))
-                # keywords = extract_keywords(text)
-                # ocr_doc = Document.objects.create(
-                #     title=saved_file_name,
-                #     pdf_file=relative_file_path,
-                #     extracted_text=text,
-                #     keywords=', '.join(keywords)
-                # ) 
-
+                
                 temp_field_value = FormFieldValuesTemp.objects.filter(
                     form_id=form_id,
                     field_id=field_id,
@@ -2540,6 +2530,16 @@ def handle_uploaded_files_temp(request, form_name, created_by, matched_form_data
 
                     form_file_temp.file_id = temp_field_value.id
                     form_file_temp.save()
+                
+                 # OCR + Keyword extraction
+                text = extract_text_from_pdf(os.path.join(MEDIA_ROOT,relative_file_path))
+                keywords = extract_keywords(text)
+                ocr_doc = Document.objects.create(
+                    title=saved_file_name,
+                    pdf_file=relative_file_path,
+                    extracted_text=text,
+                    keywords=', '.join(keywords)
+                ) 
 
     except Exception:
         traceback.print_exc()
