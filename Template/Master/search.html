@@ -169,25 +169,28 @@
                                     </thead>
                                     <tbody>
                                         {% for document in documents %}
-                                        <tr>
-                                            <td>{{ document.title }}</td>
-                                            <td>
-                                                {% for keyword in document.keywords_list|slice:":5" %}
-                                                    <span class="label label-info">{{ keyword }}</span>
-                                                {% endfor %}
-                                                {% if document.keywords_list|length > 5 %}
-                                                    <span class="label label-default"> ... +{{ document.keywords_list|length|add:"-5" }} more</span>
-                                                {% endif %}
-                                            </td>
-                                            <td>{{ document.uploaded_at|date:"M d, Y" }}</td>
-                                            <td>
-                                                <a href="{% url 'document_detail' document.id %}" class="btn btn-success">Open File</a>
-                                            
-                                                <a href="{{ document.pdf_file.url }}" class="btn btn-xs btn-primary" download>
-                                                    <i class="glyphicon glyphicon-download"></i> Download
-                                                </a>
-                                            </td>
-                                        </tr>
+                                            <tr>
+                                                <td>{{ document.title }}</td>
+                                                <td>
+                                                    {% for keyword in document.keywords_list|slice:":5" %}
+                                                        <span class="label label-info">{{ keyword }}</span>
+                                                    {% endfor %}
+                                                    {% if document.keywords_list|length > 5 %}
+                                                        <span class="label label-default"> ... +{{ document.keywords_list|length|add:"-5" }} more</span>
+                                                    {% endif %}
+                                                </td>
+                                                <td>{{ document.uploaded_at|date:"M d, Y" }}</td>
+                                                <td>
+                                                    <a href="{% url 'document_detail' document.id %}" class="btn btn-success">Open File</a>
+                                                    {% if document.file_exists %}
+                                                        <a href="{% url 'download_doc' document.pdf_file %}" class="btn btn-xs btn-primary" download>
+                                                            <i class="glyphicon glyphicon-download"></i> Download
+                                                        </a>
+                                                    {% else %}
+                                                        <span class="text-danger">File not found</span>
+                                                    {% endif %}
+                                                </td>
+                                            </tr>
                                         {% endfor %}
                                     </tbody>
                                 </table>

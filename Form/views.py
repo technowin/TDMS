@@ -16,6 +16,7 @@ from django.db.models import Max
 import Db 
 import bcrypt
 from django.contrib.auth.decorators import login_required
+from Masters.views import extract_keywords, extract_text_from_pdf
 from TDMS.encryption import *
 from django.http import HttpResponse
 from reportlab.lib.pagesizes import letter
@@ -1904,7 +1905,17 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
                     updated_by=user,
                     field=field
                 )
-                 
+
+                # OCR + Keyword extraction
+                # text = extract_text_from_pdf(os.path.join(MEDIA_ROOT,relative_file_path))
+                # keywords = extract_keywords(text)
+                # ocr_doc = Document.objects.create(
+                #     title=saved_file_name,
+                #     pdf_file=relative_file_path,
+                #     extracted_text=text,
+                #     keywords=', '.join(keywords)
+                # ) 
+
                 form_field_value = FormFieldValues.objects.filter(
                     form_id=form_data.form.id,
                     field_id=field.id,
