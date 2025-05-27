@@ -169,19 +169,6 @@ class FormFile(models.Model):
     class Meta:
         db_table = 'form_file'
 
-class FormFileLog(models.Model):
-    form_file_id = models.BigIntegerField()
-    file_name = models.TextField(null=True, blank=True)
-    uploaded_name = models.TextField(null=True, blank=True)
-    file_path = models.TextField(null=True, blank=True)
-    field_id = models.BigIntegerField(null=True, blank=True)
-    file_id = models.BigIntegerField(null=True, blank=True)
-    form_id = models.BigIntegerField(null=True, blank=True)
-    form_data_id = models.BigIntegerField(null=True, blank=True)
-    logged_at = models.DateTimeField(auto_now_add=True)
-    class Meta:
-        db_table = 'form_file_log'
-
 class FormData(models.Model):
     form = models.ForeignKey('Form.Form',null=True, blank=True, on_delete=models.CASCADE, related_name='form_data_id')
     action = models.ForeignKey('Form.FormAction',null=True, blank=True, on_delete=models.CASCADE, related_name='form_action_id')
