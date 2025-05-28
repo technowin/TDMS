@@ -281,10 +281,6 @@
             </select>
 
 
-
-
-
-
             {% elif field.field_type == "radio" %}
                 <div class="d-flex flex-wrap">
                     {% for option in field.values %}
@@ -435,28 +431,27 @@
 <div class="row col-md-12 justify-content-center">
     <input type="hidden" id="clicked_action_id" name="clicked_action_id">
 
-   {% if viewStepWFSeq != '3' %}
-    {% if reference_type == "1" or type == 'reference' %} 
-       {% comment %} <div class="row mt-4"> {% endcomment %}
+        {% if reference_type == "1" or  type == 'reference' %} 
+        {% if viewStepWFSeq != '3' %}
+            <div class="col-md-2 mt-4 text-center">
+                <button type="submit"
+                        class="btn btn-success submit-btn w-100"
+                        id="saveDataButton"
+                        style="border-radius: 15px;">
+                    Save Data
+                </button>
+            </div>
+          {% endif %}  
     <div class="col-md-2 mt-4 text-center">
-        <button type="submit"
-                class="btn btn-success submit-btn w-100"
-                id="saveDataButton"
-                style="border-radius: 15px;">
-            Save Data
-        </button>
-    </div>
-  <div class="col-md-2 mt-4 text-center">
-        <button type="button"
-                class="btn btn-primary w-100"
-                id="compareButton"
-                style="border-radius: 15px;">
-            Compare Data
-        </button>
-    </div>
+            <button type="button"
+                    class="btn btn-primary w-100"
+                    id="compareButton"  {% if data_save_status != '1' and  type == 'reference' and viewStepWFSeq != '3'%} disabled{% endif %} 
+                    style="border-radius: 15px;">
+                Compare Data
+            </button>
+        </div>
 
     {% endif %}  
- {% endif %} 
 
 
 
@@ -478,7 +473,7 @@
                         data-action-id="{{ action.id }}"
                         {% if viewStepWFSeq != '3' %}
                             {% if  type == 'reference' %}
-                                {% if data_save_status != '1' %} disabled {% endif %}
+                                {% if data_save_status != '1' and action.button_type != 'Version' %} disabled {% endif %}
                             {% else %}
                                 {% if readonlyWF == '1' %} disabled {% endif %}
                             {% endif %}

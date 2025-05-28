@@ -927,15 +927,15 @@ def form_master(request):
                 else:
                     reference_type = '0'
                     new_data_id = form_data_id
-                if step_id == '1' or step_id == '6':
-                    version_no = 0
-                else:
-                    version_no = WorkflowVersionControl.objects.filter(form_data=form_data_id).order_by('-version_no').first().temp_version
+                # if step_id == '1' or step_id == '6':
+                #     version_no = 0
+                # else:
+                #     version_no = WorkflowVersionControl.objects.filter(form_data=form_data_id).order_by('-version_no').first().temp_version
 
                 step_name_subquery = Subquery(workflow_matrix.objects.filter(id=OuterRef('step_id')).values('step_name')[:1])
                 custom_user_role_id_subquery = Subquery(CustomUser.objects.filter(id=OuterRef('created_by')).values('role_id')[:1])
                 custom_email_subquery = Subquery(CustomUser.objects.filter(id=OuterRef('created_by')).values('email')[:1])
-                comments_base = ActionData.objects.filter(form_data_id=form_data_id,version=version_no,field__type__in=['text', 'textarea', 'select']
+                comments_base = ActionData.objects.filter(form_data_id=form_data_id,field__type__in=['text', 'textarea', 'select']
                 ).annotate(step_name=step_name_subquery,role_id=custom_user_role_id_subquery,email=custom_email_subquery)
                 comments = comments_base.annotate(role_name=Subquery(roles.objects.filter(id=OuterRef('role_id')).values('role_name')[:1])
                 ).values('field_id','value','step_id','created_at','created_by','step_name','role_name','email',)
@@ -1160,7 +1160,7 @@ def common_form_post(request):
         
         form_dataID = form_data.id
         first_field_checked = False
-        version_no = 0
+        
 
         # Process each field
         for key, value in request.POST.items():
@@ -1219,7 +1219,7 @@ def common_form_post(request):
                 if field.field_type == "file_name":
 
                     form_data.file_ref = input_value
-                    if input_value:
+                    if input_value and input_value != 'New File':
                         VersionControlFileMap.objects.create(form_data=form_dataID,file_name= input_value)
                     form_data.save()
                     if input_value:
