@@ -16,6 +16,7 @@ from django.db.models import Max
 import Db 
 import bcrypt
 from django.contrib.auth.decorators import login_required
+from Masters.views import extract_keywords, extract_text_from_pdf
 from TDMS.encryption import *
 from django.http import HttpResponse
 from reportlab.lib.pagesizes import letter
@@ -1660,20 +1661,20 @@ def common_form_edit(request):
                         file_category=latest_file_category if latest_file_category else None,
                         form_data_id=form_data_id
                     )
-                else:
-                    # version_no=0 exists; insert with temp_version = last temp_version + 0.1
-                    last_row = WorkflowVersionControl.objects.filter(file_name=file_name).order_by('-id').first()
-                    new_temp_version = round((last_row.temp_version or 0) + 0.1, 1)
+                # else:
+                    
+                #     last_row = WorkflowVersionControl.objects.filter(file_name=file_name).order_by('-id').first()
+                #     new_temp_version = round((last_row.temp_version or 0) + 0.1, 1)
 
-                    WorkflowVersionControl.objects.create(
-                        file_name=file_name,
-                        version_no=0,
-                        temp_version=new_temp_version,
-                        modified_by=user,
-                        modified_at=now(),
-                        file_category=last_row.file_category,
-                        form_data_id=form_data_id
-                    )
+                #     WorkflowVersionControl.objects.create(
+                #         file_name=file_name,
+                #         version_no=0,
+                #         temp_version=new_temp_version,
+                #         modified_by=user,
+                #         modified_at=now(),
+                #         file_category=last_row.file_category,
+                #         form_data_id=form_data_id
+                #     )
 
                 
 
@@ -1904,7 +1905,7 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
                     updated_by=user,
                     field=field
                 )
-                 
+
                 form_field_value = FormFieldValues.objects.filter(
                     form_id=form_data.form.id,
                     field_id=field.id,
@@ -1927,6 +1928,16 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
                     # 4. Update FormFile to add file_id (which is FormFieldValues' id)
                     form_file.file_id = form_field_value.id
                     form_file.save()
+
+                # OCR + Keyword extraction
+                # text = extract_text_from_pdf(os.path.join(MEDIA_ROOT,relative_file_path))
+                # keywords = extract_keywords(text)
+                # ocr_doc = Document.objects.create(
+                #     title=saved_file_name,
+                #     pdf_file=relative_file_path,
+                #     extracted_text=text,
+                #     keywords=', '.join(keywords)
+                # ) 
 
 
 
@@ -2501,7 +2512,7 @@ def handle_uploaded_files_temp(request, form_name, created_by, matched_form_data
                     updated_by=user,
                     field_id=field_id
                 )
-
+                
                 temp_field_value = FormFieldValuesTemp.objects.filter(
                     form_id=form_id,
                     field_id=field_id,
@@ -2519,6 +2530,16 @@ def handle_uploaded_files_temp(request, form_name, created_by, matched_form_data
 
                     form_file_temp.file_id = temp_field_value.id
                     form_file_temp.save()
+                
+                 # OCR + Keyword extraction
+                # text = extract_text_from_pdf(os.path.join(MEDIA_ROOT,relative_file_path))
+                # keywords = extract_keywords(text)
+                # ocr_doc = Document.objects.create(
+                #     title=saved_file_name,
+                #     pdf_file=relative_file_path,
+                #     extracted_text=text,
+                #     keywords=', '.join(keywords)
+                # ) 
 
     except Exception:
         traceback.print_exc()
