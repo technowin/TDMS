@@ -315,10 +315,10 @@
                            {% if type == "create" %}
                                onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
                             {% elif  type == "reference" %}
-                            onclick="showScript( {{ matched_form_data_id }}, {{ field.id }}, {{reference_type}})"
+                            onclick="showScript( {{ matched_form_data_id }}, {{ field.id }}, {{reference_type}},{{"type"}})"
         
                            {% else %}
-                               onclick="showScript({{ form_data_id }}, {{ field.id }},{{reference_type}})"
+                               onclick="showScript({{ form_data_id }}, {{ field.id }},{{reference_type}},{{"type"}})"
                            {% endif %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3' %} disabled {% endif %}>
                         </i>
                     </div>
@@ -333,10 +333,10 @@
                        {% if type == "create" %}
                            onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
                         {% elif type == "reference"%}
-                           onclick="showScript( {{ matched_form_data_id }}, {{ field.id }},{{reference_type}},{{type}})"
+                           onclick="showScript( {{ matched_form_data_id }}, {{ field.id }},{{reference_type}},{{"type"}})"
                         
                        {% else %}
-                           onclick="showScript( {{ form_data_id }}, {{ field.id }},{{reference_type}})"
+                           onclick="showScript( {{ form_data_id }}, {{ field.id }},{{reference_type}},{{"type"}})"
                        {% endif %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3'  %} disabled {% endif %}>
                     </i>
                 </div>
@@ -625,7 +625,7 @@
                                 : `--`;
         
                             let deleteIcon = file.status === 1
-                                ? `<a href="javascript:void(0);" onclick="deleteFile('${file.encrypted_url}', '${file.file_id}','${reference_type}')" ><i class="fa fa-trash" style="color:red;" aria-hidden="true"></i></a>`
+                                ? `<a href="javascript:void(0);" onclick="deleteFile('${file.encrypted_url}', '${file.file_id}','${reference_type}','${type}')" ><i class="fa fa-trash" style="color:red;" aria-hidden="true"></i></a>`
                                 : `--`;
         
                             tableHTML += `
@@ -717,7 +717,7 @@
   </script>
 
   <script>
-    function deleteFile(encryptedPath, encryptedId,reference_type) {
+    function deleteFile(encryptedPath, encryptedId,reference_type, type) {
         Swal.fire({
             title: 'Are you sure?',
             text: "You won't be able to revert this!",
@@ -737,7 +737,9 @@
                     },
                     data: JSON.stringify({
                         id: encryptedId,
-                        path: encryptedPath
+                        path: encryptedPath,
+                        reference_type :reference_type,
+                        type: type
                     }),
                     success: function(response) {
                         if (response.success) {

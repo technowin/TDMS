@@ -2284,6 +2284,33 @@ def download_file(request):
     except Exception as e:
         raise Http404("Invalid or corrupted file path")
     
+# def delete_file(request):
+#     if request.method == "POST":
+#         try:
+#             data = json.loads(request.body)
+#             enc_id = data.get("id")
+#             enc_path = data.get("path")
+#             reference_type = data.get("reference_type")
+#             type = data.get("type")
+
+#             file_id = dec(enc_id)
+#             file_path = dec(enc_path)
+
+#             # Delete the file record
+#             form_file = FormFile.objects.get(id=file_id)
+#             full_path = os.path.join(settings.MEDIA_ROOT, file_path)
+
+#             if os.path.exists(full_path):
+#                 os.remove(full_path)
+
+#             form_file.delete()
+
+#             return JsonResponse({"success": True})
+#         except Exception as e:
+#             traceback.print_exc()
+#             return JsonResponse({"success": False, "error": "Could not delete file"}, status=500)
+#     return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
+
 def delete_file(request):
     if request.method == "POST":
         try:
@@ -2291,24 +2318,30 @@ def delete_file(request):
             enc_id = data.get("id")
             enc_path = data.get("path")
             reference_type = data.get("reference_type")
+            type = data.get("type")
 
             file_id = dec(enc_id)
             file_path = dec(enc_path)
-
-            # Delete the file record
-            form_file = FormFile.objects.get(id=file_id)
             full_path = os.path.join(settings.MEDIA_ROOT, file_path)
 
-            if os.path.exists(full_path):
-                os.remove(full_path)
-
-            form_file.delete()
+            # Only delete DB entry, not the file from filesystem
+            if type == "reference" or reference_type == '1':
+                # Delete from FormFileTemp
+                FormFileTemp.objects.filter(id=file_id).delete()
+            elif type is None and reference_type is None:
+                if os.path.exists(full_path):
+                    os.remove(full_path)
+                    FormFile.objects.filter(id=file_id).delete()
 
             return JsonResponse({"success": True})
+
         except Exception as e:
             traceback.print_exc()
-            return JsonResponse({"success": False, "error": "Could not delete file"}, status=500)
+            return JsonResponse({"success": False, "error": "Could not delete file entry"}, status=500)
+
     return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
+
+
 
 
 
