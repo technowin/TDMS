@@ -315,10 +315,10 @@
                            {% if type == "create" %}
                                onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
                             {% elif  type == "reference" %}
-                            onclick="showScript( {{ matched_form_data_id }}, {{ field.id }}, {{reference_type}},{{"type"}})"
+                            onclick="showScript( {{ matched_form_data_id }}, {{ field.id }}, {{reference_type}},'{{type}}')"
         
                            {% else %}
-                               onclick="showScript({{ form_data_id }}, {{ field.id }},{{reference_type}},{{"type"}})"
+                               onclick="showScript({{ form_data_id }}, {{ field.id }},{{reference_type}},'{{type}}')"
                            {% endif %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3' %} disabled {% endif %}>
                         </i>
                     </div>
@@ -333,10 +333,10 @@
                        {% if type == "create" %}
                            onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
                         {% elif type == "reference"%}
-                           onclick="showScript( {{ matched_form_data_id }}, {{ field.id }},{{reference_type}},{{"type"}})"
+                           onclick="showScript( {{ matched_form_data_id }}, {{ field.id }},{{reference_type}},'{{type}}')"
                         
                        {% else %}
-                           onclick="showScript( {{ form_data_id }}, {{ field.id }},{{reference_type}},{{"type"}})"
+                           onclick="showScript( {{ form_data_id }}, {{ field.id }},{{reference_type}},'{{type}}')"
                        {% endif %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3'  %} disabled {% endif %}>
                     </i>
                 </div>
@@ -718,6 +718,7 @@
 
   <script>
     function deleteFile(encryptedPath, encryptedId,reference_type, type) {
+        debugger;
         Swal.fire({
             title: 'Are you sure?',
             text: "You won't be able to revert this!",
