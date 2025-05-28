@@ -660,7 +660,7 @@ def workflow_form_step(request):
                     try:
                         form_data = FormData.objects.get(id=inward_form_data_id)
 
-                        if form_data.file_ref:
+                        if form_data.file_ref != 'New File':
                             file_ref_value = form_data.file_ref
 
                             try:
