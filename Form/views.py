@@ -802,9 +802,6 @@ def update_action_form(request, form_id):
         Db.closeConnection()
 
 
-
-
-
 def form_master(request):
     try:
 
@@ -1450,19 +1447,20 @@ def common_form_edit(request):
                     input_value = request.POST.get(f"field_{field_id}", "").strip()
 
                 if field.field_type == "generative":
-                    file_name = get_object_or_404(FormFieldValues,form_data_id=form_data,field_id= field).value
-                    
+                    file_name = get_object_or_404(FormFieldValues, form_data_id=form_data, field_id=field).value
                     continue
+
+                if field.field_type in ['file', 'file multiple']:
+                    continue
+
                 if type != 'reference':
                     existing_value = FormFieldValues.objects.filter(
-                            form_data=form_data, form=form, field=field
+                        form_data=form_data, form=form, field=field
                     ).first()
                     if existing_value:
-                            # Update existing entry
                         existing_value.value = input_value
                         existing_value.save()
                     else:
-                            # Create new entry
                         FormFieldValues.objects.create(
                             form_data=form_data,
                             form=form,
@@ -1470,7 +1468,9 @@ def common_form_edit(request):
                             value=input_value,
                             created_by=created_by
                         )
-                    handle_uploaded_files(request, form_name, created_by, form_data, user)
+
+            
+        handle_uploaded_files(request, form_name, created_by, form_data, user)
                     
         # Run only if type is reference
         if type == 'reference':
@@ -1913,21 +1913,19 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
                 ).first()
 
                 if form_field_value:
-                    # 3. Update values (append or set)
                     if form_field_value.value:
-                        # Already has value, so append new id
-                        existing_ids = form_field_value.value.split(',')
-                        existing_ids.append(str(form_file.id))
+                        existing_ids = [x.strip() for x in form_field_value.value.split(',') if x.strip()]
+                        new_id_str = str(form_file.id)
+                        if new_id_str not in existing_ids:
+                            existing_ids.append(new_id_str)
                         form_field_value.value = ','.join(existing_ids)
                     else:
-                        # No value yet, set directly
                         form_field_value.value = str(form_file.id)
-
                     form_field_value.save()
 
-                    # 4. Update FormFile to add file_id (which is FormFieldValues' id)
                     form_file.file_id = form_field_value.id
                     form_file.save()
+
 
                 # OCR + Keyword extraction
                 # text = extract_text_from_pdf(os.path.join(MEDIA_ROOT,relative_file_path))
@@ -2420,6 +2418,18 @@ def reference_workflow(request):
         FormFieldValuesTemp.objects.filter(form_data_id=matched_form_data_id, form_id=form_id).delete()
         FormFileTemp.objects.filter(form_data_id=matched_form_data_id, form_id=form_id).delete()
 
+        form_files = FormFile.objects.filter(form_data_id=matched_form_data_id, form_id=form_id)
+        for file_obj in form_files:
+            FormFileTemp.objects.create(
+                form_data_id=file_obj.form_data.id,
+                form_id=file_obj.form.id,
+                field_id=file_obj.field.id,
+                file_id=file_obj.file.id,
+                uploaded_name=file_obj.uploaded_name,
+                created_by=created_by,
+                updated_by=created_by
+            )
+
         for key, value in request.POST.items():
             if key.startswith("field_id_"):
                 field_id = value.strip()
@@ -2531,15 +2541,7 @@ def handle_uploaded_files_temp(request, form_name, created_by, matched_form_data
                     form_file_temp.file_id = temp_field_value.id
                     form_file_temp.save()
                 
-                 # OCR + Keyword extraction
-                # text = extract_text_from_pdf(os.path.join(MEDIA_ROOT,relative_file_path))
-                # keywords = extract_keywords(text)
-                # ocr_doc = Document.objects.create(
-                #     title=saved_file_name,
-                #     pdf_file=relative_file_path,
-                #     extracted_text=text,
-                #     keywords=', '.join(keywords)
-                # ) 
+            
 
     except Exception:
         traceback.print_exc()

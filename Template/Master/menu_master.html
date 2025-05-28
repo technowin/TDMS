@@ -20,7 +20,12 @@
  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11/dist/sweetalert2.all.min.js"></script>
  <!-- Selectize css -->
  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/css/selectize.default.min.css">
- <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js"></script>
+ <script src="https://cdnjs.cloudflare.com/ajax/libs/selectize.js/0.12.6/js/standalone/selectize.min.js"></script> 
+
+ <!-- Selectize.js CSS -->
+{% comment %} <link href="{% static 'css/selectize.min.css' %}" rel="stylesheet" type="text/css" >
+<!-- Selectize.js JS -->
+<script src="{% static 'js/selectize.min.js' %}"></script> {% endcomment %}
  
 
 {% if type == "create"%}
@@ -38,12 +43,12 @@
                             <input type="text" value="{{ menus.menu_name }}" name="menu_name" class="form-control" id="menu_name" placeholder="Enter Menu Name" required>
                         </div>
                     </div>
-                    <div class="row mb-3">
+                  <div class="row mb-3">
                         <div class="col-md-12">
                             <label for="menu_action" class="form-label">Menu Action<span style="color:red;"></span></label>
                             <input type="text" value="{{ menus.menu_action }}" name="menu_action" class="form-control" id="menu_action" placeholder="Enter Menu Action">
                         </div>
-                    </div>
+                    </div> 
 
                     <div class="row mb-3">
                         <div class="col-md-12">
