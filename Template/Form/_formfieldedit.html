@@ -251,7 +251,7 @@
                     {% endfor %}
                 </select>
 
-            {% elif field.field_type == "file_name" %}
+            {% comment %} {% elif field.field_type == "file_name" %}
                <select class="form-control field_select" name="field_{{ field.id }}"
                     {% for attr in field.attributes %} {{ attr }} {% endfor %}
                     {% if readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
@@ -263,7 +263,23 @@
                         {{ option }}
                     </option>
                 {% endfor %}
+            </select> {% endcomment %}
+
+            {% elif field.field_type == "file_name" %}
+            <select class="form-control field_select" name="field_{{ field.id }}"
+                {% for attr in field.attributes %} {{ attr }} {% endfor %}
+                {% if readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
+                
+                <option value="" disabled {% if not field.saved_value %}selected{% endif %}>Select</option>
+                <option value="New File" {% if field.saved_value == "New File" %}selected{% endif %}>New File</option>
+
+                {% for option in field.file_name_options %}
+                    <option value="{{ option }}" {% if option == field.saved_value %}selected{% endif %}>
+                        {{ option }}
+                    </option>
+                {% endfor %}
             </select>
+
 
 
 
