@@ -1227,6 +1227,38 @@ def common_form_post(request):
                         if form_data_id:
                             VersionControlFileMap.objects.create(form_data=form_data_id,file_name= input_value)
 
+                        field_values = FormFieldValues.objects.filter(form_data_id=form_data_id)
+                        temp_field_values = []
+                        for val in field_values:
+                            temp_field_values.append(FormFieldValuesTemp(
+                                form_id=val.form.id if val.form else None,
+                                form_data_id=val.form_data.id,  
+                                field_id=val.field.id,
+                                value=val.value,
+                                created_by=val.created_by,
+                                updated_by=val.updated_by,
+                            ))
+                        FormFieldValuesTemp.objects.bulk_create(temp_field_values)
+
+                        # Copy FormFile to FormFileTemp
+                        form_files = FormFile.objects.filter(form_data_id=form_data_id)
+                        temp_files = []
+                        for f in form_files:
+                            temp_files.append(FormFileTemp(
+                                file_name=f.file_name,
+                                uploaded_name=f.uploaded_name,
+                                file_path=f.file_path,
+                                file_id=f.file.id,
+                                form_id=f.form.id,
+                                field_id=f.field.id,
+                                form_data_id=f.form_data.id,  # new form_data ID
+                                created_by=f.created_by,
+                                updated_by=f.updated_by,
+                            ))
+                        FormFileTemp.objects.bulk_create(temp_files)
+
+                        
+
                 if field.field_type == 'field_dropdown':
                     values = field.values 
                     
@@ -2258,6 +2290,7 @@ def delete_file(request):
             data = json.loads(request.body)
             enc_id = data.get("id")
             enc_path = data.get("path")
+            reference_type = data.get("reference_type")
 
             file_id = dec(enc_id)
             file_path = dec(enc_path)
@@ -2424,6 +2457,7 @@ def reference_workflow(request):
                 form_data_id=file_obj.form_data.id,
                 form_id=file_obj.form.id,
                 field_id=file_obj.field.id,
+                file_path = file_obj.file_path,
                 file_id=file_obj.file.id,
                 uploaded_name=file_obj.uploaded_name,
                 created_by=created_by,
