@@ -2744,18 +2744,18 @@ def preview_file(request):
     return JsonResponse({'success': False, 'error': 'Invalid method'})
         
 
-def check_file_status(request):
-    file_name = request.POST.get('file_name')
-    if file_name == 'New File':
-        return JsonResponse({"status": 0})
+# def check_file_status(request):
+#     file_name = request.POST.get('file_name')
+#     if file_name == 'New File':
+#         return JsonResponse({"status": 0})
 
-    if not file_name:
-        return JsonResponse({"status": 0, "error": "Missing file_name"})
+#     if not file_name:
+#         return JsonResponse({"status": 0, "error": "Missing file_name"})
 
-    latest_entry = VersionControlFileMap.objects.filter(file_name=file_name).order_by('-id').first()
+#     latest_entry = VersionControlFileMap.objects.filter(file_name=file_name).order_by('-id').first()
 
-    if latest_entry and latest_entry.status == 1:
-        return JsonResponse({"status": 1})
-    else:
-        return JsonResponse({"status": 0})
+#     if latest_entry and latest_entry.status == 1:
+#         return JsonResponse({"status": 1})
+#     else:
+#         return JsonResponse({"status": 0})
 
