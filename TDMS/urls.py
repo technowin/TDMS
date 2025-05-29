@@ -62,6 +62,7 @@ urlpatterns = [
     path('reference_workflow/', reference_workflow, name='reference_workflow'),
     path('get_compare_data/<int:final_id>/', get_compare_data, name='get_compare_data'),
     path("preview_file",preview_file, name="preview_file"),
+    # path("check_file_status",check_file_status, name="check_file_status"),
     
 
 

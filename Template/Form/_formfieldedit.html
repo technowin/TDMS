@@ -207,6 +207,7 @@
             <input type="hidden" id = "viewStepWFSeq" name = "viewStepWFSeq" value ="{{viewStepWFSeq}}">
             <input type="hidden" id = "new_form_data_id" name = "new_form_data_id" value ="{{new_form_data_id}}">
             <input type="hidden" id = "inward_req_id" name = "inward_req_id" value ="{{inward_req_id}}">
+            <input type="hidden" id="category_dropdownOpr" name="category_dropdownOpr">
             
 
             {% if field.field_type == "select"  %}
@@ -315,10 +316,10 @@
                            {% if type == "create" %}
                                onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
                             {% elif  type == "reference" %}
-                            onclick="showScript( {{ matched_form_data_id }}, {{ field.id }}, {{reference_type}})"
+                            onclick="showScript( {{ matched_form_data_id }}, {{ field.id }}, {{reference_type}},'{{type}}')"
         
                            {% else %}
-                               onclick="showScript({{ form_data_id }}, {{ field.id }},{{reference_type}})"
+                               onclick="showScript({{ form_data_id }}, {{ field.id }},{{reference_type}},'{{type}}')"
                            {% endif %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3' %} disabled {% endif %}>
                         </i>
                     </div>
@@ -333,10 +334,10 @@
                        {% if type == "create" %}
                            onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
                         {% elif type == "reference"%}
-                           onclick="showScript( {{ matched_form_data_id }}, {{ field.id }},{{reference_type}})"
+                           onclick="showScript( {{ matched_form_data_id }}, {{ field.id }},{{reference_type}},'{{type}}')"
                         
                        {% else %}
-                           onclick="showScript( {{ form_data_id }}, {{ field.id }},{{reference_type}})"
+                           onclick="showScript( {{ form_data_id }}, {{ field.id }},{{reference_type}},'{{type}}')"
                        {% endif %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3'  %} disabled {% endif %}>
                     </i>
                 </div>
@@ -548,6 +549,41 @@
 
 {% comment %} ends here {% endcomment %}
 
+
+<div>
+
+{% comment %} added for category dropdown {% endcomment %}
+
+<div id="categoryPopup" style="display: none; position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%); z-index: 9999; background: white; padding: 20px;
+    box-shadow: 0px 0px 10px rgba(0,0,0,0.5); border-radius: 8px;">
+
+    <label for="category_dropdownOpr">Select Category:</label>
+    {% comment %} <select name="category_dropdownOpr" id="category_dropdownOpr" class="form-control">
+        <option value="">--Select--</option>
+        {% for item in category_dropD %}
+            <option value="{{ item.value }}">{{ item.text }}</option>
+        {% endfor %}
+    </select> {% endcomment %}
+    <select name="category_dropdownOpr" id="category_dropdownOpr" class="form-control">
+        <option value="">--Select--</option>
+        {% for item in category_dropD %}
+            <option value="{{ item.value }}" {% if item.value == file_cat_val %}selected{% endif %}>{{ item.text }}</option>
+        {% endfor %}
+    </select>
+
+    <br>
+    <div style="margin-top: 15px; text-align: center;">
+        <button id="catconfirmSubmitBtn" class="btn btn-primary">Confirm</button>
+        <button id="catcancelPopupBtn" class="btn btn-secondary">Cancel</button>
+    </div>
+
+</div>
+
+<div id="categoryOverlay" style="display: none; position: fixed; top: 0; left: 0;
+    width: 100vw; height: 30vh; background: rgba(0,0,0,0.3); z-index: 9990;"></div>
+    {% comment %} added for category dropdown {% endcomment %}
+
 </form>
 
 </div>
@@ -580,7 +616,7 @@
 
         let selectedNewFiles = []; // Global array to store new files
 
-        function showScript(form_data_id, field_id,reference_type) {
+        function showScript(form_data_id, field_id,reference_type, type) {
             debugger;
             
             const inputElement = document.getElementById('file_input_' + field_id);
@@ -625,7 +661,7 @@
                                 : `--`;
         
                             let deleteIcon = file.status === 1
-                                ? `<a href="javascript:void(0);" onclick="deleteFile('${file.encrypted_url}', '${file.file_id}')" ><i class="fa fa-trash" style="color:red;" aria-hidden="true"></i></a>`
+                                ? `<a href="javascript:void(0);" onclick="deleteFile('${file.encrypted_url}', '${file.file_id}','${reference_type}','${type}')" ><i class="fa fa-trash" style="color:red;" aria-hidden="true"></i></a>`
                                 : `--`;
         
                             tableHTML += `
@@ -717,7 +753,8 @@
   </script>
 
   <script>
-    function deleteFile(encryptedPath, encryptedId) {
+    function deleteFile(encryptedPath, encryptedId,reference_type, type) {
+        debugger;
         Swal.fire({
             title: 'Are you sure?',
             text: "You won't be able to revert this!",
@@ -737,7 +774,9 @@
                     },
                     data: JSON.stringify({
                         id: encryptedId,
-                        path: encryptedPath
+                        path: encryptedPath,
+                        reference_type :reference_type,
+                        type: type
                     }),
                     success: function(response) {
                         if (response.success) {
@@ -852,6 +891,9 @@
                 const overlay = document.getElementById('popupOverlay');
                 const operatorDropdown = document.getElementById('custom_dropdownOpr');
                 const editORcreate = document.getElementById('editORcreate');
+                const categorydropdownDprt = document.getElementById('category_dropdownOpr');
+                const catconfirmSubmitBtn = document.getElementById('catconfirmSubmitBtn');
+                const catcancelPopupBtn = document.getElementById('catcancelPopupBtn');
 
 
 
@@ -886,6 +928,33 @@
                     };
 
                 }
+                else if (buttonType === 'Action' && viewStepWFSeq === '3') {
+                    debugger;
+
+                    e.preventDefault();
+
+                    const popupD = document.getElementById('categoryPopup');
+                    const overlayD = document.getElementById('categoryOverlay');
+
+                    // ✅ Show popup and overlay
+                    popupD.style.display = 'block';
+                    overlayD.style.display = 'block';
+                    categorydropdownDprt.setAttribute('required', true);
+
+                    catconfirmSubmitBtn.onclick = function () {
+                        // operatorDropdown.removeAttribute('required');
+                        form.action = "{% url 'common_form_action' %}";
+
+                    };
+
+                    // Cancel button inside popup
+                    catcancelPopupBtn.onclick = function () {
+                        categoryPopup.style.display = 'none';
+                        categoryOverlay.style.display = 'none';
+                        e.preventDefault();
+                    };
+
+                }
                 else if (buttonType === 'Submit' && type === 'create') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_post' %}";
@@ -901,7 +970,7 @@
                 } else if (reference_type == "1" && viewStepWFSeq != '3' && buttonType != 'Version') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'reference_workflow' %}";
-                } else if (buttonType === 'Action') {
+                } else if (buttonType === 'Action    ') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_action' %}";
                 }else if (type == "reference" && buttonType != 'Version') {
@@ -1070,6 +1139,35 @@ function formatInputByPattern(inputElement, regexId) {
 }
 
 </script>
+
+{% comment %} <script>
+    $(document).ready(function () {
+        $('.field_select').on('change', function () {
+            const selectedValue = $(this).val();
+            const selectElement = $(this); // to refer inside AJAX success
+
+            if (selectedValue === "") return;
+
+            $.ajax({
+                type: "POST",
+                url: "{% url 'check_file_status' %}",
+                data: {
+                    file_name: selectedValue,
+                    csrfmiddlewaretoken: '{{ csrf_token }}',
+                },
+                success: function (response) {
+                    if (response.status !== 1) {
+                        alert("This file is not allowed. Please select a different one.");
+                        selectElement.val(""); // Reset selection
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error("AJAX Error:", error);
+                }
+            });
+        });
+    });
+</script> {% endcomment %}
 
 <script>
    {% comment %} $('#compareButton').click(function () {
