@@ -697,7 +697,7 @@ def workflow_form_step(request):
         # Step 1: Get prefilled values if matched_form_data_id exists
         prefilled_values = {}
         if matched_form_data_id:
-            if reference_type == '1' or type == 'reference' :
+            if reference_type == '1' :
                 values_qs = FormFieldValuesTemp.objects.filter(form_data_id=matched_form_data_id)
             else:
                 values_qs = FormFieldValues.objects.filter(form_data_id=matched_form_data_id)
@@ -746,7 +746,7 @@ def workflow_form_step(request):
                 if field["field_type"] in ["file", "file multiple"]:
                     file_validation = next((v for v in field["validations"]), None)
                     field["accept"] = file_validation["value"] if file_validation else ""
-                    if reference_type == '1' or type == 'reference':
+                    if reference_type == '1':
                         file_exists = FormFileTemp.objects.filter(field_id=field["id"], form_data_id=matched_form_data_id).exists()
                     else:
                         file_exists = FormFile.objects.filter(field_id=field["id"], form_data_id=matched_form_data_id).exists()
