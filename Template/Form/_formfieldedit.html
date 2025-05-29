@@ -252,7 +252,7 @@
                     {% endfor %}
                 </select>
 
-            {% elif field.field_type == "file_name" %}
+            {% comment %} {% elif field.field_type == "file_name" %}
                <select class="form-control field_select" name="field_{{ field.id }}"
                     {% for attr in field.attributes %} {{ attr }} {% endfor %}
                     {% if readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
@@ -264,10 +264,22 @@
                         {{ option }}
                     </option>
                 {% endfor %}
+            </select> {% endcomment %}
+
+            {% elif field.field_type == "file_name" %}
+            <select class="form-control field_select" name="field_{{ field.id }}"
+                {% for attr in field.attributes %} {{ attr }} {% endfor %}
+                {% if readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
+                
+                <option value="" disabled {% if not field.saved_value %}selected{% endif %}>Select</option>
+                <option value="New File" {% if field.saved_value == "New File" %}selected{% endif %}>New File</option>
+
+                {% for option in field.file_name_options %}
+                    <option value="{{ option }}" {% if option == field.saved_value %}selected{% endif %}>
+                        {{ option }}
+                    </option>
+                {% endfor %}
             </select>
-
-
-
 
 
             {% elif field.field_type == "radio" %}
@@ -304,10 +316,10 @@
                            {% if type == "create" %}
                                onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
                             {% elif  type == "reference" %}
-                            onclick="showScript( {{ matched_form_data_id }}, {{ field.id }}, {{reference_type}})"
+                            onclick="showScript( {{ matched_form_data_id }}, {{ field.id }}, {{reference_type}},'{{type}}')"
         
                            {% else %}
-                               onclick="showScript({{ form_data_id }}, {{ field.id }},{{reference_type}})"
+                               onclick="showScript({{ form_data_id }}, {{ field.id }},{{reference_type}},'{{type}}')"
                            {% endif %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3' %} disabled {% endif %}>
                         </i>
                     </div>
@@ -322,10 +334,10 @@
                        {% if type == "create" %}
                            onclick="showFile(document.getElementById('file_input_{{ field.id }}'))"
                         {% elif type == "reference"%}
-                           onclick="showScript( {{ matched_form_data_id }}, {{ field.id }},{{reference_type}})"
+                           onclick="showScript( {{ matched_form_data_id }}, {{ field.id }},{{reference_type}},'{{type}}')"
                         
                        {% else %}
-                           onclick="showScript( {{ form_data_id }}, {{ field.id }},{{reference_type}})"
+                           onclick="showScript( {{ form_data_id }}, {{ field.id }},{{reference_type}},'{{type}}')"
                        {% endif %} {% if readonlyWF == '1' %} disabled {% endif %}{% if viewStepWFSeq == '3'  %} disabled {% endif %}>
                     </i>
                 </div>
@@ -420,28 +432,27 @@
 <div class="row col-md-12 justify-content-center">
     <input type="hidden" id="clicked_action_id" name="clicked_action_id">
 
-   {% if viewStepWFSeq != '3' %}
-    {% if reference_type == "1" or type == 'reference' %} 
-       {% comment %} <div class="row mt-4"> {% endcomment %}
+        {% if reference_type == "1" or  type == 'reference' %} 
+        {% if viewStepWFSeq != '3' %}
+            <div class="col-md-2 mt-4 text-center">
+                <button type="submit"
+                        class="btn btn-success submit-btn w-100"
+                        id="saveDataButton"
+                        style="border-radius: 15px;">
+                    Save Data
+                </button>
+            </div>
+          {% endif %}  
     <div class="col-md-2 mt-4 text-center">
-        <button type="submit"
-                class="btn btn-success submit-btn w-100"
-                id="saveDataButton"
-                style="border-radius: 15px;">
-            Save Data
-        </button>
-    </div>
-  <div class="col-md-2 mt-4 text-center">
-        <button type="button"
-                class="btn btn-primary w-100"
-                id="compareButton"
-                style="border-radius: 15px;">
-            Compare Data
-        </button>
-    </div>
+            <button type="button"
+                    class="btn btn-primary w-100"
+                    id="compareButton"  {% if data_save_status != '1' and  type == 'reference' and viewStepWFSeq != '3'%} disabled{% endif %} 
+                    style="border-radius: 15px;">
+                Compare Data
+            </button>
+        </div>
 
     {% endif %}  
- {% endif %} 
 
 
 
@@ -463,7 +474,7 @@
                         data-action-id="{{ action.id }}"
                         {% if viewStepWFSeq != '3' %}
                             {% if  type == 'reference' %}
-                                {% if data_save_status != '1' %} disabled {% endif %}
+                                {% if data_save_status != '1' and action.button_type != 'Version' %} disabled {% endif %}
                             {% else %}
                                 {% if readonlyWF == '1' %} disabled {% endif %}
                             {% endif %}
@@ -605,7 +616,7 @@
 
         let selectedNewFiles = []; // Global array to store new files
 
-        function showScript(form_data_id, field_id,reference_type) {
+        function showScript(form_data_id, field_id,reference_type, type) {
             debugger;
             
             const inputElement = document.getElementById('file_input_' + field_id);
@@ -650,7 +661,7 @@
                                 : `--`;
         
                             let deleteIcon = file.status === 1
-                                ? `<a href="javascript:void(0);" onclick="deleteFile('${file.encrypted_url}', '${file.file_id}')" ><i class="fa fa-trash" style="color:red;" aria-hidden="true"></i></a>`
+                                ? `<a href="javascript:void(0);" onclick="deleteFile('${file.encrypted_url}', '${file.file_id}','${reference_type}','${type}')" ><i class="fa fa-trash" style="color:red;" aria-hidden="true"></i></a>`
                                 : `--`;
         
                             tableHTML += `
@@ -742,7 +753,8 @@
   </script>
 
   <script>
-    function deleteFile(encryptedPath, encryptedId) {
+    function deleteFile(encryptedPath, encryptedId,reference_type, type) {
+        debugger;
         Swal.fire({
             title: 'Are you sure?',
             text: "You won't be able to revert this!",
@@ -762,7 +774,9 @@
                     },
                     data: JSON.stringify({
                         id: encryptedId,
-                        path: encryptedPath
+                        path: encryptedPath,
+                        reference_type :reference_type,
+                        type: type
                     }),
                     success: function(response) {
                         if (response.success) {

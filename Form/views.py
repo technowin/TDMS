@@ -16,6 +16,7 @@ from django.db.models import Max
 import Db 
 import bcrypt
 from django.contrib.auth.decorators import login_required
+from Masters.views import extract_keywords, extract_text_from_pdf
 from TDMS.encryption import *
 from django.http import HttpResponse
 from reportlab.lib.pagesizes import letter
@@ -801,9 +802,6 @@ def update_action_form(request, form_id):
         Db.closeConnection()
 
 
-
-
-
 def form_master(request):
     try:
 
@@ -927,15 +925,15 @@ def form_master(request):
                 else:
                     reference_type = '0'
                     new_data_id = form_data_id
-                if step_id == '1' or step_id == '6':
-                    version_no = 0
-                else:
-                    version_no = WorkflowVersionControl.objects.filter(form_data=form_data_id).order_by('-version_no').first().temp_version
+                # if step_id == '1' or step_id == '6':
+                #     version_no = 0
+                # else:
+                #     version_no = WorkflowVersionControl.objects.filter(form_data=form_data_id).order_by('-version_no').first().temp_version
 
                 step_name_subquery = Subquery(workflow_matrix.objects.filter(id=OuterRef('step_id')).values('step_name')[:1])
                 custom_user_role_id_subquery = Subquery(CustomUser.objects.filter(id=OuterRef('created_by')).values('role_id')[:1])
                 custom_email_subquery = Subquery(CustomUser.objects.filter(id=OuterRef('created_by')).values('email')[:1])
-                comments_base = ActionData.objects.filter(form_data_id=form_data_id,version=version_no,field__type__in=['text', 'textarea', 'select']
+                comments_base = ActionData.objects.filter(form_data_id=form_data_id,field__type__in=['text', 'textarea', 'select']
                 ).annotate(step_name=step_name_subquery,role_id=custom_user_role_id_subquery,email=custom_email_subquery)
                 comments = comments_base.annotate(role_name=Subquery(roles.objects.filter(id=OuterRef('role_id')).values('role_name')[:1])
                 ).values('field_id','value','step_id','created_at','created_by','step_name','role_name','email',)
@@ -1162,7 +1160,7 @@ def common_form_post(request):
         
         form_dataID = form_data.id
         first_field_checked = False
-        version_no = 0
+        
 
         # Process each field
         for key, value in request.POST.items():
@@ -1221,7 +1219,7 @@ def common_form_post(request):
                 if field.field_type == "file_name":
 
                     form_data.file_ref = input_value
-                    if input_value:
+                    if input_value and input_value != 'New File':
                         VersionControlFileMap.objects.create(form_data=form_dataID,file_name= input_value)
                     form_data.save()
                     if input_value:
@@ -1231,6 +1229,38 @@ def common_form_post(request):
                             form_data_id = form_field_value_obj.form_data_id
                         if form_data_id:
                             VersionControlFileMap.objects.create(form_data=form_data_id,file_name= input_value)
+
+                        field_values = FormFieldValues.objects.filter(form_data_id=form_data_id)
+                        temp_field_values = []
+                        for val in field_values:
+                            temp_field_values.append(FormFieldValuesTemp(
+                                form_id=val.form.id if val.form else None,
+                                form_data_id=val.form_data.id,  
+                                field_id=val.field.id,
+                                value=val.value,
+                                created_by=val.created_by,
+                                updated_by=val.updated_by,
+                            ))
+                        FormFieldValuesTemp.objects.bulk_create(temp_field_values)
+
+                        # Copy FormFile to FormFileTemp
+                        form_files = FormFile.objects.filter(form_data_id=form_data_id)
+                        temp_files = []
+                        for f in form_files:
+                            temp_files.append(FormFileTemp(
+                                file_name=f.file_name,
+                                uploaded_name=f.uploaded_name,
+                                file_path=f.file_path,
+                                file_id=f.file.id,
+                                form_id=f.form.id,
+                                field_id=f.field.id,
+                                form_data_id=f.form_data.id,  # new form_data ID
+                                created_by=f.created_by,
+                                updated_by=f.updated_by,
+                            ))
+                        FormFileTemp.objects.bulk_create(temp_files)
+
+                        
 
                 if field.field_type == 'field_dropdown':
                     values = field.values 
@@ -1452,19 +1482,20 @@ def common_form_edit(request):
                     input_value = request.POST.get(f"field_{field_id}", "").strip()
 
                 if field.field_type == "generative":
-                    file_name = get_object_or_404(FormFieldValues,form_data_id=form_data,field_id= field).value
-                    
+                    file_name = get_object_or_404(FormFieldValues, form_data_id=form_data, field_id=field).value
                     continue
+
+                if field.field_type in ['file', 'file multiple']:
+                    continue
+
                 if type != 'reference':
                     existing_value = FormFieldValues.objects.filter(
-                            form_data=form_data, form=form, field=field
+                        form_data=form_data, form=form, field=field
                     ).first()
                     if existing_value:
-                            # Update existing entry
                         existing_value.value = input_value
                         existing_value.save()
                     else:
-                            # Create new entry
                         FormFieldValues.objects.create(
                             form_data=form_data,
                             form=form,
@@ -1472,7 +1503,9 @@ def common_form_edit(request):
                             value=input_value,
                             created_by=created_by
                         )
-                    handle_uploaded_files(request, form_name, created_by, form_data, user)
+
+            
+        handle_uploaded_files(request, form_name, created_by, form_data, user)
                     
         # Run only if type is reference
         if type == 'reference':
@@ -1907,7 +1940,7 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
                     updated_by=user,
                     field=field
                 )
-                 
+
                 form_field_value = FormFieldValues.objects.filter(
                     form_id=form_data.form.id,
                     field_id=field.id,
@@ -1915,21 +1948,29 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
                 ).first()
 
                 if form_field_value:
-                    # 3. Update values (append or set)
                     if form_field_value.value:
-                        # Already has value, so append new id
-                        existing_ids = form_field_value.value.split(',')
-                        existing_ids.append(str(form_file.id))
+                        existing_ids = [x.strip() for x in form_field_value.value.split(',') if x.strip()]
+                        new_id_str = str(form_file.id)
+                        if new_id_str not in existing_ids:
+                            existing_ids.append(new_id_str)
                         form_field_value.value = ','.join(existing_ids)
                     else:
-                        # No value yet, set directly
                         form_field_value.value = str(form_file.id)
-
                     form_field_value.save()
 
-                    # 4. Update FormFile to add file_id (which is FormFieldValues' id)
                     form_file.file_id = form_field_value.id
                     form_file.save()
+
+
+                # OCR + Keyword extraction
+                # text = extract_text_from_pdf(os.path.join(MEDIA_ROOT,relative_file_path))
+                # keywords = extract_keywords(text)
+                # ocr_doc = Document.objects.create(
+                #     title=saved_file_name,
+                #     pdf_file=relative_file_path,
+                #     extracted_text=text,
+                #     keywords=', '.join(keywords)
+                # ) 
 
 
 
@@ -2255,30 +2296,64 @@ def download_file(request):
     except Exception as e:
         raise Http404("Invalid or corrupted file path")
     
+# def delete_file(request):
+#     if request.method == "POST":
+#         try:
+#             data = json.loads(request.body)
+#             enc_id = data.get("id")
+#             enc_path = data.get("path")
+#             reference_type = data.get("reference_type")
+#             type = data.get("type")
+
+#             file_id = dec(enc_id)
+#             file_path = dec(enc_path)
+
+#             # Delete the file record
+#             form_file = FormFile.objects.get(id=file_id)
+#             full_path = os.path.join(settings.MEDIA_ROOT, file_path)
+
+#             if os.path.exists(full_path):
+#                 os.remove(full_path)
+
+#             form_file.delete()
+
+#             return JsonResponse({"success": True})
+#         except Exception as e:
+#             traceback.print_exc()
+#             return JsonResponse({"success": False, "error": "Could not delete file"}, status=500)
+#     return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
+
 def delete_file(request):
     if request.method == "POST":
         try:
             data = json.loads(request.body)
             enc_id = data.get("id")
             enc_path = data.get("path")
+            reference_type = data.get("reference_type")
+            type = data.get("type")
 
             file_id = dec(enc_id)
             file_path = dec(enc_path)
-
-            # Delete the file record
-            form_file = FormFile.objects.get(id=file_id)
             full_path = os.path.join(settings.MEDIA_ROOT, file_path)
 
-            if os.path.exists(full_path):
-                os.remove(full_path)
-
-            form_file.delete()
+            # Only delete DB entry, not the file from filesystem
+            if type == "reference" or reference_type == '1':
+                # Delete from FormFileTemp
+                FormFileTemp.objects.filter(id=file_id).delete()
+            elif type is None and reference_type is None:
+                if os.path.exists(full_path):
+                    os.remove(full_path)
+                    FormFile.objects.filter(id=file_id).delete()
 
             return JsonResponse({"success": True})
+
         except Exception as e:
             traceback.print_exc()
-            return JsonResponse({"success": False, "error": "Could not delete file"}, status=500)
+            return JsonResponse({"success": False, "error": "Could not delete file entry"}, status=500)
+
     return JsonResponse({"success": False, "error": "Invalid request method"}, status=405)
+
+
 
 
 
@@ -2421,6 +2496,19 @@ def reference_workflow(request):
         FormFieldValuesTemp.objects.filter(form_data_id=matched_form_data_id, form_id=form_id).delete()
         FormFileTemp.objects.filter(form_data_id=matched_form_data_id, form_id=form_id).delete()
 
+        form_files = FormFile.objects.filter(form_data_id=matched_form_data_id, form_id=form_id)
+        for file_obj in form_files:
+            FormFileTemp.objects.create(
+                form_data_id=file_obj.form_data.id,
+                form_id=file_obj.form.id,
+                field_id=file_obj.field.id,
+                file_path = file_obj.file_path,
+                file_id=file_obj.file.id,
+                uploaded_name=file_obj.uploaded_name,
+                created_by=created_by,
+                updated_by=created_by
+            )
+
         for key, value in request.POST.items():
             if key.startswith("field_id_"):
                 field_id = value.strip()
@@ -2513,7 +2601,7 @@ def handle_uploaded_files_temp(request, form_name, created_by, matched_form_data
                     updated_by=user,
                     field_id=field_id
                 )
-
+                
                 temp_field_value = FormFieldValuesTemp.objects.filter(
                     form_id=form_id,
                     field_id=field_id,
@@ -2531,6 +2619,8 @@ def handle_uploaded_files_temp(request, form_name, created_by, matched_form_data
 
                     form_file_temp.file_id = temp_field_value.id
                     form_file_temp.save()
+                
+            
 
     except Exception:
         traceback.print_exc()

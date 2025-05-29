@@ -108,7 +108,7 @@ def upload_document(request):
 
         if title and pdf_file:
             # Save file to media/documents/
-            fs = FileSystemStorage(location=os.path.join(settings.MEDIA_ROOT, 'documents'))
+            fs = FileSystemStorage(location=os.path.join(settings.MEDIA_ROOT, 'ocr_docs'))
             filename = fs.save(pdf_file.name, pdf_file)
             file_path = os.path.join(fs.location, filename)
 
@@ -119,7 +119,7 @@ def upload_document(request):
             # Save to DB
             document = Document.objects.create(
                 title=title,
-                pdf_file=os.path.join('documents', filename),
+                pdf_file=os.path.join('ocr_docs', filename),
                 extracted_text=text,
                 keywords=', '.join(keywords)
             )
@@ -145,10 +145,13 @@ def search_documents(request):
     def process_documents(docs):
         processed = []
         for doc in docs:
+            file_path = os.path.join(MEDIA_ROOT, str(doc.pdf_file)) if doc.pdf_file else ""
+            file_exists = os.path.exists(file_path) if file_path else False
             processed.append({
                 'id': doc.id,
                 'title': doc.title,
-                'pdf_file': doc.pdf_file,
+                'pdf_file': enc(doc.pdf_file) if file_exists else None,
+                'file_exists': file_exists,
                 'keywords': doc.keywords,
                 'uploaded_at': doc.uploaded_at,
                 'keywords_list': doc.keywords.split(',') if doc.keywords else []
@@ -206,7 +209,7 @@ def search_documents(request):
 def document_detail(request, document_id):
     document = get_object_or_404(Document, id=document_id)
     keywords = document.keywords.split(',')[:20]  # Top 20
-
+    full_path = os.path.join(MEDIA_URL,str(document.pdf_file)).replace('\\', '/')
     text = document.extracted_text
     for idx, keyword in enumerate(keywords):
         pattern = r'\b' + re.escape(keyword) + r'\b'
@@ -214,9 +217,7 @@ def document_detail(request, document_id):
         text = re.sub(pattern, span, text, flags=re.IGNORECASE)
 
     return render(request, 'Master/document_keyword.html', {
-        'document': document,
-        'keywords': keywords,
-        'highlighted_text': text
+        'document': document,'full_path': full_path,'keywords': keywords,'highlighted_text': text
     })
 
 @login_required
@@ -224,7 +225,6 @@ def masters(request):
     pre_url = request.META.get('HTTP_REFERER')
     header, data = [], []
     entity = type = name = id = text_name = dpl = dp = em = mb = forms = sf = ''
-    MEDIA_ROOT = os.path.join(BASE_DIR, '/home/ubuntu/Documents/')
 
     try:
         if request.user.is_authenticated ==True:                

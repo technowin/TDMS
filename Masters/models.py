@@ -3,11 +3,20 @@ from django.db import models
 from Account.models import *
 
 class Document(models.Model):
-    title = models.CharField(max_length=255)
-    pdf_file = models.FileField(upload_to='ocr_docs/')
+    title = models.TextField(blank=True, null=True)
+    pdf_file = models.TextField(blank=True, null=True)
     extracted_text = models.TextField(blank=True, null=True)
     keywords = models.TextField(blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
+    form_file_id = models.TextField(null=True, blank=True)
+    file_name = models.TextField(null=True, blank=True)
+    uploaded_name = models.TextField(null=True, blank=True)
+    file_path = models.TextField(null=True, blank=True)
+    field_id = models.TextField(null=True, blank=True)
+    file_id = models.TextField(null=True, blank=True)
+    form_id = models.TextField(null=True, blank=True)
+    form_data_id = models.TextField(null=True, blank=True)
+    logged_at = models.DateTimeField(null=True, blank=True,auto_now_add=True)
     class Meta:
         db_table = 'ocr_file_upload'
     def __str__(self):
