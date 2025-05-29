@@ -109,7 +109,7 @@ def ocr_files(request):
         for doc in docs:
             if not doc.file_path:
                 continue
-            file_path = os.path.join(MEDIA_ROOT, str(doc.file_path))
+            file_path = os.path.join(MEDIA_URL, str(doc.file_path))
             _, ext = os.path.splitext(file_path) 
             if ext.lower() in excel_extensions:
                 continue
