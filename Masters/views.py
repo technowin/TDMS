@@ -114,7 +114,7 @@ def ocr_files(request):
             if ext.lower() in excel_extensions:
                 continue
             if os.path.exists(file_path):
-                text = extract_text_from_pdf(doc.file_path)
+                text = extract_text_from_pdf(file_path)
                 keywords = extract_keywords(text)  
                 Document.objects.filter(form_data_id=doc.form_data_id).update(
                     title=doc.file_name,
@@ -126,11 +126,11 @@ def ocr_files(request):
     except Exception as e:
         tb = traceback.extract_tb(e.__traceback__)
         fun = tb[0].name
-        error_log.objects.create(method=fun,error=str(e),user=1)  
+        error_log.objects.create(method=fun,error=str(e),user="Batch Process")  
 
         # callproc("stp_error_log",[fun,str(e),user])
-    # finally:
-    #     return True
+    finally:
+        return True
       
  
 
