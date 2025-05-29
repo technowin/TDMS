@@ -1141,6 +1141,35 @@ function formatInputByPattern(inputElement, regexId) {
 </script>
 
 <script>
+    $(document).ready(function () {
+        $('.field_select').on('change', function () {
+            const selectedValue = $(this).val();
+            const selectElement = $(this); // to refer inside AJAX success
+
+            if (selectedValue === "") return;
+
+            $.ajax({
+                type: "POST",
+                url: "{% url 'check_file_status' %}",
+                data: {
+                    file_name: selectedValue,
+                    csrfmiddlewaretoken: '{{ csrf_token }}',
+                },
+                success: function (response) {
+                    if (response.status !== 1) {
+                        alert("This file is not allowed. Please select a different one.");
+                        selectElement.val(""); // Reset selection
+                    }
+                },
+                error: function (xhr, status, error) {
+                    console.error("AJAX Error:", error);
+                }
+            });
+        });
+    });
+</script>
+
+<script>
    {% comment %} $('#compareButton').click(function () {
     // Assume you get these values from somewhere (input fields, data attributes, etc.)
     let matched_form_data_id = $('#matched_form_data_id').val();  // or use a JS variable

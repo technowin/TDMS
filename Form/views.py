@@ -1217,15 +1217,15 @@ def common_form_post(request):
 
                     form_data.file_ref = input_value
                     if input_value and input_value != 'New File':
-                        VersionControlFileMap.objects.create(form_data=form_dataID,file_name= input_value)
+                        VersionControlFileMap.objects.create(form_data=form_dataID,file_name= input_value,status= 0)
                     form_data.save()
-                    if input_value:
+                    if input_value and input_value != 'New File':
 
                         form_field_value_obj = FormFieldValues.objects.filter(value=input_value).first()
                         if form_field_value_obj:
                             form_data_id = form_field_value_obj.form_data_id
                         if form_data_id:
-                            VersionControlFileMap.objects.create(form_data=form_data_id,file_name= input_value)
+                            VersionControlFileMap.objects.create(form_data=form_data_id,file_name= input_value, status= 0)
 
                         field_values = FormFieldValues.objects.filter(form_data_id=form_data_id)
                         temp_field_values = []
@@ -1403,8 +1403,6 @@ def common_form_post(request):
                 #     ).order_by('-id').values_list('file_category', flat=True).first()
 
 
-                    
-            
             for key, value in request.POST.items():
                 if key.startswith("action_field_") and not key.startswith("action_field_id_"):
                     match = re.match(r'action_field_(\d+)', key)
@@ -1568,6 +1566,11 @@ def common_form_edit(request):
                         created_by=temp_file.created_by,
                     )
                 callproc("stp_delete_temp_file",[form.id,form_data.id])
+
+                file_obj = get_object_or_404(VersionControlFileMap, form_data=form_data_id)
+                file_name = file_obj.file_name
+                VersionControlFileMap.objects.filter(file_name=file_name).update(status=1)
+                
 
 
 
@@ -2737,4 +2740,19 @@ def preview_file(request):
 
     return JsonResponse({'success': False, 'error': 'Invalid method'})
         
+
+def check_file_status(request):
+    file_name = request.POST.get('file_name')
+    if file_name == 'New File':
+        return JsonResponse({"status": 0})
+
+    if not file_name:
+        return JsonResponse({"status": 0, "error": "Missing file_name"})
+
+    latest_entry = VersionControlFileMap.objects.filter(file_name=file_name).order_by('-id').first()
+
+    if latest_entry and latest_entry.status == 1:
+        return JsonResponse({"status": 1})
+    else:
+        return JsonResponse({"status": 0})
 
