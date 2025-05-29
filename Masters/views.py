@@ -95,6 +95,43 @@ def extract_keywords(text, num_keywords=100):
 
 
 
+def ocr_files(request):
+    try:
+        from django.utils.timezone import localdate
+        from django.db.models import Max
+
+        today = localdate()  
+        latest_docs = (Document.objects.values('file_path').annotate(latest_id=Max('id')).values_list('latest_id', flat=True))
+        Document.objects.exclude(id__in=latest_docs).delete()
+        docs = Document.objects.filter(keywords__isnull=True,extracted_text__isnull=True)
+        excel_extensions = {'.xls', '.xlsx'}
+        # docs = Document.objects.filter(uploaded_at__date=today,keywords__isnull=True,extracted_text__isnull=True).order_by('-uploaded_at')
+        for doc in docs:
+            if not doc.file_path:
+                continue
+            file_path = os.path.join(MEDIA_ROOT, str(doc.file_path))
+            _, ext = os.path.splitext(file_path) 
+            if ext.lower() in excel_extensions:
+                continue
+            if os.path.exists(file_path):
+                text = extract_text_from_pdf(doc.file_path)
+                keywords = extract_keywords(text)  
+                Document.objects.filter(form_data_id=doc.form_data_id).update(
+                    title=doc.file_name,
+                    pdf_file=doc.file_path,
+                    extracted_text=text,
+                    keywords=', '.join(keywords)
+                )
+
+    except Exception as e:
+        tb = traceback.extract_tb(e.__traceback__)
+        fun = tb[0].name
+        callproc("stp_error_log",[fun,str(e),user])  
+    finally:
+        return True
+      
+ 
+
 import os
 from django.shortcuts import render, redirect
 from .models import Document
