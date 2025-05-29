@@ -1140,7 +1140,7 @@ function formatInputByPattern(inputElement, regexId) {
 
 </script>
 
-<script>
+{% comment %} <script>
     $(document).ready(function () {
         $('.field_select').on('change', function () {
             const selectedValue = $(this).val();
@@ -1167,7 +1167,7 @@ function formatInputByPattern(inputElement, regexId) {
             });
         });
     });
-</script>
+</script> {% endcomment %}
 
 <script>
    {% comment %} $('#compareButton').click(function () {
