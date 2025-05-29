@@ -1230,35 +1230,35 @@ def common_form_post(request):
                         if form_data:
                             VersionControlFileMap.objects.create(form_data=form_data,file_name= input_value, status= 0)
 
-                        field_values = FormFieldValues.objects.filter(form_data_id=form_data)
-                        temp_field_values = []
-                        for val in field_values:
-                            temp_field_values.append(FormFieldValuesTemp(
-                                form_id=val.form.id if val.form else None,
-                                form_data_id=val.form_data.id,  
-                                field_id=val.field.id,
-                                value=val.value,
-                                created_by=val.created_by,
-                                updated_by=val.updated_by,
-                            ))
-                        FormFieldValuesTemp.objects.bulk_create(temp_field_values)
+                            # field_values = FormFieldValues.objects.filter(form_data_id=form_data)
+                            # temp_field_values = []
+                            # for val in field_values:
+                            #     temp_field_values.append(FormFieldValuesTemp(
+                            #         form_id=val.form.id if val.form else None,
+                            #         form_data_id=val.form_data.id,  
+                            #         field_id=val.field.id,
+                            #         value=val.value,
+                            #         created_by=val.created_by,
+                            #         updated_by=val.updated_by,
+                            #     ))
+                            # FormFieldValuesTemp.objects.bulk_create(temp_field_values)
 
-                        # Copy FormFile to FormFileTemp
-                        form_files = FormFile.objects.filter(form_data_id=form_data)
-                        temp_files = []
-                        for f in form_files:
-                            temp_files.append(FormFileTemp(
-                                file_name=f.file_name,
-                                uploaded_name=f.uploaded_name,
-                                file_path=f.file_path,
-                                file_id=f.file.id,
-                                form_id=f.form.id,
-                                field_id=f.field.id,
-                                form_data_id=f.form_data.id,  # new form_data ID
-                                created_by=f.created_by,
-                                updated_by=f.updated_by,
-                            ))
-                        FormFileTemp.objects.bulk_create(temp_files)
+                            # # Copy FormFile to FormFileTemp
+                            # form_files = FormFile.objects.filter(form_data_id=form_data)
+                            # temp_files = []
+                            # for f in form_files:
+                            #     temp_files.append(FormFileTemp(
+                            #         file_name=f.file_name,
+                            #         uploaded_name=f.uploaded_name,
+                            #         file_path=f.file_path,
+                            #         file_id=f.file.id,
+                            #         form_id=f.form.id,
+                            #         field_id=f.field.id,
+                            #         form_data_id=f.form_data.id,  # new form_data ID
+                            #         created_by=f.created_by,
+                            #         updated_by=f.updated_by,
+                            #     ))
+                            # FormFileTemp.objects.bulk_create(temp_files)
 
                         
 
@@ -1486,7 +1486,7 @@ def common_form_edit(request):
                 if field.field_type in ['file', 'file multiple']:
                     continue
 
-                if type != 'reference':
+                if type != 'reference' or reference_type !='1':
                     existing_value = FormFieldValues.objects.filter(
                         form_data=form_data, form=form, field=field
                     ).first()
@@ -1506,7 +1506,7 @@ def common_form_edit(request):
         handle_uploaded_files(request, form_name, created_by, form_data, user)
                     
         # Run only if type is reference
-        if type == 'reference':
+        if type == 'reference' or reference_type =='1':
             workflow_name = 'CIDCO File Scanning and DMS Flow'
             form_id = form.id
 
@@ -2496,20 +2496,20 @@ def reference_workflow(request):
 
         # Clear temp values for this form_data_id and form_id
         FormFieldValuesTemp.objects.filter(form_data_id=matched_form_data_id, form_id=form_id).delete()
-        # FormFileTemp.objects.filter(form_data_id=matched_form_data_id, form_id=form_id).delete()
+        FormFileTemp.objects.filter(form_data_id=matched_form_data_id, form_id=form_id).delete()
 
-        # form_files = FormFile.objects.filter(form_data_id=matched_form_data_id, form_id=form_id)
-        # for file_obj in form_files:
-        #     FormFileTemp.objects.create(
-        #         form_data_id=file_obj.form_data.id,
-        #         form_id=file_obj.form.id,
-        #         field_id=file_obj.field.id,
-        #         file_path = file_obj.file_path,
-        #         file_id=file_obj.file.id,
-        #         uploaded_name=file_obj.uploaded_name,
-        #         created_by=created_by,
-        #         updated_by=created_by
-        #     )
+        form_files = FormFile.objects.filter(form_data_id=matched_form_data_id, form_id=form_id)
+        for file_obj in form_files:
+            FormFileTemp.objects.create(
+                form_data_id=file_obj.form_data.id,
+                form_id=file_obj.form.id,
+                field_id=file_obj.field.id,
+                file_path = file_obj.file_path,
+                file_id=file_obj.file.id,
+                uploaded_name=file_obj.uploaded_name,
+                created_by=created_by,
+                updated_by=created_by
+            )
 
         for key, value in request.POST.items():
             if key.startswith("field_id_"):

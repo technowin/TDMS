@@ -575,7 +575,7 @@
     <br>
     <div style="margin-top: 15px; text-align: center;">
         <button id="catconfirmSubmitBtn" class="btn btn-primary">Confirm</button>
-        <button id="catcancelPopupBtn" class="btn btn-secondary">Cancel</button>
+        <button id="catcancelPopupBtn" class="btn btn-secondary" type="button">Cancel</button>
     </div>
 
 </div>
@@ -949,11 +949,18 @@
                     };
 
                     // Cancel button inside popup
-                    catcancelPopupBtn.onclick = function () {
-                        categoryPopup.style.display = 'none';
-                        categoryOverlay.style.display = 'none';
+                    
+                    if (catcancelPopupBtn) {
+                        debugger;
                         e.preventDefault();
-                    };
+                        catcancelPopupBtn.onclick = function () {
+                            popupD.style.display = 'none';
+                            overlayD.style.display = 'none';
+                            
+                        };
+                    } else {
+                        console.error("catcancelPopupBtn not found in the DOM.");
+                    }
 
                 }
                 else if (buttonType === 'Submit' && type === 'create') {
