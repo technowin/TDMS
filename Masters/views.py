@@ -116,7 +116,7 @@ def ocr_files(request):
             if os.path.exists(file_path):
                 text = extract_text_from_pdf(file_path)
                 keywords = extract_keywords(text)  
-                Document.objects.filter(form_data_id=doc.form_data_id).update(
+                Document.objects.filter(id=doc.id).update(
                     title=doc.file_name,
                     pdf_file=doc.file_path,
                     extracted_text=text,
