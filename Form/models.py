@@ -325,6 +325,7 @@ class VersionControlFileMap(models.Model):
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     updated_by =  models.TextField(null=True, blank=True)
+    status = models.BooleanField(null=True, blank=True)
     class Meta:
         db_table = 'version_control_file_map'
 

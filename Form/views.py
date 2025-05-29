@@ -1219,7 +1219,7 @@ def common_form_post(request):
                     if input_value and input_value != 'New File':
                         VersionControlFileMap.objects.create(form_data=form_dataID,file_name= input_value)
                     form_data.save()
-                    if input_value:
+                    if input_value and input_value != 'New File':
 
                         form_field_value_obj = FormFieldValues.objects.filter(value=input_value).first()
                         if form_field_value_obj:
