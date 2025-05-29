@@ -207,6 +207,7 @@
             <input type="hidden" id = "viewStepWFSeq" name = "viewStepWFSeq" value ="{{viewStepWFSeq}}">
             <input type="hidden" id = "new_form_data_id" name = "new_form_data_id" value ="{{new_form_data_id}}">
             <input type="hidden" id = "inward_req_id" name = "inward_req_id" value ="{{inward_req_id}}">
+            <input type="hidden" id="category_dropdownOpr" name="category_dropdownOpr">
             
 
             {% if field.field_type == "select"  %}
@@ -537,6 +538,41 @@
 
 {% comment %} ends here {% endcomment %}
 
+
+<div>
+
+{% comment %} added for category dropdown {% endcomment %}
+
+<div id="categoryPopup" style="display: none; position: fixed; top: 50%; left: 50%;
+    transform: translate(-50%, -50%); z-index: 9999; background: white; padding: 20px;
+    box-shadow: 0px 0px 10px rgba(0,0,0,0.5); border-radius: 8px;">
+
+    <label for="category_dropdownOpr">Select Category:</label>
+    {% comment %} <select name="category_dropdownOpr" id="category_dropdownOpr" class="form-control">
+        <option value="">--Select--</option>
+        {% for item in category_dropD %}
+            <option value="{{ item.value }}">{{ item.text }}</option>
+        {% endfor %}
+    </select> {% endcomment %}
+    <select name="category_dropdownOpr" id="category_dropdownOpr" class="form-control">
+        <option value="">--Select--</option>
+        {% for item in category_dropD %}
+            <option value="{{ item.value }}" {% if item.value == file_cat_val %}selected{% endif %}>{{ item.text }}</option>
+        {% endfor %}
+    </select>
+
+    <br>
+    <div style="margin-top: 15px; text-align: center;">
+        <button id="catconfirmSubmitBtn" class="btn btn-primary">Confirm</button>
+        <button id="catcancelPopupBtn" class="btn btn-secondary">Cancel</button>
+    </div>
+
+</div>
+
+<div id="categoryOverlay" style="display: none; position: fixed; top: 0; left: 0;
+    width: 100vw; height: 30vh; background: rgba(0,0,0,0.3); z-index: 9990;"></div>
+    {% comment %} added for category dropdown {% endcomment %}
+
 </form>
 
 </div>
@@ -841,6 +877,9 @@
                 const overlay = document.getElementById('popupOverlay');
                 const operatorDropdown = document.getElementById('custom_dropdownOpr');
                 const editORcreate = document.getElementById('editORcreate');
+                const categorydropdownDprt = document.getElementById('category_dropdownOpr');
+                const catconfirmSubmitBtn = document.getElementById('catconfirmSubmitBtn');
+                const catcancelPopupBtn = document.getElementById('catcancelPopupBtn');
 
 
 
@@ -875,6 +914,33 @@
                     };
 
                 }
+                else if (buttonType === 'Action' && viewStepWFSeq === '3') {
+                    debugger;
+
+                    e.preventDefault();
+
+                    const popupD = document.getElementById('categoryPopup');
+                    const overlayD = document.getElementById('categoryOverlay');
+
+                    // ✅ Show popup and overlay
+                    popupD.style.display = 'block';
+                    overlayD.style.display = 'block';
+                    categorydropdownDprt.setAttribute('required', true);
+
+                    catconfirmSubmitBtn.onclick = function () {
+                        // operatorDropdown.removeAttribute('required');
+                        form.action = "{% url 'common_form_action' %}";
+
+                    };
+
+                    // Cancel button inside popup
+                    catcancelPopupBtn.onclick = function () {
+                        categoryPopup.style.display = 'none';
+                        categoryOverlay.style.display = 'none';
+                        e.preventDefault();
+                    };
+
+                }
                 else if (buttonType === 'Submit' && type === 'create') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_post' %}";
@@ -890,7 +956,7 @@
                 } else if (reference_type == "1" && viewStepWFSeq != '3' && buttonType != 'Version') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'reference_workflow' %}";
-                } else if (buttonType === 'Action') {
+                } else if (buttonType === 'Action    ') {
                     operatorDropdown.removeAttribute('required');
                     form.action = "{% url 'common_form_action' %}";
                 }else if (type == "reference" && buttonType != 'Version') {
