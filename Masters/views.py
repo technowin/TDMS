@@ -122,7 +122,7 @@ def ocr_files(request):
                     extracted_text=text,
                     keywords=', '.join(keywords)
                 )
-        return HttpResponse(f"<div style='color:red; font-family: Arial;'> OCR Batch Processed Successfully </div>")
+        return HttpResponse(f"<div style='color:green; font-family: Arial;'> OCR Batch Processed Successfully </div>")
     except Exception as e:
         tb = traceback.extract_tb(e.__traceback__)
         fun = tb[0].name
