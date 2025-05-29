@@ -160,7 +160,53 @@ python manage.py migrate Reports
 python manage.py migrate Workflow
 
 python manage.py startapp Workflow
+curl -s http://15.207.169.98/ocr_files
 
 git config --global user.name "technowin"
 git config --global user.email "technowinitinfra@gmail.com"
 git remote add origin https://github.com/technowin/TDMS.git
+
+
+#######  FOR GUNICORN TIMEOUT  ######
+
+we add --timeout 120 \ 
+
+go to this file  :- sudo vim /etc/systemd/system/gunicorn.service
+sudo vim /etc/systemd/system/bulkmail.service
+
+[Service]
+User=ubuntu
+Group=www-data
+WorkingDirectory=/home/ubuntu/TDMS
+ExecStart=/home/ubuntu/TDMS/env/bin/gunicorn \
+          --access-logfile - \
+          --workers 3 \
+          --timeout 21600 \ #add this you can increase as needed
+          --bind unix:/run/gunicorn.sock \
+          TDMS.wsgi:application
+
+Restart this : 
+sudo systemctl daemon-reload
+sudo systemctl restart gunicorn
+sudo systemctl status gunicorn
+sudo systemctl cat gunicorn
+
+#######  FOR NGNIX TIMEOUT  ######
+path :
+cd /etc/nginx
+sudo vim /etc/nginx/nginx.conf
+client_max_body_size 20M;
+
+proxy_connect_timeout 21600s;
+proxy_read_timeout 21600s;
+proxy_send_timeout 21600s;
+
+sudo systemctl start bulkmail.service
+journalctl -u bulkmail.service -n 100
+
+restart this after going to project folder : cd /home/ubuntu/TDMS
+sudo systemctl restart nginx
+sudo service nginx restart
+sudo service gunicorn restart
+sudo curl -s https://lknconsultants.net/bulk_mail
+curl -s http://15.207.169.98/ocr_files
