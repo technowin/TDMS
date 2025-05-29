@@ -66,7 +66,7 @@ class error_log(models.Model):
     method =models.TextField(null=True,blank=True)
     error =models.TextField(null=True,blank=True)
     error_date = models.DateTimeField(null=True,blank=True,auto_now_add=True)
-    user = models.ForeignKey(CustomUser, on_delete=models.CASCADE,related_name='error_by',blank=True, null=True)
+    user = models.TextField(null=True,blank=True)
     
     class Meta:
         db_table = 'error_log'

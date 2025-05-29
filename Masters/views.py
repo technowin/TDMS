@@ -109,7 +109,7 @@ def ocr_files(request):
         for doc in docs:
             if not doc.file_path:
                 continue
-            file_path = os.path.join(MEDIA_URL, str(doc.file_path))
+            file_path = os.path.join(MEDIA_ROOT, str(doc.file_path))
             _, ext = os.path.splitext(file_path) 
             if ext.lower() in excel_extensions:
                 continue
@@ -126,9 +126,11 @@ def ocr_files(request):
     except Exception as e:
         tb = traceback.extract_tb(e.__traceback__)
         fun = tb[0].name
-        callproc("stp_error_log",[fun,str(e),user])  
-    finally:
-        return True
+        error_log.objects.create(method=fun,error=str(e),user=1)  
+
+        # callproc("stp_error_log",[fun,str(e),user])
+    # finally:
+    #     return True
       
  
 
