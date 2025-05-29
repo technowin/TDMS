@@ -1486,7 +1486,7 @@ def common_form_edit(request):
                 if field.field_type in ['file', 'file multiple']:
                     continue
 
-                if type != 'reference':
+                if type != 'reference' or reference_type !='1':
                     existing_value = FormFieldValues.objects.filter(
                         form_data=form_data, form=form, field=field
                     ).first()
@@ -1864,7 +1864,7 @@ def handle_generative_fields(form, form_data, created_by):
 
             # Step 3: Save the generated value
             FormFieldValues.objects.create(
-                form_data=get_object_or_404(FormData,id = form_data),
+                form_data=form_data,
                 form=form,
                 field=field,
                 value=final_value,
