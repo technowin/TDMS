@@ -911,7 +911,8 @@ def form_master(request):
             readonlyWF = request.GET.get('readonlyWF', '')
             viewStepWF = request.GET.get('viewStepWF', '')
             type = request.GET.get('type','')
-
+            category_dropD = para_master.objects.filter(para_name='Category').values(value=F('para_details'), text=F('description'))
+            
             
             if form_data_id:
                 form_data_id = dec(form_data_id)
@@ -1104,12 +1105,14 @@ def form_master(request):
 
                     action_data = list(ActionData.objects.filter(form_data_id=form_data_id).values())
                     
+                    file_cat_val = WorkflowVersionControl.objects.filter(form_data_id=form_data_id).order_by('-id').values_list('file_category', flat=True).first()
+                    
 
                     for af in action_fields:
                         af["dropdown_values"] = af["dropdown_values"].split(",") if af.get("dropdown_values") else []
                     if workflow_YN == '1E':
                         return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"workflow":workflow_YN,"reference_type":reference_type,
-                                    "step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF,"action_data":action_data,"new_data_id":new_data_id,"grouped_data":grouped_data})
+                                    "step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF,"action_data":action_data,"new_data_id":new_data_id,"grouped_data":grouped_data,"category_dropD":category_dropD,'file_cat_val': file_cat_val,})
                     else:
                         return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"readonlyWF":readonlyWF,"viewStepWFSeq":'0',"action_data":action_data,"type":type,"reference_type":reference_type,"grouped_data":grouped_data})
             else:
@@ -2137,6 +2140,7 @@ def common_form_action(request):
                 wfdetailsid = request.POST.get('wfdetailsid', '')
                 step_id = request.POST.get('step_id', '')
                 role_idC = request.POST.get('role_id', '')
+                category_dropdownOpr = request.POST.get('category_dropdownOpr', '')
                 if wfdetailsid and wfdetailsid != 'undefined':
                     wfdetailsid=dec(wfdetailsid)
                 else:
@@ -2241,7 +2245,15 @@ def common_form_action(request):
                             # latest_row.version_no = +0.1
                             latest_row.version_no = round(latest_row.version_no + 0.1, 1)
                             latest_row.save()    
-                    
+                if role_idC == '4' and category_dropdownOpr:
+                    latest_obj = WorkflowVersionControl.objects.filter(form_data_id=form_data_id).order_by('-id').first()
+
+                    if latest_obj:
+                        latest_obj.file_category = category_dropdownOpr
+                        latest_obj.save()
+                    # WorkflowVersionControl.objects.filter(form_data_id=form_data_id).update(file_category=category_dropdownOpr)
+
+                         
                 
                 messages.success(request, "Workflow data saved successfully!")
         
