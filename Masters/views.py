@@ -122,15 +122,14 @@ def ocr_files(request):
                     extracted_text=text,
                     keywords=', '.join(keywords)
                 )
-
+        return HttpResponse(f"<div style='color:red; font-family: Arial;'> OCR Batch Processed Successfully </div>")
     except Exception as e:
         tb = traceback.extract_tb(e.__traceback__)
         fun = tb[0].name
         error_log.objects.create(method=fun,error=str(e),user="Batch Process")  
-
+        return HttpResponse(f"<div style='color:red; font-family: Arial;'>Batch failed: {str(e)}</div>")
         # callproc("stp_error_log",[fun,str(e),user])
-    finally:
-        return True
+
       
  
 
