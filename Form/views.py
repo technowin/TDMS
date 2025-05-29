@@ -911,6 +911,7 @@ def form_master(request):
             readonlyWF = request.GET.get('readonlyWF', '')
             viewStepWF = request.GET.get('viewStepWF', '')
             type = request.GET.get('type','')
+            category_dropD = para_master.objects.filter(para_name='Category').values(value=F('para_details'), text=F('description'))
 
             
             if form_data_id:
@@ -1103,13 +1104,15 @@ def form_master(request):
                     action_fields = list(action_fields)
 
                     action_data = list(ActionData.objects.filter(form_data_id=form_data_id).values())
+
+                    file_cat_val = WorkflowVersionControl.objects.filter(form_data_id=form_data_id).order_by('-id').values_list('file_category', flat=True).first()
                     
 
                     for af in action_fields:
                         af["dropdown_values"] = af["dropdown_values"].split(",") if af.get("dropdown_values") else []
                     if workflow_YN == '1E':
                         return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"workflow":workflow_YN,"reference_type":reference_type,
-                                    "step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF,"action_data":action_data,"new_data_id":new_data_id,"grouped_data":grouped_data})
+                                    "step_id":step_id,"form_id":form_id_wf,"action_detail_id":2,"role_id":role_id,"wfdetailsid":wfdetailsID,"viewStepWFSeq":viewStepWF,"action_data":action_data,"new_data_id":new_data_id,"grouped_data":grouped_data,"category_dropD":category_dropD,'file_cat_val': file_cat_val,})
                     else:
                         return render(request, "Form/_formfieldedit.html", {"sectioned_fields": dict(sectioned_fields),"fields": fields,"action_fields":action_fields,"type":"edit","form":form,"form_data_id":form_data_id,"readonlyWF":readonlyWF,"viewStepWFSeq":'0',"action_data":action_data,"type":type,"reference_type":reference_type,"grouped_data":grouped_data})
             else:
