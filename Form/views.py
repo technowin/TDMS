@@ -2496,20 +2496,20 @@ def reference_workflow(request):
 
         # Clear temp values for this form_data_id and form_id
         FormFieldValuesTemp.objects.filter(form_data_id=matched_form_data_id, form_id=form_id).delete()
-        # FormFileTemp.objects.filter(form_data_id=matched_form_data_id, form_id=form_id).delete()
+        FormFileTemp.objects.filter(form_data_id=matched_form_data_id, form_id=form_id).delete()
 
-        # form_files = FormFile.objects.filter(form_data_id=matched_form_data_id, form_id=form_id)
-        # for file_obj in form_files:
-        #     FormFileTemp.objects.create(
-        #         form_data_id=file_obj.form_data.id,
-        #         form_id=file_obj.form.id,
-        #         field_id=file_obj.field.id,
-        #         file_path = file_obj.file_path,
-        #         file_id=file_obj.file.id,
-        #         uploaded_name=file_obj.uploaded_name,
-        #         created_by=created_by,
-        #         updated_by=created_by
-        #     )
+        form_files = FormFile.objects.filter(form_data_id=matched_form_data_id, form_id=form_id)
+        for file_obj in form_files:
+            FormFileTemp.objects.create(
+                form_data_id=file_obj.form_data.id,
+                form_id=file_obj.form.id,
+                field_id=file_obj.field.id,
+                file_path = file_obj.file_path,
+                file_id=file_obj.file.id,
+                uploaded_name=file_obj.uploaded_name,
+                created_by=created_by,
+                updated_by=created_by
+            )
 
         for key, value in request.POST.items():
             if key.startswith("field_id_"):
