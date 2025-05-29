@@ -1506,7 +1506,7 @@ def common_form_edit(request):
         handle_uploaded_files(request, form_name, created_by, form_data, user)
                     
         # Run only if type is reference
-        if type == 'reference':
+        if type == 'reference' or reference_type =='1':
             workflow_name = 'CIDCO File Scanning and DMS Flow'
             form_id = form.id
 
@@ -1864,7 +1864,7 @@ def handle_generative_fields(form, form_data, created_by):
 
             # Step 3: Save the generated value
             FormFieldValues.objects.create(
-                form_data=form_data,
+                form_data=get_object_or_404(FormData,id = form_data),
                 form=form,
                 field=field,
                 value=final_value,
