@@ -32,6 +32,7 @@
 <input type="hidden" id="firstStep " name="firstStep " value={{firstStep }}>
 
 
+
     <div class="card mb-4" style="padding: 10px;border: 2px solid #b3b3b3;border-radius: 15px;margin-left:0px;">
     {% comment %} {% if step %} {% endcomment %}
 
@@ -153,6 +154,7 @@
 
                   {% endif %}
               </td>
+             
           </tr>
       {% endfor %}
 
@@ -217,7 +219,7 @@
     }
 </script>  
 <script>
-    function startStep(id,stepId, actionId, formId, WFdetailsID,editORcreate) {
+    function startStep(id,stepId, actionId, formId, WFdetailsID,editORcreate){
       debugger;
         const url = `/workflow_form_step/?id=${id}&step_id=${stepId}&action_id=${actionId}&form_id=${formId}&wfdetailsID=${WFdetailsID}&editORcreate=${editORcreate}`;
         window.location.href = url;
