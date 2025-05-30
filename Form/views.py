@@ -1226,41 +1226,9 @@ def common_form_post(request):
 
                         form_field_value_obj = FormFieldValues.objects.filter(value=input_value).first()
                         if form_field_value_obj:
-                            form_data = form_field_value_obj.form_data_id
+                            form_data_id = form_field_value_obj.form_data_id
                         if form_data:
-                            VersionControlFileMap.objects.create(form_data=form_data,file_name= input_value, status= 0)
-
-                            # field_values = FormFieldValues.objects.filter(form_data_id=form_data)
-                            # temp_field_values = []
-                            # for val in field_values:
-                            #     temp_field_values.append(FormFieldValuesTemp(
-                            #         form_id=val.form.id if val.form else None,
-                            #         form_data_id=val.form_data.id,  
-                            #         field_id=val.field.id,
-                            #         value=val.value,
-                            #         created_by=val.created_by,
-                            #         updated_by=val.updated_by,
-                            #     ))
-                            # FormFieldValuesTemp.objects.bulk_create(temp_field_values)
-
-                            # # Copy FormFile to FormFileTemp
-                            # form_files = FormFile.objects.filter(form_data_id=form_data)
-                            # temp_files = []
-                            # for f in form_files:
-                            #     temp_files.append(FormFileTemp(
-                            #         file_name=f.file_name,
-                            #         uploaded_name=f.uploaded_name,
-                            #         file_path=f.file_path,
-                            #         file_id=f.file.id,
-                            #         form_id=f.form.id,
-                            #         field_id=f.field.id,
-                            #         form_data_id=f.form_data.id,  # new form_data ID
-                            #         created_by=f.created_by,
-                            #         updated_by=f.updated_by,
-                            #     ))
-                            # FormFileTemp.objects.bulk_create(temp_files)
-
-                        
+                            VersionControlFileMap.objects.create(form_data=form_data_id,file_name= input_value, status= 0)
 
                 if field.field_type == 'field_dropdown':
                     values = field.values 
@@ -1547,7 +1515,9 @@ def common_form_edit(request):
                 for file in old_files:
                     FormFileHist.objects.create(
                         form=file.form,
+                        file_name= file.file_name,
                         form_data=file.form_data,
+                        file = file.file,
                         field=file.field,
                         file_path=file.file_path,
                         uploaded_name=file.uploaded_name,
@@ -1564,6 +1534,7 @@ def common_form_edit(request):
                         form=get_object_or_404(Form, id =temp_file.form_id),
                         form_data=get_object_or_404(FormData, id = temp_file.form_data_id),
                         field=get_object_or_404(FormField, id = temp_file.field_id),
+                        file = get_object_or_404(FormFieldValues, id = temp_file.file_id),
                         file_path=temp_file.file_path,
                         uploaded_name=temp_file.uploaded_name,
                         created_by=temp_file.created_by,
@@ -2376,6 +2347,12 @@ def get_uploaded_files(request):
                 field_id=field_id,
                 form_data_id=form_data_id
             )
+            if not files:
+                files = FormFile.objects.filter(
+                field_id=field_id,
+                form_data_id=form_data_id
+            )
+
         else:
             files = FormFile.objects.filter(
                 field_id=field_id,
@@ -2502,6 +2479,7 @@ def reference_workflow(request):
         for file_obj in form_files:
             FormFileTemp.objects.create(
                 form_data_id=file_obj.form_data.id,
+                file_name = file_obj.file_name,
                 form_id=file_obj.form.id,
                 field_id=file_obj.field.id,
                 file_path = file_obj.file_path,

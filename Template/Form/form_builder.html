@@ -303,17 +303,17 @@
              });
              commonDropdownHtml += `</select>`;
 
-             let sectiondropdownHtml = `<select id="section-dropdown-${field.id}" class="form-control section-select">`;
+            let sectiondropdownHtml = `<select id="section-dropdown-${field.id}" class="form-control section-select">`;
 
-             // Add placeholder
-             sectiondropdownHtml += `<option value="" disabled ${!field.section ? "selected" : ""}>Select Section</option>`;
-             
-             section.forEach(option => {
-                 const isSelected = String(option.id) === String(field.section) ? "selected" : "";
-                 sectiondropdownHtml += `<option value="${option.id}" ${isSelected}>${option.name}</option>`;
-             });
-             
-             sectiondropdownHtml += `</select>`;
+            sectiondropdownHtml += `<option value="" disabled ${!field.section ? "selected" : ""}>Select Section</option>`;
+
+            section.forEach(option => {
+                const isSelected = String(option.id) === String(field.section) ? "selected" : "";
+                sectiondropdownHtml += `<option value="${option.id}" ${isSelected}>${option.name}</option>`;
+            });
+
+            sectiondropdownHtml += `</select>`;
+
              
              
 
@@ -1517,6 +1517,16 @@ function validateAndUpdateLabel(inputElement, fieldId) {
     
         // Save reordered + updated fields
         document.getElementById("form-data-input").value = JSON.stringify(orderedFormFields);
+    });
+
+    $(document).on("change", ".section-select", function () {
+        const fieldId = $(this).attr("id").split("-")[2];
+        const selectedValue = $(this).val();
+
+        const field = formFields.find(f => String(f.id) === String(fieldId));
+        if (field) {
+            field.section = selectedValue;  // ✅ Save selected value in formFields
+        }
     });
     
 
