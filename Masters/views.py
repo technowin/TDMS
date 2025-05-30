@@ -104,14 +104,13 @@ def ocr_files(request):
         latest_docs = (Document.objects.values('file_path').annotate(latest_id=Max('id')).values_list('latest_id', flat=True))
         Document.objects.exclude(id__in=latest_docs).delete()
         docs = Document.objects.filter(keywords__isnull=True,extracted_text__isnull=True)
-        excel_extensions = {'.xls', '.xlsx'}
         # docs = Document.objects.filter(uploaded_at__date=today,keywords__isnull=True,extracted_text__isnull=True).order_by('-uploaded_at')
         for doc in docs:
             if not doc.file_path:
                 continue
             file_path = os.path.join(MEDIA_ROOT, str(doc.file_path))
             _, ext = os.path.splitext(file_path) 
-            if ext.lower() in excel_extensions:
+            if ext.lower() != '.pdf':
                 continue
             if os.path.exists(file_path):
                 text = extract_text_from_pdf(file_path)
