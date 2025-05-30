@@ -485,7 +485,6 @@ def workflow_starts(request):
                 "but_act": current_step_info['but_act'] if current_step_info else '',
                 "color_status": current_step_info['color_status'] if current_step_info else '',
                 "idEncrypt": enc(str(current_step_info['id'])) if current_step_info else '',
-               
                "form_data_id":form_data_id,
                "editORcreate":editORcreate,
                "reference_workflow_status":reference_workflow_status,
@@ -597,6 +596,8 @@ def workflow_form_step(request):
     cursor = m.cursor()
     
     id = request.GET.get("id")
+    # instance = YourModel.objects.get(id=id)
+    # file_number_forFN = instance.file_number_forFN
     
     wfdetailsid = request.GET.get("wfdetailsID")
     firstStep = request.GET.get("firstStep")
@@ -643,6 +644,12 @@ def workflow_form_step(request):
 
         if wfdetailsid:
             workflow_detail_id = dec(wfdetailsid)
+            workflow_det = workflow_details.objects.get(id=workflow_detail_id)
+            file_num_forFN = workflow_det.file_number
+            form_dataID_forFN = workflow_det.form_data_id
+            
+            form_field_value = FormFieldValues.objects.get(value=file_num_forFN, form_data_id=form_dataID_forFN)
+            field_id = form_field_value.field_id
 
             try:
                 workflow_data = workflow_details.objects.get(id=workflow_detail_id)
