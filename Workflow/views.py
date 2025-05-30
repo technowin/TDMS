@@ -649,7 +649,7 @@ def workflow_form_step(request):
             form_dataID_forFN = workflow_det.form_data_id
             
             form_field_value = FormFieldValues.objects.get(value=file_num_forFN, form_data_id=form_dataID_forFN)
-            field_id = form_field_value.field_id
+            field_id_forFN = form_field_value.field_id
 
             try:
                 workflow_data = workflow_details.objects.get(id=workflow_detail_id)
