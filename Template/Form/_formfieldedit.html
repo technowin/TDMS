@@ -1063,34 +1063,26 @@
 
     
 
-    function validateRegexInput(inputElement) {
-    const pattern = inputElement.getAttribute("data-regex");
-    const value = inputElement.value.trim();
-
-    if (!pattern) return true;
-
-    let regex;
-    try {
-        regex = new RegExp(pattern);
-    } catch (e) {
-        console.error("Invalid regex:", pattern);
-        inputElement.setCustomValidity("Invalid pattern.");
-        return false;
+   function validateRegexInput(inputElement) {
+        const pattern = inputElement.getAttribute("data-regex");
+        const value = inputElement.value;
+    
+        if (!pattern) return true; // No pattern to validate against
+    
+        const regex = new RegExp(pattern);
+        if (!regex.test(value)) {
+            inputElement.classList.add("is-invalid");
+            inputElement.setCustomValidity("Invalid input pattern.");
+            inputElement.reportValidity(); // Show browser validation message
+            return false;
+        } else {
+            inputElement.classList.remove("is-invalid");
+            inputElement.setCustomValidity(""); // Reset validity
+            return true;
+        }
     }
-
-    if (!regex.test(value)) {
-        inputElement.classList.add("is-invalid");
-        inputElement.setCustomValidity("Invalid input pattern.");
-        inputElement.reportValidity();
-        return false;
-    } else {
-        inputElement.classList.remove("is-invalid");
-        inputElement.setCustomValidity("");
-        return true;
-    }
-}
-
 function formatInputByPattern(inputElement, regexId) {
+    debugger;
     let value = inputElement.value;
 
     const numericOnly = v => v.replace(/\D/g, "");
@@ -1110,10 +1102,8 @@ function formatInputByPattern(inputElement, regexId) {
         case 4: // Mobile Number
             value = numericOnly(value).substring(0, 10);
             break;
-        case 5: // Pincode (✅ Fix here)
-            // Allow input but limit to 6 digits
-            value = numericOnly(value);
-            if (value.length > 6) value = value.slice(0, 6);
+        case 6: // Pincode
+            value = numericOnly(value).substring(0, 6);
             break;
         case 6: // Passport
             value = alnumUpper(value).substring(0, 8);
