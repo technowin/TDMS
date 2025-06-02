@@ -196,7 +196,7 @@ class ActionData(models.Model):
     form_data = models.ForeignKey('Form.FormData',null=True, blank=True, on_delete=models.CASCADE, related_name='action_data_id')
     field = models.ForeignKey('Form.FormActionField',null=True, blank=True, on_delete=models.CASCADE, related_name='action_field_id')
     step_id = models.IntegerField(null=True,blank=True)
-    version = models.TextField(null=True, blank=True)
+    version = models.FloatField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
@@ -329,18 +329,18 @@ class VersionControlFileMap(models.Model):
     class Meta:
         db_table = 'version_control_file_map'
 
-class WorkflowVersionDetails(models.Model):
-    form_id = models.IntegerField(null=True, blank=True)
-    form_data_id = models.IntegerField(null=True, blank=True)
-    prev_version = models.TextField(null=True, blank=True)
-    curr_version = models.TextField(null=True, blank=True)
+
+
+
+class WorkflowVersion(models.Model):
+    req_id = models.TextField(null=True, blank=True)
+    version = models.FloatField(null=True, blank=True)
     created_at = models.DateTimeField(auto_now_add=True, null=True, blank=True)
     created_by =  models.TextField(null=True, blank=True)
     updated_at = models.DateTimeField(auto_now=True, null=True, blank=True)
     updated_by =  models.TextField(null=True, blank=True)
     class Meta:
-        db_table = 'workflow_version_details'
-
+        db_table = 'workflow_version'
 
 
 
