@@ -650,6 +650,17 @@ def workflow_form_step(request):
             
             form_field_value = FormFieldValues.objects.get(value=file_num_forFN, form_data_id=form_dataID_forFN)
             field_id_forFN = form_field_value.field_id
+            
+            # to check file name at outward step
+            # latest_row = WorkflowVersionControl.objects.filter(form_data_id=form_dataID_forFN).order_by('-id').first()
+    
+            # if latest_row:
+            #     if latest_row.version_no == 0:
+            #         flag_outwardFN = 0
+            #     else:
+            #         flag_outwardFN = 1
+            # else:
+            #     flag_outwardFN = 0
 
             try:
                 workflow_data = workflow_details.objects.get(id=workflow_detail_id)
@@ -821,7 +832,7 @@ def workflow_form_step(request):
                 "workflow": 1,"WFoperator_dropdown":WFoperator_dropdown,
                 "role_id":role_id,"action_detail_id":action_detail_id,"form_id":form_id,"inward_req_id":inward_req_id,
                 "matched_form_data_id":matched_form_data_id,"new_data_id":new_data_id,
-                "action_id":action_id,"step_id":id,"wfdetailsid":wfdetailsid,"status_wfM":status_wfM,"firstStep":firstStep,"editORcreate":editORcreate,"data_save_status":data_save_status
+                "action_id":action_id,"step_id":id,"wfdetailsid":wfdetailsid,"status_wfM":status_wfM,"firstStep":firstStep,"editORcreate":editORcreate,"data_save_status":data_save_status,
             })
         else:
             return render(request, "Form/_formfieldedit.html", {
