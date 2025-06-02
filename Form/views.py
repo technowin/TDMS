@@ -1473,11 +1473,17 @@ def common_form_edit(request):
         created_by = request.session.get("user_id", "").strip()
         form_name = request.POST.get("form_name", "").strip()
         type = request.POST.get("type","")
+
+        file_no_field = FormField.objects.filter(form=form, label__iexact='File No').first()
+        file_no_field_id = str(file_no_field.id) if file_no_field else None
         
         for key, value in request.POST.items():
             if key.startswith("field_id_"):
                 field_id = value.strip()
                 field = get_object_or_404(FormField, id=field_id)
+
+                if field_id == file_no_field_id:
+                    continue
 
                 if field.field_type == "select multiple":
                     selected_values = request.POST.getlist(f"field_{field_id}")

@@ -648,7 +648,7 @@ def workflow_form_step(request):
             file_num_forFN = workflow_det.file_number
             form_dataID_forFN = workflow_det.form_data_id
             
-            form_field_value = FormFieldValues.objects.get(value=file_num_forFN, form_data_id=form_dataID_forFN).value
+            file_no_value = FormFieldValues.objects.get(value=file_num_forFN, form_data_id=form_dataID_forFN).value
             # field_id_forFN = form_field_value.field_id
 
             try:
@@ -816,7 +816,7 @@ def workflow_form_step(request):
             return render(request, "Form/_formfieldedit.html", {
                 "sectioned_fields": sectioned_fields,
                 "form":form,"type":type,
-                'form_field_value':form_field_value,
+                'file_no_value':file_no_value,
                 "action_fields": action_fields,"reference_type":reference_type,
                 "form_action_url": form_action_url,"file_ref_value":file_ref_value,"new_form_data_id":new_form_data_id,
                 "workflow": 1,"WFoperator_dropdown":WFoperator_dropdown,

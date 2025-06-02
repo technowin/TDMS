@@ -219,11 +219,11 @@
                     {% endfor %}
                 </select> {% endcomment %}
 
-           {% if field.field_type == "select" %}
+        {% if field.field_type == "select" %}
     
-                {% if form_field_value %}
+                {% if file_no_value %}
                     <!-- Hidden input to submit the value even if the dropdown is disabled -->
-                    <input type="hidden" name="field_{{ field.id }}" value="{{ form_field_value }}">
+                    <input type="hidden" name="field_{{ field.id }}" value="{{ file_no_value }}">
                 {% endif %}
 
                 <select class="form-control select" name="field_{{ field.id }}"
@@ -234,7 +234,7 @@
 
                     {% for option in field.values %}
                         <option value="{{ option }}"
-                            {% if option == form_field_value %}
+                            {% if option == file_no_value %}
                                 selected
                             {% elif option == field.value %}
                                 selected
@@ -243,7 +243,7 @@
                     {% endfor %}
                 </select>
 
-
+             
 
 
             {% elif field.field_type == "master dropdown" %}
