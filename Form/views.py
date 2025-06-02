@@ -2729,6 +2729,19 @@ def get_compare_data(request, final_id):
         old_files = FormFile.objects.filter(form_data_id=form_data_id)
         new_files = FormFileTemp.objects.filter(form_data_id=form_data_id)
 
+        temp_versions = WorkflowVersionControl.objects.filter(form_data_id=form_data_id).order_by('-modified_at')[:2]
+        latest_version = None
+        previous_version = None
+        if temp_versions:
+            latest_version = temp_versions[0]  
+            if len(temp_versions) > 1:
+                previous_version = temp_versions[1] 
+
+        new_data_grouped = get_grouped_comments(latest_version.temp_version, form_data_id) if latest_version else []
+        old_data_grouped = get_grouped_comments(previous_version.temp_version, form_data_id) if previous_version else []
+
+
+
         # Build file maps
         old_file_map = {}
         for f in old_files:
@@ -2767,6 +2780,8 @@ def get_compare_data(request, final_id):
         context = {
             'comparison_data': comparison_data,
             'file_comparison_data': file_comparison_data,
+            'old_data_grouped':old_data_grouped,
+            'new_data_grouped':new_data_grouped
         }
         return render(request, 'Form/compare_data.html', context)
 
@@ -2860,4 +2875,50 @@ def preview_file(request):
 #         return JsonResponse({"status": 1})
 #     else:
 #         return JsonResponse({"status": 0})
+
+
+def get_grouped_comments(version_no, form_data_id):
+    try:
+        step_name_subquery = Subquery(workflow_matrix.objects.filter(id=OuterRef('step_id')).values('step_name')[:1])
+        custom_user_role_id_subquery = Subquery(CustomUser.objects.filter(id=OuterRef('created_by')).values('role_id')[:1])
+        custom_email_subquery = Subquery(CustomUser.objects.filter(id=OuterRef('created_by')).values('email')[:1])
+
+        comments_base = ActionData.objects.filter(
+            form_data_id=form_data_id,
+            version=version_no,
+        ).annotate(
+            step_name=step_name_subquery,
+            role_id=custom_user_role_id_subquery,
+            email=custom_email_subquery
+        )
+
+        comments = comments_base.annotate(
+            role_name=Subquery(roles.objects.filter(id=OuterRef('role_id')).values('role_name')[:1])
+        ).values(
+            'field_id', 'value', 'step_id', 'created_at', 'created_by', 'step_name', 'role_name', 'email'
+        )
+
+        grouped_comments = defaultdict(list)
+        for comment in comments:
+            key = (comment['step_name'], comment['role_name'], comment['email'])
+            grouped_comments[key].append({'value': comment['value'], 'created_at': comment['created_at']})
+
+        grouped_data = []
+        sr_no_counter = 1
+        for (step_name, role_name, email), comment_list in grouped_comments.items():
+            grouped_data.append({
+                'sr_no': sr_no_counter,
+                'step_name': step_name,
+                'role_name': role_name,
+                'email': email,
+                'comments': comment_list,
+                'rowspan': len(comment_list),
+                'form_data_id': form_data_id,  # Include here
+            })
+            sr_no_counter += 1
+    except Exception as e:
+            return JsonResponse({'success': False, 'error': str(e)})
+
+    return grouped_data
+
 
