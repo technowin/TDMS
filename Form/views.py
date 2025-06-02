@@ -76,6 +76,7 @@ def get_dublicate_name(request):
 
 
 def form_builder(request):
+    user  = request.session.get('user_id', '')
     try:
         form_id = request.GET.get('form_id')
         common_options = list(AttributeMaster.objects.values("id", "control_name", "control_value"))
@@ -109,6 +110,11 @@ def form_builder(request):
             generative = FormGenerativeField.objects.filter(form_id=form_id)
         except Exception as e:
             print(f"Error fetching form data: {e}")
+            tb = traceback.extract_tb(e.__traceback__)
+            fun = tb[0].name
+            callproc("stp_error_log", [fun, str(e), user])
+            messages.error(request, 'Oops...! Something went wrong!')
+            return JsonResponse({"error": "Something went wrong!"}, status=500)
 
         validation_dict = {}
         try:
@@ -125,8 +131,12 @@ def form_builder(request):
                 validation_dict[field_id].append(validation_entry)
 
         except Exception as e:
-            print(f"Error processing validations: {e}")
-            traceback.print_exc()
+            print(f"Error fetching form data: {e}")
+            tb = traceback.extract_tb(e.__traceback__)
+            fun = tb[0].name
+            callproc("stp_error_log", [fun, str(e), user])
+            messages.error(request, 'Oops...! Something went wrong!')
+            return JsonResponse({"error": "Something went wrong!"}, status=500)
 
         generative_list = {}
         for generate in generative:
@@ -356,6 +366,8 @@ def update_form(request, form_id):
                 form_data = json.loads(form_data_json)
             except json.JSONDecodeError:
                 return JsonResponse({"error": "Invalid JSON data"}, status=400)
+            
+            FieldValidation.objects.filter(form=form_id).delete()
 
             
             form = get_object_or_404(Form, id=form_id)
@@ -558,93 +570,112 @@ def update_form(request, form_id):
 
 
 def form_action_builder(request):
-    action_id = request.GET.get('action_id')
-    master_values = FormAction.objects.filter(is_master = 1).all()
-    button_type = list(CommonMaster.objects.filter(type='button').values("control_value"))
-    dropdown_options = list(ControlParameterMaster.objects.filter(is_action=1).values("control_name", "control_value"))
+    try:
+        user  = request.session.get('user_id', '')
+        action_id = request.GET.get('action_id')
+        master_values = FormAction.objects.filter(is_master = 1).all()
+        button_type = list(CommonMaster.objects.filter(type='button').values("control_value"))
+        dropdown_options = list(ControlParameterMaster.objects.filter(is_action=1).values("control_name", "control_value"))
 
-    if not action_id:  
-        return render(request,  "Form/form_action_builder.html", {
+        if not action_id:  
+            return render(request,  "Form/form_action_builder.html", {
+                "master_values":master_values,
+                "button_type":json.dumps(button_type),
+                "dropdown_options": json.dumps(dropdown_options),
+            })
+
+        try:
+            action_id = dec(action_id)  # Decrypt form_id
+            form = get_object_or_404(FormAction, id=action_id) 
+            fields = FormActionField.objects.filter(action_id=action_id)
+        except Exception as e:
+            print(f"Error fetching form data: {e}")  # Debugging
+            return render(request, "Form/form_action_builder.html", {\
+                "dropdown_options": json.dumps(dropdown_options),
+                "error": "Invalid form ID"
+            })
+
+
+        form_fields_json = json.dumps([
+            {
+                "id": field.id,
+                "label": field.label_name,
+                "bg_color":field.bg_color,
+                "text_color":field.text_color,
+                "type": field.type,
+                "options": field.dropdown_values.split(",") if field.dropdown_values else [],
+                "button_type":field.button_type,
+                "status":field.status,
+                "value":field.button_name
+            }
+            for field in fields
+        ])
+    except Exception as e:
+        print(f"Error fetching form data: {e}")
+        tb = traceback.extract_tb(e.__traceback__)
+        fun = tb[0].name
+        callproc("stp_error_log", [fun, str(e), user])
+        messages.error(request, 'Oops...! Something went wrong!')
+        return JsonResponse({"error": "Something went wrong!"}, status=500)
+    
+    finally:
+        return render(request, "Form/form_action_builder.html", {
+            "form": form,
             "master_values":master_values,
             "button_type":json.dumps(button_type),
+            "form_fields_json": form_fields_json,
             "dropdown_options": json.dumps(dropdown_options),
         })
 
-    try:
-        action_id = dec(action_id)  # Decrypt form_id
-        form = get_object_or_404(FormAction, id=action_id) 
-        fields = FormActionField.objects.filter(action_id=action_id)
-    except Exception as e:
-        print(f"Error fetching form data: {e}")  # Debugging
-        return render(request, "Form/form_action_builder.html", {\
-            "dropdown_options": json.dumps(dropdown_options),
-            "error": "Invalid form ID"
-        })
-
-
-    form_fields_json = json.dumps([
-        {
-            "id": field.id,
-            "label": field.label_name,
-            "bg_color":field.bg_color,
-            "text_color":field.text_color,
-            "type": field.type,
-            "options": field.dropdown_values.split(",") if field.dropdown_values else [],
-            "button_type":field.button_type,
-            "status":field.status,
-            "value":field.button_name
-        }
-        for field in fields
-    ])
-
-    return render(request, "Form/form_action_builder.html", {
-        "form": form,
-        "master_values":master_values,
-        "button_type":json.dumps(button_type),
-        "form_fields_json": form_fields_json,
-        "dropdown_options": json.dumps(dropdown_options),
-    })
-
-from django.http import JsonResponse
 
 def form_action_builder_master(request):
+    user  = request.session.get('user_id', '')
     action_id = request.GET.get('action_id')
+    try:
 
-    if action_id:  # AJAX call to fetch form data
-        try:
-            form = get_object_or_404(FormAction, id=action_id)
-            fields = FormActionField.objects.filter(action_id=action_id)
+        if action_id:  # AJAX call to fetch form data
+            try:
+                form = get_object_or_404(FormAction, id=action_id)
+                fields = FormActionField.objects.filter(action_id=action_id)
 
-            form_fields_json = [
-                {
-                    "id": field.id,
-                    "label": field.label_name,
-                    "bg_color": field.bg_color,
-                    "text_color": field.text_color,
-                    "type": field.type,
-                    "options": field.dropdown_values.split(",") if field.dropdown_values else [],
-                    "button_type": field.button_type,
-                    "status": field.status,
-                    "value": field.button_name
-                }
-                for field in fields
-            ]
+                form_fields_json = [
+                    {
+                        "id": field.id,
+                        "label": field.label_name,
+                        "bg_color": field.bg_color,
+                        "text_color": field.text_color,
+                        "type": field.type,
+                        "options": field.dropdown_values.split(",") if field.dropdown_values else [],
+                        "button_type": field.button_type,
+                        "status": field.status,
+                        "value": field.button_name
+                    }
+                    for field in fields
+                ]
 
-            return JsonResponse({"formFields": form_fields_json})
-        
-        except Exception as e:
-            return JsonResponse({"error": str(e)}, status=400)
+                return JsonResponse({"formFields": form_fields_json})
+            
+            except Exception as e:
+                return JsonResponse({"error": str(e)}, status=400)
 
-    # If no action_id: Initial full page render
-    master_values = FormAction.objects.filter(is_master=1).all()
-    button_type = list(CommonMaster.objects.filter(type='button').values("control_value"))
-    dropdown_options = list(ControlParameterMaster.objects.filter(is_action=1).values("control_name", "control_value"))
-
-    return render(request, "Form/form_action_builder.html", {
-        "master_values": master_values,
-        "button_type": json.dumps(button_type),
-        "dropdown_options": json.dumps(dropdown_options),
-    })
+        # If no action_id: Initial full page render
+        master_values = FormAction.objects.filter(is_master=1).all()
+        button_type = list(CommonMaster.objects.filter(type='button').values("control_value"))
+        dropdown_options = list(ControlParameterMaster.objects.filter(is_action=1).values("control_name", "control_value"))
+    except Exception as e:
+        print(f"Error fetching form data: {e}")
+        tb = traceback.extract_tb(e.__traceback__)
+        fun = tb[0].name
+        callproc("stp_error_log", [fun, str(e), user])
+        messages.error(request, 'Oops...! Something went wrong!')
+        return JsonResponse({"error": "Something went wrong!"}, status=500)
+    
+    finally:
+        return render(request, "Form/form_action_builder.html", {
+            "master_values": master_values,
+            "button_type": json.dumps(button_type),
+            "dropdown_options": json.dumps(dropdown_options),
+        })
 
 
 
@@ -793,7 +824,6 @@ def update_action_form(request, form_id):
     except Exception as e:
         tb = traceback.extract_tb(e.__traceback__)
         fun = tb[0].name
-        # Log error in the database
         callproc("stp_error_log", [fun, str(e), user])
         messages.error(request, 'Oops...! Something went wrong!')
         return JsonResponse({"error": "Something went wrong!"}, status=500)
@@ -803,6 +833,7 @@ def update_action_form(request, form_id):
 
 
 def form_master(request):
+    user  = request.session.get('user_id', '')
     try:
 
         if request.method == "POST":
@@ -1016,7 +1047,7 @@ def form_master(request):
                                 field["regex_description"] = ""
 
                         # File field logic
-                        if field["field_type"] in ["file", "file multiple"]:
+                        if field["field_type"] in ["file", "file multiple", "text"]:
                             file_validation = next((v for v in field["validations"]), None)
                             field["accept"] = file_validation["value"] if file_validation else ""
 
@@ -1121,7 +1152,10 @@ def form_master(request):
                 return render(request, "Form/form_master.html", {"form": form,"type":type})
     
     except Exception as e:
-        traceback.print_exc()
+        print(f"Error fetching form data: {e}")
+        tb = traceback.extract_tb(e.__traceback__)
+        fun = tb[0].name
+        callproc("stp_error_log", [fun, str(e), user])
         messages.error(request, 'Oops...! Something went wrong!')
         return JsonResponse({"error": "Something went wrong!"}, status=500)
     
@@ -1395,8 +1429,12 @@ def common_form_post(request):
         else:
             messages.error(request, 'File Number Already Exists!')
     except Exception as e:
-        traceback.print_exc()
+        print(f"Error fetching form data: {e}")
+        tb = traceback.extract_tb(e.__traceback__)
+        fun = tb[0].name
+        callproc("stp_error_log", [fun, str(e), user])
         messages.error(request, 'Oops...! Something went wrong!')
+        return JsonResponse({"error": "Something went wrong!"}, status=500)
 
     finally:
         if workflow_YN == '1':
@@ -1435,11 +1473,17 @@ def common_form_edit(request):
         created_by = request.session.get("user_id", "").strip()
         form_name = request.POST.get("form_name", "").strip()
         type = request.POST.get("type","")
+
+        file_no_field = FormField.objects.filter(form=form, label__iexact='File No').first()
+        file_no_field_id = str(file_no_field.id) if file_no_field else None
         
         for key, value in request.POST.items():
             if key.startswith("field_id_"):
                 field_id = value.strip()
                 field = get_object_or_404(FormField, id=field_id)
+
+                if field_id == file_no_field_id:
+                    continue
 
                 if field.field_type == "select multiple":
                     selected_values = request.POST.getlist(f"field_{field_id}")
@@ -1548,9 +1592,6 @@ def common_form_edit(request):
                     file_name = obj.file_name
                     VersionControlFileMap.objects.filter(file_name=file_name).update(status=1)
                 
-
-
-
         # callproc('create_dynamic_form_views')
         messages.success(request, "Form data updated successfully!")
         if workflow_YN == '1E':
@@ -1778,8 +1819,12 @@ def common_form_edit(request):
             messages.success(request, "Workflow data saved successfully!")
 
     except Exception as e:
-        traceback.print_exc()
-        messages.error(request, "Oops...! Something went wrong!")
+        print(f"Error fetching form data: {e}")
+        tb = traceback.extract_tb(e.__traceback__)
+        fun = tb[0].name
+        callproc("stp_error_log", [fun, str(e), user])
+        messages.error(request, 'Oops...! Something went wrong!')
+        return JsonResponse({"error": "Something went wrong!"}, status=500)
 
     finally:
         #return redirect("/masters?entity=form_master&type=i")
@@ -1958,6 +2003,7 @@ def handle_uploaded_files(request, form_name, created_by, form_data, user):
     
 
 def form_preview(request):
+    user  = request.session.get('user_id', '')
     id = request.GET.get("id")
     id = dec(id)  
 
@@ -2040,9 +2086,12 @@ def form_preview(request):
         })
 
     except Exception as e:
-        traceback.print_exc()
-        messages.error(request, "Oops...! Something went wrong!")
-        return render(request, "Form/_formfields.html", {"fields": []})
+        print(f"Error fetching form data: {e}")
+        tb = traceback.extract_tb(e.__traceback__)
+        fun = tb[0].name
+        callproc("stp_error_log", [fun, str(e), user])
+        messages.error(request, 'Oops...! Something went wrong!')
+        return JsonResponse({"error": "Something went wrong!"}, status=500)
 
     
 
@@ -2242,9 +2291,12 @@ def common_form_action(request):
             return redirect('/masters?entity=form_master&type=i')
     
     except Exception as e:
-        traceback.print_exc()
-        messages.error(request, "Oops...! Something went wrong!")
-        return redirect('/masters?entity=form_master&type=i')
+        print(f"Error fetching form data: {e}")
+        tb = traceback.extract_tb(e.__traceback__)
+        fun = tb[0].name
+        callproc("stp_error_log", [fun, str(e), user])
+        messages.error(request, 'Oops...! Something went wrong!')
+        return JsonResponse({"error": "Something went wrong!"}, status=500)
 
 
 
@@ -2538,8 +2590,12 @@ def reference_workflow(request):
         return redirect(url)
 
     except Exception as e:
-        traceback.print_exc()
-        return JsonResponse({"error": str(e)}, status=500)
+        print(f"Error fetching form data: {e}")
+        tb = traceback.extract_tb(e.__traceback__)
+        fun = tb[0].name
+        callproc("stp_error_log", [fun, str(e), user])
+        messages.error(request, 'Oops...! Something went wrong!')
+        return JsonResponse({"error": "Something went wrong!"}, status=500)
 
 
 
@@ -2609,6 +2665,7 @@ def handle_uploaded_files_temp(request, form_name, created_by, matched_form_data
         messages.error(request, "Oops...! Something went wrong!")
 
 def get_compare_data(request, final_id):
+    user  = request.session.get('user_id', '')
     try:
         form_data_id = final_id
 
@@ -2659,10 +2716,13 @@ def get_compare_data(request, final_id):
         }
         return render(request, 'Form/compare_data.html', context)
 
-    except Exception:
-        traceback.print_exc()
-        messages.error(request, "Oops...! Something went wrong!")
-        return render(request, 'form/error.html', {"message": "Something went wrong!"})
+    except Exception as e:
+        print(f"Error fetching form data: {e}")
+        tb = traceback.extract_tb(e.__traceback__)
+        fun = tb[0].name
+        callproc("stp_error_log", [fun, str(e), user])
+        messages.error(request, 'Oops...! Something went wrong!')
+        return JsonResponse({"error": "Something went wrong!"}, status=500)
     
 def get_versiondata(request):
     newFormDataId = request.GET.get('newFormDataId')

@@ -1094,27 +1094,27 @@
     }
 
     function validateRegexInput(inputElement) {
-        const pattern = inputElement.getAttribute("data-regex");
-        const value = inputElement.value;
-    
-        if (!pattern) return true; // No pattern to validate against
-    
-        const regex = new RegExp(pattern);
-        if (!regex.test(value)) {
-            inputElement.classList.add("is-invalid");
-            inputElement.setCustomValidity("Invalid input pattern.");
-            inputElement.reportValidity(); // Show browser validation message
-            return false;
-        } else {
-            inputElement.classList.remove("is-invalid");
-            inputElement.setCustomValidity(""); // Reset validity
-            return true;
+            const pattern = inputElement.getAttribute("data-regex");
+            const value = inputElement.value;
+        
+            if (!pattern) return true; // No pattern to validate against
+        
+            const regex = new RegExp(pattern);
+            if (!regex.test(value)) {
+                inputElement.classList.add("is-invalid");
+                inputElement.setCustomValidity("Invalid input pattern.");
+                inputElement.reportValidity(); // Show browser validation message
+                return false;
+            } else {
+                inputElement.classList.remove("is-invalid");
+                inputElement.setCustomValidity(""); // Reset validity
+                return true;
+            }
         }
-    }
 
 
      function formatInputByPattern(inputElement, regexId) {
-        debugger;
+        
         let value = inputElement.value;
     
         const numericOnly = v => v.replace(/\D/g, "");
@@ -1132,36 +1132,35 @@
             case 3: // IFSC
                 value = alnumUpper(value).substring(0, 11);
                 break;
-            case 4: // Mobile Number
+            case 5: // Mobile Number
                 value = numericOnly(value).substring(0, 10);
                 break;
-            case 5: // Pincode
+            case 6: // Pincode
                 value = numericOnly(value).substring(0, 6);
                 break;
-            case 6: // Passport
+            case 7: // Passport
                 value = alnumUpper(value).substring(0, 8);
                 break;
-            case 7: // Voter ID
+            case 8: // Voter ID
                 value = alnumUpper(value).substring(0, 10);
                 break;
-            case 8: // Driving License
+            case 9: // Driving License
                 value = alnumUpper(value).substring(0, 16);
                 break;
-            case 9: // UPI
+            case 10: // UPI
                 value = value.replace(/[^\w@.]/g, "").substring(0, 50);
                 break;
-            case 10: // Credit Card
-                // Remove all non-digit characters and format
+            case 16: // Credit Card
                 value = numericOnly(value).substring(0, 16);
                 value = value.replace(/(\d{4})(?=\d)/g, "$1 ");
                 break;
-            case 11: // Landline Number (XXX-XXXXXXX)
+            case 17: // Landline Number (XXX-XXXXXXX)
                 // Remove all non-digit characters
                 value = numericOnly(value).substring(0, 11);
                 // Format as XXX-XXXXXXX
                 value = value.replace(/^(\d{3})(\d{0,8})/, "$1-$2");
                 break;
-            case 12: // PNR
+            case 20: // PNR
                 // Allow only numeric values, limit to 10 digits
                 value = numericOnly(value).substring(0, 10);
                 break;
@@ -1172,7 +1171,6 @@
     
         inputElement.value = value;
     }
-   
 
     function syncFormValidationsBeforeSubmit() {
         formFields.forEach(field => {
