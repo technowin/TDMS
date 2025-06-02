@@ -1088,10 +1088,7 @@
 </script>
 
 <script>
-
-    
-
-   function validateRegexInput(inputElement) {
+function validateRegexInput(inputElement) {
         const pattern = inputElement.getAttribute("data-regex");
         const value = inputElement.value;
     
@@ -1109,61 +1106,66 @@
             return true;
         }
     }
-function formatInputByPattern(inputElement, regexId) {
-    debugger;
-    let value = inputElement.value;
 
-    const numericOnly = v => v.replace(/\D/g, "");
-    const alnumUpper = v => v.toUpperCase().replace(/[^A-Z0-9]/g, "");
 
-    switch (parseInt(regexId)) {
-        case 1: // Aadhar
-            value = numericOnly(value).substring(0, 12);
-            value = value.replace(/(\d{4})(?=\d)/g, "$1 ");
-            break;
-        case 2: // PAN
-            value = alnumUpper(value).substring(0, 10);
-            break;
-        case 3: // IFSC
-            value = alnumUpper(value).substring(0, 11);
-            break;
-        case 4: // Mobile Number
-            value = numericOnly(value).substring(0, 10);
-            break;
-        case 6: // Pincode
-            value = numericOnly(value).substring(0, 6);
-            break;
-        case 6: // Passport
-            value = alnumUpper(value).substring(0, 8);
-            break;
-        case 7: // Voter ID
-            value = alnumUpper(value).substring(0, 10);
-            break;
-        case 8: // Driving License
-            value = alnumUpper(value).substring(0, 16);
-            break;
-        case 9: // UPI
-            value = value.replace(/[^\w@.]/g, "").substring(0, 50);
-            break;
-        case 10: // Credit Card
-            value = numericOnly(value).substring(0, 16);
-            value = value.replace(/(\d{4})(?=\d)/g, "$1 ");
-            break;
-        case 11: // Landline Number
-            value = numericOnly(value).substring(0, 11);
-            value = value.replace(/^(\d{3})(\d{0,8})/, "$1-$2");
-            break;
-        case 12: // PNR
-            value = numericOnly(value).substring(0, 10);
-            break;
-        default:
-            value = value.replace(/[^\w\s]/g, "");
-            break;
+     function formatInputByPattern(inputElement, regexId) {
+        
+        let value = inputElement.value;
+    
+        const numericOnly = v => v.replace(/\D/g, "");
+        const alnumUpper = v => v.toUpperCase().replace(/[^A-Z0-9]/g, "");
+    
+        switch (parseInt(regexId)) {
+            case 1: // Aadhar
+                value = numericOnly(value).substring(0, 12);
+                value = value.replace(/(\d{4})(?=\d)/g, "$1 ");
+                break;
+            case 2: // PAN
+                value = value.toUpperCase().replace(/[^A-Z0-9]/g, ""); // Remove non-alphanumerics
+                value = value.substring(0, 10); // Enforce 10-char limit
+                break;
+            case 3: // IFSC
+                value = alnumUpper(value).substring(0, 11);
+                break;
+            case 5: // Mobile Number
+                value = numericOnly(value).substring(0, 10);
+                break;
+            case 6: // Pincode
+                value = numericOnly(value).substring(0, 6);
+                break;
+            case 7: // Passport
+                value = alnumUpper(value).substring(0, 8);
+                break;
+            case 8: // Voter ID
+                value = alnumUpper(value).substring(0, 10);
+                break;
+            case 9: // Driving License
+                value = alnumUpper(value).substring(0, 16);
+                break;
+            case 10: // UPI
+                value = value.replace(/[^\w@.]/g, "").substring(0, 50);
+                break;
+            case 16: // Credit Card
+                value = numericOnly(value).substring(0, 16);
+                value = value.replace(/(\d{4})(?=\d)/g, "$1 ");
+                break;
+            case 17: // Landline Number (XXX-XXXXXXX)
+                // Remove all non-digit characters
+                value = numericOnly(value).substring(0, 11);
+                // Format as XXX-XXXXXXX
+                value = value.replace(/^(\d{3})(\d{0,8})/, "$1-$2");
+                break;
+            case 20: // PNR
+                // Allow only numeric values, limit to 10 digits
+                value = numericOnly(value).substring(0, 10);
+                break;
+            default:
+                value = value.replace(/[^\w\s]/g, "");
+                break;
+        }
+    
+        inputElement.value = value;
     }
-
-    inputElement.value = value;
-}
-
 </script>
 
 {% comment %} <script>
