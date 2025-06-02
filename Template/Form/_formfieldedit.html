@@ -210,14 +210,41 @@
             <input type="hidden" id="category_dropdownOpr" name="category_dropdownOpr">
             
 
-            {% if field.field_type == "select"  %}
+            {% comment %} {% if field.field_type == "select"  %}
                 <select class="form-control select" name="field_{{ field.id }}"
                     {% for attr in field.attributes %} {{ attr }} {% endfor %}{% if readonlyWF == '1' or viewStepWFSeq == '3'  %} disabled {% endif %}>
                     <option value="" selected disabled>-- Select --</option>
                     {% for option in field.values %}
                         <option value="{{ option }}" {% if option == field.value %} selected {% endif %}>{{ option }}</option>
                     {% endfor %}
+                </select> {% endcomment %}
+
+           {% if field.field_type == "select" %}
+    
+                {% if form_field_value %}
+                    <!-- Hidden input to submit the value even if the dropdown is disabled -->
+                    <input type="hidden" name="field_{{ field.id }}" value="{{ form_field_value }}">
+                {% endif %}
+
+                <select class="form-control select" name="field_{{ field.id }}"
+                    {% for attr in field.attributes %} {{ attr }} {% endfor %}
+                    {% if   readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
+                    
+                    <option value="" disabled {% if not field.value %} selected {% endif %}>-- Select --</option>
+
+                    {% for option in field.values %}
+                        <option value="{{ option }}"
+                            {% if option == form_field_value %}
+                                selected
+                            {% elif option == field.value %}
+                                selected
+                            {% endif %}
+                        >{{ option }}</option>
+                    {% endfor %}
                 </select>
+
+
+
 
             {% elif field.field_type == "master dropdown" %}
                 <select class="form-control select" name="field_{{ field.id }}"
@@ -380,6 +407,7 @@
                        id="regex-{{ field.id }}"
                        data-regex="{{ field.validations.0.value }}"
                        data-regex-id="{{ field.regex_id }}"
+                       {% if readonlyWF == '1' or viewStepWFSeq == '3' %}readonly{% endif %}
                        value="{{ field.value|default:'' }}"
                        oninput="formatInputByPattern(this, '{{ field.regex_id }}'); validateRegexInput(this);"
                        placeholder="{{ field.regex_description }}"
