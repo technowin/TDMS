@@ -1169,6 +1169,7 @@ def common_form_post(request):
         if request.method != "POST":
             return JsonResponse({"error": "Invalid request method"}, status=400)
         
+        
         created_by = user
         form_name = request.POST.get('form_name', '').strip()
         type = request.POST.get('type','')
@@ -1209,8 +1210,8 @@ def common_form_post(request):
                     input_value = ','.join([val.strip() for val in selected_values if val.strip()])
                 else:
                     input_value = request.POST.get(f"field_{field_id}", "").strip()
-
-
+                    
+                    
                 if field.field_type == "generative":                   
                     continue
                 
@@ -2866,7 +2867,20 @@ def preview_file(request):
             return JsonResponse({'success': False, 'error': str(e)})
 
     return JsonResponse({'success': False, 'error': 'Invalid method'})
+
+
+
+def check_fileNameExistsInVersion(request): 
+    
+    if request.method == 'POST':
         
+        file_name = request.POST.get("id")  # Make sure this matches your AJAX
+        exists = WorkflowVersionControl.objects.filter(
+            file_name=file_name,
+            baseline_date__isnull=False
+        ).order_by('-id').exists()
+        
+        return JsonResponse({'status': 1 if exists else 0})        
 
 # def check_file_status(request):
 #     file_name = request.POST.get('file_name')

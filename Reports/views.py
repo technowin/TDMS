@@ -467,19 +467,19 @@ def report_pdf(request):
 def report_xlsx(request):
     response = ''
     try:
-        if request.user.is_authenticated ==True:                
+        if request.user.is_authenticated:                
             global user
             user = request.user.id
             if request.method == "POST":
-                columnName =str(request.POST.get('columnName', ''))
-                filterid =str(request.POST.get('filterid', ''))
-                subFilterId =str(request.POST.get('subFilterId', ''))
-                sft =str(request.POST.get('sft', ''))
-                entity =str(request.POST.get('entity', ''))
+                columnName = str(request.POST.get('columnName', ''))
+                filterid = str(request.POST.get('filterid', ''))
+                subFilterId = str(request.POST.get('subFilterId', ''))
+                sft = str(request.POST.get('sft', ''))
+                entity = str(request.POST.get('entity', ''))
                 filterid1 = filterid.split(',')
                 SubFilterId1 = subFilterId.split(',')
                 sft1 = sft.split(',')
-                data = common_fun(columnName,filterid1,SubFilterId1,sft1,entity,user)
+                data = common_fun(columnName, filterid1, SubFilterId1, sft1, entity, user)
 
                 headers = data['headers']
                 emptycheck = data['emptycheck']
@@ -496,39 +496,41 @@ def report_xlsx(request):
                 workbook = xlsxwriter.Workbook(output)
                 worksheet = workbook.add_worksheet(str(entity))
             
-                # Inserting the logo with a reduced size, ensuring it doesn't overlap
-                worksheet.insert_image('A1', 'static/images/technologo.png', {'x_offset': 1, 'y_offset': 1, 'x_scale': 0.04, 'y_scale': 0.04})  # Reduced size
-            
-                # Header Format
-                header_format = workbook.add_format({'align': 'center', 'bold': True, 'font_size': 14})
+                # Insert logo
+                worksheet.insert_image('A1', 'static/images/technologo.png', {
+                    'x_offset': 1, 'y_offset': 1, 'x_scale': 0.04, 'y_scale': 0.04
+                })
                 
-                # Data Format
+                # Formats
+                header_format = workbook.add_format({'align': 'center','valign': 'vcenter', 'bold': True,'font_size': 14})
                 data_format = workbook.add_format({'border': 1})
-            
-                # Merge header cell for the title
-                worksheet.merge_range('A4:{}'.format(chr(65 + len(column_list) - 1) + '2'), title, header_format)
-            
-                # Add the header row
                 filter_format = workbook.add_format({'bold': True})
-                worksheet.write(5, 0, headers, filter_format)
+                column_header_format = workbook.add_format({'bold': True, 'bg_color': '#7f9cf0', 'font_color': 'black'})
+                from xlsxwriter.utility import xl_range
+                merged_range = xl_range(1, 0, 1, len(column_list) - 1)  # A4 to ??4
+                worksheet.merge_range(merged_range, title, header_format)
             
-                # Header Row Format (Column Names)
-                header_format = workbook.add_format({'bold': True, 'bg_color': '#7f9cf0', 'font_color': 'black'})
+                # Write filters/info row
+                worksheet.write(3, 0, headers, filter_format)
+            
+                # Column headers
                 for i, column_name in enumerate(column_list):
-                    worksheet.write(6, i, column_name, header_format)
+                    worksheet.write(5, i, column_name, column_header_format)
             
-                # Write the data rows
-                for row_num, row_data in enumerate(data_list, start=7):
+                # Data rows
+                for row_num, row_data in enumerate(data_list, start=6):
                     for col_num, col_data in enumerate(row_data):
                         worksheet.write(row_num, col_num, str(col_data), data_format)
             
-                # Auto-adjust columns based on content length (Auto width)
+                # Auto column width
                 for col_num in range(len(column_list)):
-                    worksheet.set_column(col_num, col_num, max(len(str(cell)) for cell in [row[col_num] for row in data_list] + [column_list[col_num]]))
+                    col_cells = [str(row[col_num]) for row in data_list] + [column_list[col_num]]
+                    max_width = max(len(cell) for cell in col_cells)
+                    worksheet.set_column(col_num, col_num, max_width)
             
                 workbook.close()
             
-                # Prepare the response to send the generated Excel file
+                # Response
                 response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
                 response['Content-Disposition'] = f'attachment; filename="{title}.xlsx"'
                 output.seek(0)
@@ -536,10 +538,88 @@ def report_xlsx(request):
     except Exception as e:
         tb = traceback.extract_tb(e.__traceback__)
         fun = tb[0].name
-        callproc("stp_error_log",[fun,str(e),request.user.id])  
-        messages.error(request, 'Oops...! Something went wrong!')
+        callproc("stp_error_log", [fun, str(e), request.user.id])
+        messages.error(request, f'Oops...! Something went wrong! {str(e)}')
     finally:
         return response
+        
+# @login_required
+# def report_xlsx(request):
+#     response = ''
+#     try:
+#         if request.user.is_authenticated ==True:                
+#             global user
+#             user = request.user.id
+#             if request.method == "POST":
+#                 columnName =str(request.POST.get('columnName', ''))
+#                 filterid =str(request.POST.get('filterid', ''))
+#                 subFilterId =str(request.POST.get('subFilterId', ''))
+#                 sft =str(request.POST.get('sft', ''))
+#                 entity =str(request.POST.get('entity', ''))
+#                 filterid1 = filterid.split(',')
+#                 SubFilterId1 = subFilterId.split(',')
+#                 sft1 = sft.split(',')
+#                 data = common_fun(columnName,filterid1,SubFilterId1,sft1,entity,user)
+
+#                 headers = data['headers']
+#                 emptycheck = data['emptycheck']
+#                 data_list = data['data_list']
+#                 column_list = data['display_name_list']
+
+#                 result_data = callproc("stp_get_report_title", [entity])
+#                 title = ''
+#                 if result_data and result_data[0]:
+#                     for items in result_data:  
+#                         title = items[0]
+
+#                 output = io.BytesIO()
+#                 workbook = xlsxwriter.Workbook(output)
+#                 worksheet = workbook.add_worksheet(str(entity))
+            
+#                 # Inserting the logo with a reduced size, ensuring it doesn't overlap
+#                 worksheet.insert_image('A1', 'static/images/technologo.png', {'x_offset': 1, 'y_offset': 1, 'x_scale': 0.04, 'y_scale': 0.04})  # Reduced size
+            
+#                 # Header Format
+#                 header_format = workbook.add_format({'align': 'center', 'bold': True, 'font_size': 14})
+                
+#                 # Data Format
+#                 data_format = workbook.add_format({'border': 1})
+            
+#                 # Merge header cell for the title
+#                 worksheet.merge_range('A4:{}'.format(chr(65 + len(column_list) - 1) + '2'), title, header_format)
+            
+#                 # Add the header row
+#                 filter_format = workbook.add_format({'bold': True})
+#                 worksheet.write(5, 0, headers, filter_format)
+            
+#                 # Header Row Format (Column Names)
+#                 header_format = workbook.add_format({'bold': True, 'bg_color': '#7f9cf0', 'font_color': 'black'})
+#                 for i, column_name in enumerate(column_list):
+#                     worksheet.write(6, i, column_name, header_format)
+            
+#                 # Write the data rows
+#                 for row_num, row_data in enumerate(data_list, start=7):
+#                     for col_num, col_data in enumerate(row_data):
+#                         worksheet.write(row_num, col_num, str(col_data), data_format)
+            
+#                 # Auto-adjust columns based on content length (Auto width)
+#                 for col_num in range(len(column_list)):
+#                     worksheet.set_column(col_num, col_num, max(len(str(cell)) for cell in [row[col_num] for row in data_list] + [column_list[col_num]]))
+            
+#                 workbook.close()
+            
+#                 # Prepare the response to send the generated Excel file
+#                 response = HttpResponse(content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet')
+#                 response['Content-Disposition'] = f'attachment; filename="{title}.xlsx"'
+#                 output.seek(0)
+#                 response.write(output.read())
+#     except Exception as e:
+#         tb = traceback.extract_tb(e.__traceback__)
+#         fun = tb[0].name
+#         callproc("stp_error_log",[fun,str(e),request.user.id])  
+#         messages.error(request, 'Oops...! Something went wrong!')
+#     finally:
+#         return response
     
 def add_page_number(canvas, doc):
     canvas.saveState()
