@@ -267,7 +267,7 @@
                 </select>
 
             {% elif field.field_type == "field_dropdown" %}
-                <select class="form-control field_dropdown" name="field_{{ field.id }}"
+                <select class="form-control field_dropdown select" name="field_{{ field.id }}"
                     {% for attr in field.attributes %} {{ attr }} {% endfor %}
                     {% if readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
                     <option value="" disabled {% if not field.saved_value %}selected{% endif %}>Select</option>
