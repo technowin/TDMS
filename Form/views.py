@@ -218,7 +218,11 @@ def save_form(request):
             for  index,field in enumerate(form_data):
                
                 if field.get("type") == "master dropdown":
-                    value = field.get("masterValue","")
+                    value = field.get("masterValue")
+
+                elif field.get("type") == "multiple":
+                    value = field.get("multiMasterValue")
+
                 elif field.get("type") == "field_dropdown":
                     dropdown_mappings = field.get("field_dropdown", [])
                     form_id_selected = dropdown_mappings.get("form_id","")
@@ -396,7 +400,10 @@ def update_form(request, form_id):
                 order = field.get("order","")
 
                 if field.get("type") == "master dropdown":
-                    value = field.get("masterValue", "")
+                    value = field.get("masterValue")
+
+                elif field.get("type") == "multiple":
+                    value = field.get("multiMasterValue")
                 
                 elif field.get("type") == "field_dropdown":
                     dropdown_mappings = field.get("field_dropdown", [])
