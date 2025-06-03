@@ -188,6 +188,82 @@
         </div>
     {% endfor %}
 </div>
+<div class="row">
+    <!-- Old Data Card (Left) -->
+    <div class="col-md-6 mb-4">
+        <div class="card border-start border-danger border-4 shadow-sm h-100">
+            <div class="card-header bg-danger text-white">
+                <h5 class="mb-0">{{ file_item.label }} Old Data (Previous Version)</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Step Name</th>
+                            <th>Role Name</th>
+                            <th>Email</th>
+                            <th>Value</th>
+                            <th>Created At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in old_data_grouped %}
+                            {% for comment in item.comments %}
+                                <tr>
+                                    {% if forloop.first %}
+                                        <td rowspan="{{ item.rowspan }}">{{ item.step_name }}</td>
+                                        <td rowspan="{{ item.rowspan }}">{{ item.role_name }}</td>
+                                        <td rowspan="{{ item.rowspan }}">{{ item.email }}</td>
+                                    {% endif %}
+                                    <td>{{ comment.value }}</td>
+                                    <td>{{ comment.created_at }}</td>
+                                </tr>
+                            {% endfor %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Data Card (Right) -->
+    <div class="col-md-6 mb-4">
+        <div class="card border-start border-success border-4 shadow-sm h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">{{ file_item.label }} New Data (Latest Version)</h5>
+            </div>
+            <div class="card-body">
+                <table class="table table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Step Name</th>
+                            <th>Role Name</th>
+                            <th>Email</th>
+                            <th>Value</th>
+                            <th>Created At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in new_data_grouped %}
+                            {% for comment in item.comments %}
+                                <tr>
+                                    {% if forloop.first %}
+                                        <td rowspan="{{ item.rowspan }}">{{ item.step_name }}</td>
+                                        <td rowspan="{{ item.rowspan }}">{{ item.role_name }}</td>
+                                        <td rowspan="{{ item.rowspan }}">{{ item.email }}</td>
+                                    {% endif %}
+                                    <td>{{ comment.value }}</td>
+                                    <td>{{ comment.created_at }}</td>
+                                </tr>
+                            {% endfor %}
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+
 
 
 

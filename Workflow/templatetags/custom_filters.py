@@ -85,3 +85,8 @@ def dec(encoded_cipher_text):
     cipher_suite = Fernet(get_encryption_key())
     plain_text = cipher_suite.decrypt(cipher_text).decode()
     return plain_text
+
+def trim(value):
+    if isinstance(value, str):
+        return value.strip()
+    return value

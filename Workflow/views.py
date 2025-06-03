@@ -553,7 +553,7 @@ def get_formdataid(request):
     form=enc(str(form_data_id))
     # return redirect('form_master', form=form)
     # url = reverse('form_master') + f'?form={form}'
-    url = reverse('form_master') + f'?form={form}&readonlyWF={readonlyWF}&step_id={step_id}'
+    url = reverse('form_master') + f'?form={form}&readonlyWF={readonlyWF}&step_id={step_id}&req_num={req_num}'
     return redirect(url)
 
 
@@ -586,7 +586,7 @@ def get_formdataidEdit(request):
     form=enc(str(form_data_id))
     # return redirect('form_master', form=form)
     # url = reverse('form_master') + f'?form={form}'
-    url = reverse('form_master') + f'?form={form}&button_type_id={button_type_id}&workflow_YN={workflow_YN}&step_id={step_id}&form_idWF={form_id}&role_id={role_id}&wfdetailsID={wfdetailsID}&viewStepWF={viewStepWF}'
+    url = reverse('form_master') + f'?form={form}&button_type_id={button_type_id}&workflow_YN={workflow_YN}&step_id={step_id}&form_idWF={form_id}&role_id={role_id}&wfdetailsID={wfdetailsID}&viewStepWF={viewStepWF}&req_num={req_num}'
     return redirect(url)
     
         
