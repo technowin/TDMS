@@ -49,7 +49,7 @@ DATABASES = {
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# MEDIA_ROOT = os.path.join(BASE_DIR, 'D:/Python Projects/Documents/')
+# MEDIA_ROOT = os.path.join(BASE_DIR, 'D:/Python Project/Documents/')
 MEDIA_ROOT = os.path.join(BASE_DIR, '/home/ubuntu/Documents/')
 MEDIA_URL = '/media/'
 
@@ -156,7 +156,7 @@ LOGGING = {
         'file': {
             'level': 'WARNING',
             'class': 'logging.FileHandler',
-            # 'filename': os.path.join(BASE_DIR, 'D:/Python Projects/TDMS logs', 'django.log'),  
+            # 'filename': os.path.join(BASE_DIR, 'D:/Python Project/TDMS logs', 'django.log'),  
             'filename': os.path.join(BASE_DIR, '/home/ubuntu/TDMS logs', 'django.log'),  
         },
     },

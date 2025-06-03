@@ -30,6 +30,19 @@
   .card{
     padding:0 !important
   }
+   tr:nth-child(odd) td {
+                    background-color: white !important;
+                }
+      
+        tr:nth-child(even) td {
+            background-color: white !important;
+        }
+        table tr td{
+           border: 1px solid grey !important; 
+        }
+        table tr th{
+           border: 1px solid grey !important; 
+        }
 </style>
 
       <!-- Statistics Summary -->
@@ -147,7 +160,7 @@
                                 <h5 class="mb-0">File Preview</h5>
                             </div>
                             <div class="card-body" style="height: 600px; overflow-y: auto;">
-                                <div id="old-file-preview-content"></div>
+                                <div id="old-file-preview-content"  style="height: 100%;"></div>
                             </div>
                         </div>
                     </div>
@@ -188,6 +201,96 @@
         </div>
     {% endfor %}
 </div>
+
+ <div class="row">
+    <!-- Old Data Card (Left) -->
+    <div class="col-md-6 mb-4">
+        <div class="card border-start border-primary border-4 shadow-sm h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0">{{ file_item.label }} Old Data (Previous Version)</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                <table id="datatable" class="table table-striped table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Step Name</th>
+                            <th>Email (Role)</th>
+                            <th>Comment/Action</th>
+                            <th>Created At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if old_data_grouped %}
+                            {% for item in old_data_grouped %}
+                                {% for comment in item.comments %}
+                                    <tr>
+                                        {% if forloop.first %}
+                                            <td rowspan="{{ item.rowspan }}">{{ item.step_name }}</td>
+                                            <td rowspan="{{ item.rowspan }}">{{ item.email }} ({{ item.role_name }})</td>
+                                        {% endif %}
+                                        <td>{{ comment.value }}</td>
+                                        <td>{{ comment.created_at }}</td>
+                                    </tr>
+                                {% endfor %}
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center">No data found</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- New Data Card (Right) -->
+    <div class="col-md-6 mb-4">
+        <div class="card border-start border-success border-4 shadow-sm h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0">{{ file_item.label }} New Data (Latest Version)</h5>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                <table id="datatable" class="table table-striped table-bordered">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Step Name</th>
+                            <th>Email (Role)</th>
+                            <th>Comment/Action</th>
+                            <th>Created At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% if new_data_grouped %}
+                            {% for item in new_data_grouped %}
+                                {% for comment in item.comments %}
+                                    <tr>
+                                        {% if forloop.first %}
+                                            <td rowspan="{{ item.rowspan }}">{{ item.step_name }}</td>
+                                            <td rowspan="{{ item.rowspan }}">{{ item.email }} ({{ item.role_name }})</td>
+                                        {% endif %}
+                                        <td>{{ comment.value }}</td>
+                                        <td>{{ comment.created_at }}</td>
+                                    </tr>
+                                {% endfor %}
+                            {% endfor %}
+                        {% else %}
+                            <tr>
+                                <td colspan="4" class="text-center">No data found</td>
+                            </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+
 
 
 
