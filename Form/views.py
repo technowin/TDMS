@@ -2732,10 +2732,14 @@ def get_compare_data(request, final_id):
         temp_versions = WorkflowVersionControl.objects.filter(form_data_id=form_data_id).order_by('-modified_at')[:2]
         latest_version = None
         previous_version = None
+
         if temp_versions:
-            latest_version = temp_versions[0]  
-            if len(temp_versions) > 1:
-                previous_version = temp_versions[1] 
+            if len(temp_versions) == 1:
+                previous_version = temp_versions[0]
+            else:
+                latest_version = temp_versions[0]
+                previous_version = temp_versions[1]
+
 
         new_data_grouped = get_grouped_comments(latest_version.temp_version, form_data_id) if latest_version else []
         old_data_grouped = get_grouped_comments(previous_version.temp_version, form_data_id) if previous_version else []
