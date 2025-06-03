@@ -208,7 +208,6 @@
             <input type="hidden" id = "new_form_data_id" name = "new_form_data_id" value ="{{new_form_data_id}}">
             <input type="hidden" id = "inward_req_id" name = "inward_req_id" value ="{{inward_req_id}}">
             <input type="hidden" id="category_dropdownOpr" name="category_dropdownOpr">
-            {% comment %} <input type="hidden" id="flag_outwardFN" name="flag_outwardFN" value ="{{flag_outwardFN}}"> {% endcomment %}
             
 
             {% comment %} {% if field.field_type == "select"  %}
@@ -268,7 +267,7 @@
                 </select>
 
             {% elif field.field_type == "field_dropdown" %}
-                <select class="form-control select" name="field_{{ field.id }}"
+                <select class="form-control field_dropdown" name="field_{{ field.id }}"
                     {% for attr in field.attributes %} {{ attr }} {% endfor %}
                     {% if readonlyWF == '1' or viewStepWFSeq == '3' %} disabled {% endif %}>
                     <option value="" disabled {% if not field.saved_value %}selected{% endif %}>Select</option>
@@ -1240,6 +1239,38 @@ document.getElementById('compareButton').addEventListener('click', function () {
 });
 
 
+</script>
+
+<script>
+
+     $('.field_dropdown').change(function() {
+        debugger;
+        var selectedValue = $(this).val(); 
+    
+        if (selectedValue) {
+            $.ajax({
+                
+                url: "{% url 'check_fileNameExistsInVersion' %}",
+                type: 'POST', 
+                data: {
+                    id: selectedValue,
+                    csrfmiddlewaretoken: '{{ csrf_token }}' 
+                    
+                },
+                success: function(response) {
+                    debugger;
+                    if (response.status === 0) {                    
+                    
+                    Swal.fire("You Can't Use This File Number.");
+                    $('.field_dropdown').val("");  // Clear selected value
+                    return;
+                }
+                },
+                
+            });
+        }
+    });
+    
 </script>
 
 
