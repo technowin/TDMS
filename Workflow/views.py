@@ -615,7 +615,7 @@ def workflow_form_step(request):
 
     
     if not id:
-        return render(request, "Form/_formfields.html", {"fields": []})  # fallback or error
+        return render(request, "Form/_formfields.html", {"fields": []}) 
 
     try:
         cursor.callproc("stp_getOperatorWorkflow")
@@ -648,7 +648,10 @@ def workflow_form_step(request):
             file_num_forFN = workflow_det.file_number
             form_dataID_forFN = workflow_det.form_data_id
             
-            file_no_value = FormFieldValues.objects.get(value=file_num_forFN, form_data_id=form_dataID_forFN).value
+            if reference_type !='1':
+                file_no_value = FormFieldValues.objects.get(value=file_num_forFN, form_data_id=form_dataID_forFN).value
+            else:
+                file_no_value = ''
             # field_id_forFN = form_field_value.field_id
             
             # to check file name at outward step

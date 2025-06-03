@@ -2578,6 +2578,9 @@ def reference_workflow(request):
         editORcreate = request.POST.get("editORcreate")
         form_data_id = matched_form_data_id
 
+        file_no_field = FormField.objects.filter(form=form, label__iexact='File No').first()
+        file_no_field_id = str(file_no_field.id) if file_no_field else None
+
         # Clear temp values for this form_data_id and form_id
         FormFieldValuesTemp.objects.filter(form_data_id=matched_form_data_id, form_id=form_id).delete()
         FormFileTemp.objects.filter(form_data_id=matched_form_data_id, form_id=form_id).delete()
@@ -2600,7 +2603,7 @@ def reference_workflow(request):
                 field_id = value.strip()
                 field_type = FormField.objects.filter(id=field_id).values_list('field_type', flat=True).first()
 
-                if field_type == "generative" or field_type in ['file', 'file multiple']:
+                if field_type == "generative" or field_type in ['file', 'file multiple'] or field_id == file_no_field_id:
                     existing_value_obj = FormFieldValues.objects.filter(
                         form_data_id=matched_form_data_id,
                         form_id=form_id,
