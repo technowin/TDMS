@@ -218,7 +218,11 @@ def save_form(request):
             for  index,field in enumerate(form_data):
                
                 if field.get("type") == "master dropdown":
-                    value = field.get("masterValue","")
+                    value = field.get("masterValue")
+
+                elif field.get("type") == "multiple":
+                    value = field.get("multiMasterValue")
+
                 elif field.get("type") == "field_dropdown":
                     dropdown_mappings = field.get("field_dropdown", [])
                     form_id_selected = dropdown_mappings.get("form_id","")
@@ -396,7 +400,10 @@ def update_form(request, form_id):
                 order = field.get("order","")
 
                 if field.get("type") == "master dropdown":
-                    value = field.get("masterValue", "")
+                    value = field.get("masterValue")
+
+                elif field.get("type") == "multiple":
+                    value = field.get("multiMasterValue")
                 
                 elif field.get("type") == "field_dropdown":
                     dropdown_mappings = field.get("field_dropdown", [])
@@ -2579,6 +2586,9 @@ def reference_workflow(request):
         editORcreate = request.POST.get("editORcreate")
         form_data_id = matched_form_data_id
 
+        file_no_field = FormField.objects.filter(form=form, label__iexact='File No').first()
+        file_no_field_id = str(file_no_field.id) if file_no_field else None
+
         # Clear temp values for this form_data_id and form_id
         FormFieldValuesTemp.objects.filter(form_data_id=matched_form_data_id, form_id=form_id).delete()
         FormFileTemp.objects.filter(form_data_id=matched_form_data_id, form_id=form_id).delete()
@@ -2601,7 +2611,7 @@ def reference_workflow(request):
                 field_id = value.strip()
                 field_type = FormField.objects.filter(id=field_id).values_list('field_type', flat=True).first()
 
-                if field_type == "generative" or field_type in ['file', 'file multiple']:
+                if field_type == "generative" or field_type in ['file', 'file multiple'] or field_id == file_no_field_id:
                     existing_value_obj = FormFieldValues.objects.filter(
                         form_data_id=matched_form_data_id,
                         form_id=form_id,

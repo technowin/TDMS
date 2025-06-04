@@ -209,6 +209,7 @@
             generatefield: "",
             section:"",
             masterValue: "",
+            multiMasterValue: "",
             order: formFields.length + 1
         };
     
@@ -238,6 +239,7 @@
             generatefield: "",
             section: "",
             masterValue: "",
+            multiMasterValue: "",
             order: formFields.length + 1
         };
     
@@ -432,12 +434,27 @@
             else if (field.type === "master dropdown") {
                 const selectedMasterId = field.options?.[0]?.toString() || "";
                 optionDropdownHtml = `
+                    <input type="hidden" name="masterDropdown-${fieldId}" value="${selectedMasterId}" id="hidden-master-${fieldId}">
                     <select 
                         class="form-control select mb-2" 
                         id="option-dropdown-${fieldId}" 
-                        name="masterDropdown-${fieldId}" 
-                        onchange="updateFields(${fieldId}, 'masterValue', this.value); fetchMasterOptions(this.value, '${fieldId}')">
-                        <option value="">Select Master</option>
+                        onchange="document.getElementById('hidden-master-${fieldId}').value = this.value; updateFields(${fieldId}, 'masterValue', this.value); fetchMasterOptions(this.value, '${fieldId}')">
+                        <option value="">Select</option>
+                        ${master.map(sub => 
+                            `<option value="${sub.id}" ${selectedMasterId === sub.id.toString() ? 'selected' : ''}>${sub.name}</option>`
+                        ).join('')}
+                    </select>
+                `;
+            }
+            else if (field.type === "multiple") {
+                const selectedMasterId = field.options?.[0]?.toString() || "";
+                optionDropdownHtml = `
+                    <input type="hidden" name="multimasterDropdown-${fieldId}" value="${selectedMasterId}" id="hidden-multi-master-${fieldId}">
+                    <select 
+                        class="form-control select mb-2" 
+                        id="multi-option-dropdown-${fieldId}" 
+                        onchange="document.getElementById('hidden-multi-master-${fieldId}').value = this.value; updateFields(${fieldId}, 'multiMasterValue', this.value); fetchMasterOptionsmultiple(this.value, '${fieldId}')">
+                        <option value="">Select</option>
                         ${master.map(sub => 
                             `<option value="${sub.id}" ${selectedMasterId === sub.id.toString() ? 'selected' : ''}>${sub.name}</option>`
                         ).join('')}
@@ -957,12 +974,18 @@
                 inputHtml += `</select>`;
             }
             else if (field.type === "master dropdown") {
-                inputHtml = `
-                    <select name="${fieldName}" id="field_${field.id}" class="form-control select">
-                        <option value="">Select</option>
-                    </select>
-                `;
-            }
+                    inputHtml = `
+                        <select name="${fieldName}" id="field_${field.id}" class="form-control select">
+                            <option value="">Select</option>
+                        </select>
+                    `;
+                }
+            else if (field.type === "multiple") {
+                    inputHtml = `
+                        <select name="${fieldName}" id="field_${field.id}" class="form-control master_multiple" multiple>
+                        </select>
+                    `;
+                }
             
             
             else if (field.type === "textarea") {
@@ -1208,6 +1231,35 @@
                     }
                 }
             }
+
+            if (field.type === "master dropdown") {
+            const dropdown = document.getElementById(`option-dropdown-${field.id}`);
+                    let selectedValue = "";
+
+                    if (dropdown) {
+                        selectedValue = dropdown.value || "";
+                    } else if (field.options && field.options.length > 0) {
+                        selectedValue = field.options[0];
+                    }
+
+                    field.options = [selectedValue];               // for UI reloads
+                    field.masterValue = selectedValue;             // 🔥 for Django backend
+                }
+
+                // 🔹 Multiple Dropdown
+                if (field.type === "multiple") {
+                    const dropdown = document.getElementById(`multi-option-dropdown-${field.id}`);
+                    let selectedValue = "";
+
+                    if (dropdown) {
+                        selectedValue = dropdown.value || "";
+                    } else if (field.options && field.options.length > 0) {
+                        selectedValue = field.options[0];
+                    }
+
+                    field.options = [selectedValue];               // for UI reloads
+                    field.multiMasterValue = selectedValue;        // 🔥 for Django backend
+                }
         });
     }
 
