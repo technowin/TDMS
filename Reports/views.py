@@ -380,18 +380,26 @@ def dl_file(request, file_id):
         return FileResponse(open(file_path, 'rb'), as_attachment=True, filename=form_file.uploaded_name)
     except FormFile.DoesNotExist:
         raise Http404("File not found.")
-    
-def preprocess_data_list(result_data,is_export):
+
+def preprocess_data_list(result_data, is_export):
     data_list = []
     for row in result_data:
         processed_row = []
         for value in row:
             if isinstance(value, str) and 'tdmsformfiles_' in value:
+                file_ids = [v.replace('tdmsformfiles_', '') for v in value.split(',') if v.startswith('tdmsformfiles_')]
+                
                 if is_export == '1':
-                    processed_row.append(None)
+                    uploaded_names = []
+                    for file_id in file_ids:
+                        try:
+                            form_file = FormFile.objects.get(id=file_id)
+                            uploaded_names.append(form_file.uploaded_name)
+                        except FormFile.DoesNotExist:
+                            continue
+                    processed_row.append(', '.join(uploaded_names))
                 else:
                     file_links = []
-                    file_ids = [v.replace('tdmsformfiles_', '') for v in value.split(',') if v.startswith('tdmsformfiles_')]
                     for file_id in file_ids:
                         try:
                             form_file = FormFile.objects.get(id=file_id)
@@ -409,6 +417,7 @@ def preprocess_data_list(result_data,is_export):
                 processed_row.append(value)
         data_list.append(processed_row)
     return data_list
+
 
 def render_to_pdf(html):
     result = BytesIO()
