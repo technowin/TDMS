@@ -113,10 +113,17 @@ def ocr_files(request):
             if ext.lower() != '.pdf':   
                 continue
             if os.path.exists(file_path):
+                file_size = os.path.getsize(file_path)
+                try:
+                    with open(file_path, 'rb') as f:
+                        reader = PdfReader(f)
+                        num_pages = len(reader.pages)
+                except Exception as e:
+                    num_pages = None
                 text = extract_text_from_pdf(file_path)
                 keywords = extract_keywords(text)  
                 Document.objects.filter(id=doc.id).update(
-                    title=doc.uploaded_name,
+                    title=doc.uploaded_name,num_pages=str(num_pages),file_size=str(file_size),
                     pdf_file=doc.file_path,
                     extracted_text=text,
                     keywords=', '.join(keywords)
@@ -137,6 +144,7 @@ from django.shortcuts import render, redirect
 from .models import Document
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
+from PyPDF2 import PdfReader
 
 def upload_document(request):
     if request.method == 'POST':
@@ -148,14 +156,20 @@ def upload_document(request):
             fs = FileSystemStorage(location=os.path.join(settings.MEDIA_ROOT, 'ocr_docs'))
             filename = fs.save(pdf_file.name, pdf_file)
             file_path = os.path.join(fs.location, filename)
-
+            file_size = os.path.getsize(file_path)
+            try:
+                with open(file_path, 'rb') as f:
+                    reader = PdfReader(f)
+                    num_pages = len(reader.pages)
+            except Exception as e:
+                num_pages = None
             # OCR + Keyword extraction
             text = extract_text_from_pdf(file_path)
             keywords = extract_keywords(text)
 
             # Save to DB
             document = Document.objects.create(
-                title=title,
+                title=title,num_pages=str(num_pages),file_size=str(file_size),
                 pdf_file=os.path.join('ocr_docs', filename),
                 extracted_text=text,
                 keywords=', '.join(keywords)

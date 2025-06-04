@@ -5,6 +5,8 @@ from Account.models import *
 class Document(models.Model):
     title = models.TextField(blank=True, null=True)
     pdf_file = models.TextField(blank=True, null=True)
+    num_pages = models.TextField(blank=True, null=True)
+    file_size = models.TextField(blank=True, null=True)
     extracted_text = models.TextField(blank=True, null=True)
     keywords = models.TextField(blank=True, null=True)
     uploaded_at = models.DateTimeField(auto_now_add=True)
