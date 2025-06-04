@@ -388,9 +388,8 @@ def preprocess_data_list(result_data, is_export):
         for value in row:
             if isinstance(value, str) and 'tdmsformfiles_' in value:
                 file_ids = [v.replace('tdmsformfiles_', '') for v in value.split(',') if v.startswith('tdmsformfiles_')]
-                
+                uploaded_names = []
                 if is_export == '1':
-                    uploaded_names = []
                     for file_id in file_ids:
                         try:
                             form_file = FormFile.objects.get(id=file_id)
@@ -403,6 +402,8 @@ def preprocess_data_list(result_data, is_export):
                     for file_id in file_ids:
                         try:
                             form_file = FormFile.objects.get(id=file_id)
+                            # form_file_id1 = callproc("stp_get_check_file",[form_file.id,user])
+                            # if form_file_id1 and form_file_id1[0][0] == form_file.id:
                             file_path = os.path.join(MEDIA_ROOT, form_file.file_path)
                             file_exists = os.path.exists(file_path)
                             file_links.append({
@@ -410,9 +411,14 @@ def preprocess_data_list(result_data, is_export):
                                 'exists': file_exists,
                                 'id': enc(str(file_id)),
                             })
+                            # else:
+                            #     uploaded_names.append(form_file.uploaded_name)
+                            #     processed_row.append(', '.join(uploaded_names))
+
                         except FormFile.DoesNotExist:
                             continue
-                    processed_row.append({'file_links': file_links})
+                    if file_links:
+                        processed_row.append({'file_links': file_links})
             else:
                 processed_row.append(value)
         data_list.append(processed_row)
