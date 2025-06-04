@@ -192,7 +192,7 @@ def partial_report(request):
                 filterid1 = filterid.split(',')
                 SubFilterId1 = subFilterId.split(',')
                 sft1 = sft.split(',')
-                data = common_fun(columnName,filterid1,SubFilterId1,sft1,entity,user)
+                data = common_fun(columnName,filterid1,SubFilterId1,sft1,entity,user,'0')
                 headers = data['headers']
                 emptycheck = data['emptycheck']
                 data_list = data['data_list']
@@ -209,7 +209,7 @@ def partial_report(request):
         data = {'html': html}
         return JsonResponse(data, safe=False)
     
-def common_fun(columnName,filterid,SubFilterId,sft,entity,user):
+def common_fun(columnName,filterid,SubFilterId,sft,entity,user,is_export):
     try:
         report_filters= []
         report_columns= []
@@ -339,7 +339,7 @@ def common_fun(columnName,filterid,SubFilterId,sft,entity,user):
         if ch == 0:
             result_data = callproc("stp_get_execute_report_query", [sql_query])
             if result_data and result_data[0]:
-                data_list = preprocess_data_list(result_data)
+                data_list = preprocess_data_list(result_data,is_export)
       
         display_name_list = list(display_name_arr)
 
@@ -381,27 +381,30 @@ def dl_file(request, file_id):
     except FormFile.DoesNotExist:
         raise Http404("File not found.")
     
-def preprocess_data_list(result_data):
+def preprocess_data_list(result_data,is_export):
     data_list = []
     for row in result_data:
         processed_row = []
         for value in row:
             if isinstance(value, str) and 'tdmsformfiles_' in value:
-                file_links = []
-                file_ids = [v.replace('tdmsformfiles_', '') for v in value.split(',') if v.startswith('tdmsformfiles_')]
-                for file_id in file_ids:
-                    try:
-                        form_file = FormFile.objects.get(id=file_id)
-                        file_path = os.path.join(MEDIA_ROOT, form_file.file_path)
-                        file_exists = os.path.exists(file_path)
-                        file_links.append({
-                            'file_name': form_file.uploaded_name,
-                            'exists': file_exists,
-                            'id': enc(str(file_id)),
-                        })
-                    except FormFile.DoesNotExist:
-                        continue
-                processed_row.append({'file_links': file_links})
+                if is_export == '1':
+                    processed_row.append(None)
+                else:
+                    file_links = []
+                    file_ids = [v.replace('tdmsformfiles_', '') for v in value.split(',') if v.startswith('tdmsformfiles_')]
+                    for file_id in file_ids:
+                        try:
+                            form_file = FormFile.objects.get(id=file_id)
+                            file_path = os.path.join(MEDIA_ROOT, form_file.file_path)
+                            file_exists = os.path.exists(file_path)
+                            file_links.append({
+                                'file_name': form_file.uploaded_name,
+                                'exists': file_exists,
+                                'id': enc(str(file_id)),
+                            })
+                        except FormFile.DoesNotExist:
+                            continue
+                    processed_row.append({'file_links': file_links})
             else:
                 processed_row.append(value)
         data_list.append(processed_row)
@@ -431,7 +434,7 @@ def report_pdf(request):
                 filterid1 = filterid.split(',')
                 SubFilterId1 = subFilterId.split(',')
                 sft1 = sft.split(',')
-                data = common_fun(columnName, filterid1, SubFilterId1, sft1, entity, user)
+                data = common_fun(columnName, filterid1, SubFilterId1, sft1, entity, user, '1')
 
                 headers = data['headers']
                 emptycheck = data['emptycheck']
@@ -479,7 +482,7 @@ def report_xlsx(request):
                 filterid1 = filterid.split(',')
                 SubFilterId1 = subFilterId.split(',')
                 sft1 = sft.split(',')
-                data = common_fun(columnName, filterid1, SubFilterId1, sft1, entity, user)
+                data = common_fun(columnName, filterid1, SubFilterId1, sft1, entity, user, '1')
 
                 headers = data['headers']
                 emptycheck = data['emptycheck']
@@ -559,7 +562,7 @@ def report_xlsx(request):
 #                 filterid1 = filterid.split(',')
 #                 SubFilterId1 = subFilterId.split(',')
 #                 sft1 = sft.split(',')
-#                 data = common_fun(columnName,filterid1,SubFilterId1,sft1,entity,user)
+#                 data = common_fun(columnName,filterid1,SubFilterId1,sft1,entity,user,'1')
 
 #                 headers = data['headers']
 #                 emptycheck = data['emptycheck']
@@ -645,7 +648,7 @@ def save_filters(request):
                 filterid1 = filterid.split(',')
                 SubFilterId1 = subFilterId.split(',')
                 sft1 = sft.split(',')
-                data = common_fun(columnName,filterid1,SubFilterId1,sft1,entity,user)
+                data = common_fun(columnName,filterid1,SubFilterId1,sft1,entity,user,'0')
                 sql_query = data['sql_query'] 
                 display_names = data['display_names']       
                 datalist = callproc("stp_save_report_filters",[saved_name,entity,filterid,subFilterId,columnName,f_count,display_names,sql_query,user])
