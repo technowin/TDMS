@@ -179,52 +179,22 @@ from Form.models import WorkflowVersionControl
 from django.db.models import OuterRef, Subquery, Value, Case, When, CharField
 from django.db.models.functions import Coalesce
 
-def process_documents(docs):
-    processed = []
-    for doc in docs:
-        file_path = os.path.join(MEDIA_ROOT, str(doc.pdf_file)) if doc.pdf_file else ""
-        file_exists = os.path.exists(file_path) if file_path else False
-        processed.append({
-            'id': doc.id,
-            'title': doc.title,
-            'pdf_file': enc(doc.pdf_file) if file_exists else None,
-            'file_exists': file_exists,
-            'keywords': doc.keywords,
-            'uploaded_at': doc.uploaded_at,
-            'file_category': doc.file_category_match,
-            'keywords_list': doc.keywords.split(',') if doc.keywords else []
-        })
-    return processed
-
-def get_documents(user_id):
-    user = CustomUser.objects.get(id=user_id)
-    # Step 1: Get form_ids matching the user's role in the specific workflow
-    form_ids = workflow_matrix.objects.filter(
-        role_id=user.role_id,
-        workflow_name='CIDCO File Scanning and DMS Flow'
-    ).values_list('form_id', flat=True).distinct()
-    # Step 2: Define a subquery to get file_category from WorkflowVersionControl
-    file_category_subquery = WorkflowVersionControl.objects.filter(
-        form_data__form_data_id=OuterRef('form_data_id')  # adjust if needed
-    ).values('file_category')[:1]
-    # Step 3: Main query on Document
-    documents = Document.objects.filter(
-        form_id__in=form_ids
-    ).annotate(
-        file_path_resolved=Coalesce('pdf_file', 'file_path'),
-        version_file_category=Subquery(file_category_subquery),
-        file_category_match=Case(
-            When(version_file_category=user.file_category, then=Value('1')),
-            default=Value('0'),
-            output_field=CharField()
-        )
-    ).order_by('-uploaded_at')
-    return documents
 
 def search_documents(request):
-    # documents = Document.objects.all().order_by('-uploaded_at')
-    documents = get_documents(request.user.id)
+    documents = Document.objects.all().order_by('-uploaded_at')
      # Process documents to add keywords_list
+    def process_documents(docs):
+        processed = []
+        for doc in docs:
+            processed.append({
+                'id': doc.id,
+                'title': doc.title,
+                'pdf_file': doc.pdf_file,
+                'keywords': doc.keywords,
+                'uploaded_at': doc.uploaded_at,
+                'keywords_list': doc.keywords.split(',') if doc.keywords else []
+            })
+        return processed
     context = {'documents': process_documents(documents),'search_type': None}
     if request.method == 'GET':
         # Simple search
@@ -251,7 +221,7 @@ def search_documents(request):
             keyword6 = request.GET.get('keyword6', '').strip()
             match_all = request.GET.get('match_all', 'off') == 'on'
             if title or keyword1 or keyword2 or keyword3 or keyword4 or keyword5 or keyword6:
-                documents = get_documents(request.user.id)
+                documents = Document.objects.all()
                 if title:
                     documents = documents.filter(title__icontains=title)
 
