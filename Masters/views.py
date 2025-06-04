@@ -186,14 +186,20 @@ def search_documents(request):
     def process_documents(docs):
         processed = []
         for doc in docs:
+            # Use pdf_file if it exists, otherwise fall back to file_path
+            raw_path = str(doc.pdf_file) if doc.pdf_file else str(doc.file_path)
+            file_path = os.path.join(MEDIA_ROOT, raw_path) if raw_path else ""
+            file_exists = os.path.exists(file_path) if file_path else False
             processed.append({
                 'id': doc.id,
                 'title': doc.title,
-                'pdf_file': doc.pdf_file,
+                'pdf_file': enc(raw_path) if file_exists else None,
+                'file_exists': file_exists,
                 'keywords': doc.keywords,
                 'uploaded_at': doc.uploaded_at,
                 'keywords_list': doc.keywords.split(',') if doc.keywords else []
             })
+
         return processed
     context = {'documents': process_documents(documents),'search_type': None}
     if request.method == 'GET':
