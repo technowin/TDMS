@@ -169,7 +169,7 @@
                                     </thead>
                                     <tbody>
                                         {% for document in documents %}
-                                            {% if document.file_category == "1" %}
+                                            {% comment %} {% if document.file_category == "1" %} {% endcomment %}
                                                 <tr>
                                                     <td>{{ document.title }}</td>
                                                     <td>
@@ -192,7 +192,7 @@
                                                         {% endif %}
                                                     </td>
                                                 </tr>
-                                            {% endif %}
+                                            {% comment %} {% endif %} {% endcomment %}
                                         {% endfor %}
                                     </tbody>
                                 </table>
