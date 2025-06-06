@@ -49,6 +49,9 @@ class roles(models.Model):
     updated_at = models.DateTimeField(null=True, blank=True, auto_now=True)
     created_by = models.TextField(null=True, blank=True)
     updated_by = models.TextField(null=True, blank=True)
+    workflow_view = models.IntegerField(default=0)
+    form_view = models.IntegerField(default=0)
+    report_view = models.IntegerField(default=0)
     
     class Meta:
         db_table = 'roles'
