@@ -101,13 +101,20 @@
                       onclick="startStepEdit('{{ item.form_data_id }}','{{ item.req_num }}','{{ item.user_prev_step_Check }}','{{item.form_id}}','{{ item.enc_id_wfd }}','{{ item.editORcreate }}')">
                       {{ item.user_prev_step_name }}
                       </button>
-                  {% elif item.extra_flag == 'view_only' and item.last_rejected_step is not none %}
+                {% elif item.extra_flag == 'view_only' and item.last_rejected_step is not none and item.workflow_value == 1 %}
                       <img 
                       src="{% static 'img/eye-open.png' %}" 
                       alt="View" 
                       style="width: 20px; height: 20px; cursor: pointer;" 
                       onclick="startStepView('{{ item.form_data_id }}','{{ item.req_num }}','{{ item.user_prev_step_Check }}')"
                     />
+
+                {% elif item.extra_flag == 'view_only' and item.last_rejected_step is not none and item.workflow_value == 0 %}
+                      <img 
+                      src="{% static 'img/icons8-invisible-100.png' %}"
+                      alt="View" 
+                      style="width: 20px; height: 20px; cursor: pointer;" 
+                      />
                   {% else %}
                     <!-- Default flow -->
                   
@@ -115,12 +122,19 @@
 
                 
                       {% if item.include_for_current_user %}
-                          {% if item.user_prev_step_Check != item.increment_idCheck %}
+                          {% if item.user_prev_step_Check != item.increment_idCheck and item.workflow_value == 1 %}
                           <img 
                           src="{% static 'img/eye-open.png' %}" 
                           alt="View" 
                           style="width: 20px; height: 20px; cursor: pointer;" 
                           onclick="startStepView('{{ item.form_data_id }}','{{ item.req_num }}','{{ item.user_prev_step_Check }}')"
+                        />
+
+                        {% elif item.user_prev_step_Check != item.increment_idCheck and item.workflow_value == 0 %}
+                          <img 
+                          src="{% static 'img/icons8-invisible-100.png' %}"
+                          alt="View" 
+                          style="width: 20px; height: 20px; cursor: not-allowed;" 
                         />
                           
 

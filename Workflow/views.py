@@ -295,6 +295,8 @@ def workflow_starts(request):
 
     workflow_para = "CIDCO File Scanning and DMS Flow"
     param = [workflow_para]
+    
+    workflow_value = roles.objects.filter(id=role_id).values_list('workflow_view', flat=True).first()
 
     reference_workflow_status = request.GET.get("reference_workflow_status")
 
@@ -500,7 +502,7 @@ def workflow_starts(request):
                 "include_for_current_user": include_for_current_user,
                 "last_rejected_step": last_rejected_step,
                 "last_rejected_status": last_rejected_status,"file_number":file_number,
-                'extra_flag': extra_flag,"next_matrix_role":forwarded_to_display,
+                'extra_flag': extra_flag,"next_matrix_role":forwarded_to_display,"workflow_value":workflow_value,
             })
             if last_rejected_step is not None:
                 # This is where the backend resets rejection
