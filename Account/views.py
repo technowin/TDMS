@@ -92,6 +92,10 @@ def register_new_user(request):
         cursor.callproc("stp_get_dropdown_values",['roles'])
         for result in cursor.stored_results():
             roles = list(result.fetchall())
+        
+        cursor.callproc("stp_get_dropdown_values",['category'])
+        for result in cursor.stored_results():
+            category = list(result.fetchall())
 
         if id != '0':
             id1 = dec(id)
@@ -101,11 +105,11 @@ def register_new_user(request):
             last_name = full_name[1] if len(full_name) > 1 else ""  
 
 
-            context = {'users':users,'first_name':first_name,'last_name':last_name,'roles':roles}
+            context = {'users':users,'first_name':first_name,'last_name':last_name,'roles':roles,'category':category,"edit_mode": True,}
            
         else:
 
-            context = {'id':id,'roles': roles}
+            context = {'id':id,'roles': roles,'category':category}
 
 
     if request.method == "POST":
@@ -120,11 +124,19 @@ def register_new_user(request):
                 password = request.POST.get('password') 
                 phone = request.POST.get('mobileNumber')
                 role_id = request.POST.get('role_id')
+                
+                # category_raw = request.POST.getlist('customCategoryDropdown[]')
+                # file_category = category_raw.split(',') if category_raw else []
+                
+                file_category_str = request.POST.getlist('customCategoryDropdown[]')
+                file_category = ",".join(file_category_str)
+
+                
                 full_name = f"{firstname} {lastname}"
 
                 user = CustomUser(
                     full_name=full_name, email=email, phone=phone,
-                    role_id=role_id,
+                    role_id=role_id,file_category=file_category,
                 )
                 user.username = user.email
                 user.is_active = True 
@@ -155,12 +167,17 @@ def register_new_user(request):
                 full_name = f"{firstname} {lastname}"
                 phone = request.POST.get('mobileNumber')
                 role_id = request.POST.get('role_id')
-
+                
+                file_category_str = request.POST.getlist('customCategoryDropdown[]')
+                file_category = ",".join(file_category_str)
+                
                 user = CustomUser.objects.get(id=id)
                 user.full_name = full_name
                 user.email = email
                 user.phone = phone
                 user.role_id = role_id
+                
+                user.file_category = file_category  
                 user.save()
 
                 UserMenuDetails.objects.filter(user_id=user.id).delete()
