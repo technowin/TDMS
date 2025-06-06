@@ -278,6 +278,15 @@ def document_detail(request, document_id):
         'document': document,'full_path': full_path,'keywords': keywords,'highlighted_text': text
     })
 
+
+def ks(request, document_id):
+    document = get_object_or_404(Document, id=document_id)
+    keywords = document.keywords.split(',')[:20]  # Top 20
+    full_path = os.path.join(MEDIA_URL,str(document.pdf_file)).replace('\\', '/')
+    return render(request, 'Master/keyword_search.html', {
+        'document': document,'full_path': full_path,'keywords': keywords
+    })
+
 @login_required
 def masters(request):
     pre_url = request.META.get('HTTP_REFERER')
