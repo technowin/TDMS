@@ -315,25 +315,25 @@ def save_form(request):
 
                 
 
-                for gen_field in generative_fields:
-                    
-                    prefix = gen_field["prefix"]
-                    if isinstance(prefix, (list, tuple)):
-                        prefix = prefix[0] if prefix else ""
+                    for gen_field in generative_fields:
+                        
+                        prefix = gen_field["prefix"]
+                        if isinstance(prefix, (list, tuple)):
+                            prefix = prefix[0] if prefix else ""
 
-                    field_ids = FormField.objects.filter(
-                        form=form,
-                        label__in=gen_field["field_names"]
-                    ).values_list("id", flat=True)
+                        field_ids = FormField.objects.filter(
+                            form=form,
+                            label__in=gen_field["field_names"]
+                        ).values_list("id", flat=True)
 
-                    FormGenerativeField.objects.create(
-                        prefix=gen_field["prefix"],
-                        selected_field_id=",".join(map(str, field_ids)),  # Convert IDs to comma-separated string
-                        no_of_zero=gen_field["no_of_zero"],
-                        increment=gen_field["increment"],
-                        form=form,
-                        field=gen_field["form_field"]
-                    )
+                        FormGenerativeField.objects.create(
+                            prefix=gen_field["prefix"],
+                            selected_field_id=",".join(map(str, field_ids)),  # Convert IDs to comma-separated string
+                            no_of_zero=gen_field["no_of_zero"],
+                            increment=gen_field["increment"],
+                            form=form,
+                            field=gen_field["form_field"]
+                        )
 
 
 
