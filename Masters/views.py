@@ -113,10 +113,17 @@ def ocr_files(request):
             if ext.lower() != '.pdf':   
                 continue
             if os.path.exists(file_path):
+                file_size = os.path.getsize(file_path)
+                try:
+                    with open(file_path, 'rb') as f:
+                        reader = PdfReader(f)
+                        num_pages = len(reader.pages)
+                except Exception as e:
+                    num_pages = None
                 text = extract_text_from_pdf(file_path)
                 keywords = extract_keywords(text)  
                 Document.objects.filter(id=doc.id).update(
-                    title=doc.uploaded_name,
+                    title=doc.uploaded_name,num_pages=str(num_pages),file_size=str(file_size),
                     pdf_file=doc.file_path,
                     extracted_text=text,
                     keywords=', '.join(keywords)
@@ -137,6 +144,7 @@ from django.shortcuts import render, redirect
 from .models import Document
 from django.core.files.storage import FileSystemStorage
 from django.conf import settings
+from PyPDF2 import PdfReader
 
 def upload_document(request):
     if request.method == 'POST':
@@ -148,14 +156,20 @@ def upload_document(request):
             fs = FileSystemStorage(location=os.path.join(settings.MEDIA_ROOT, 'ocr_docs'))
             filename = fs.save(pdf_file.name, pdf_file)
             file_path = os.path.join(fs.location, filename)
-
+            file_size = os.path.getsize(file_path)
+            try:
+                with open(file_path, 'rb') as f:
+                    reader = PdfReader(f)
+                    num_pages = len(reader.pages)
+            except Exception as e:
+                num_pages = None
             # OCR + Keyword extraction
             text = extract_text_from_pdf(file_path)
             keywords = extract_keywords(text)
 
             # Save to DB
             document = Document.objects.create(
-                title=title,
+                title=title,num_pages=str(num_pages),file_size=str(file_size),
                 pdf_file=os.path.join('ocr_docs', filename),
                 extracted_text=text,
                 keywords=', '.join(keywords)
@@ -179,52 +193,28 @@ from Form.models import WorkflowVersionControl
 from django.db.models import OuterRef, Subquery, Value, Case, When, CharField
 from django.db.models.functions import Coalesce
 
-def process_documents(docs):
-    processed = []
-    for doc in docs:
-        file_path = os.path.join(MEDIA_ROOT, str(doc.pdf_file)) if doc.pdf_file else ""
-        file_exists = os.path.exists(file_path) if file_path else False
-        processed.append({
-            'id': doc.id,
-            'title': doc.title,
-            'pdf_file': enc(doc.pdf_file) if file_exists else None,
-            'file_exists': file_exists,
-            'keywords': doc.keywords,
-            'uploaded_at': doc.uploaded_at,
-            'file_category': doc.file_category_match,
-            'keywords_list': doc.keywords.split(',') if doc.keywords else []
-        })
-    return processed
-
-def get_documents(user_id):
-    user = CustomUser.objects.get(id=user_id)
-    # Step 1: Get form_ids matching the user's role in the specific workflow
-    form_ids = workflow_matrix.objects.filter(
-        role_id=user.role_id,
-        workflow_name='CIDCO File Scanning and DMS Flow'
-    ).values_list('form_id', flat=True).distinct()
-    # Step 2: Define a subquery to get file_category from WorkflowVersionControl
-    file_category_subquery = WorkflowVersionControl.objects.filter(
-        form_data__form_data_id=OuterRef('form_data_id')  # adjust if needed
-    ).values('file_category')[:1]
-    # Step 3: Main query on Document
-    documents = Document.objects.filter(
-        form_id__in=form_ids
-    ).annotate(
-        file_path_resolved=Coalesce('pdf_file', 'file_path'),
-        version_file_category=Subquery(file_category_subquery),
-        file_category_match=Case(
-            When(version_file_category=user.file_category, then=Value('1')),
-            default=Value('0'),
-            output_field=CharField()
-        )
-    ).order_by('-uploaded_at')
-    return documents
 
 def search_documents(request):
-    # documents = Document.objects.all().order_by('-uploaded_at')
-    documents = get_documents(request.user.id)
+    documents = Document.objects.all().order_by('-uploaded_at')
      # Process documents to add keywords_list
+    def process_documents(docs):
+        processed = []
+        for doc in docs:
+            # Use pdf_file if it exists, otherwise fall back to file_path
+            raw_path = str(doc.pdf_file) if doc.pdf_file else str(doc.file_path)
+            file_path = os.path.join(MEDIA_ROOT, raw_path) if raw_path else ""
+            file_exists = os.path.exists(file_path) if file_path else False
+            processed.append({
+                'id': doc.id,
+                'title': doc.title,
+                'pdf_file': enc(raw_path) if file_exists else None,
+                'file_exists': file_exists,
+                'keywords': doc.keywords,
+                'uploaded_at': doc.uploaded_at,
+                'keywords_list': doc.keywords.split(',') if doc.keywords else []
+            })
+
+        return processed
     context = {'documents': process_documents(documents),'search_type': None}
     if request.method == 'GET':
         # Simple search
@@ -251,7 +241,7 @@ def search_documents(request):
             keyword6 = request.GET.get('keyword6', '').strip()
             match_all = request.GET.get('match_all', 'off') == 'on'
             if title or keyword1 or keyword2 or keyword3 or keyword4 or keyword5 or keyword6:
-                documents = get_documents(request.user.id)
+                documents = Document.objects.all()
                 if title:
                     documents = documents.filter(title__icontains=title)
 
@@ -286,6 +276,15 @@ def document_detail(request, document_id):
 
     return render(request, 'Master/document_keyword.html', {
         'document': document,'full_path': full_path,'keywords': keywords,'highlighted_text': text
+    })
+
+
+def ks(request, document_id):
+    document = get_object_or_404(Document, id=document_id)
+    keywords = document.keywords.split(',')[:20]  # Top 20
+    full_path = os.path.join(MEDIA_URL,str(document.pdf_file)).replace('\\', '/')
+    return render(request, 'Master/keyword_search.html', {
+        'document': document,'full_path': full_path,'keywords': keywords
     })
 
 @login_required
