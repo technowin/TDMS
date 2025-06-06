@@ -1,0 +1,598 @@
+{% extends "Shared/Layout.html" %} {% block username %}{{username}}{% endblock %} 
+{% block content %} {% load static %}
+
+{% load custom_filters %}
+<link href="{% static 'css/masters.css' %}" rel="stylesheet" type="text/css" >
+<script src="{% static 'jquery/dist/jquery.min.js' %}"></script>
+<link rel="stylesheet" type="text/css" href="https://cdn.datatables.net/1.10.25/css/jquery.dataTables.min.css">
+<script type="text/javascript" charset="utf8" src="https://cdn.datatables.net/1.10.25/js/jquery.dataTables.min.js"></script>
+
+<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/5.15.4/css/all.min.css" rel="stylesheet">
+<style>
+    .keywords-container {
+        display: flex;
+        flex-wrap: wrap;
+        align-items: flex-start;
+    }
+    
+    .keyword-btn {
+        transition: all 0.2s;
+    }
+    
+    .keyword-btn:hover {
+        transform: translateY(-2px);
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    }
+    
+    .keyword-btn.active {
+        background-color: #007bff;
+        color: white;
+        box-shadow: 0 2px 8px rgba(0,123,255,0.4);
+    }
+    
+    .pdf-viewer-container {
+        position: relative;
+        overflow: hidden;
+        background-color: #525659; /* PDF.js background color */
+    }
+    
+    .search-results {
+        background-color: #f8f9fa;
+        padding: 10px;
+        border-radius: 5px;
+        border: 1px solid #dee2e6;
+    }
+    
+    #pdf-viewer {
+        width: 100%;
+    }
+    
+    .highlight {
+        background-color: rgba(255, 255, 0, 0.5);
+        border-radius: 2px;
+    }
+    
+    .highlight.active {
+        background-color: rgba(255, 215, 0, 0.8);
+        box-shadow: 0 0 2px 1px rgba(0,0,0,0.3);
+    }
+</style>
+
+<div class="container-fluid mt-4">
+    <div class="row justify-content-center">
+        <div class="col-md-12">
+            <div class="card shadow-lg">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0">PDF Viewer with Keyword Search</h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <!-- Keywords Panel -->
+                        <div class="col-md-4 border-right">
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h5>Keywords</h5>
+                                <div class="input-group" style="width: 200px;">
+                                    <input type="text" id="keyword-filter" class="form-control form-control-sm" placeholder="Filter keywords...">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-sm btn-outline-secondary" type="button">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="keywords-container mb-3" style="max-height: 400px; overflow-y: auto;">
+                                {% for keyword in keywords %}
+                                    <button class="btn btn-outline-primary btn-sm keyword-btn mb-2 mr-2" data-keyword="{{ keyword }}">
+                                        {{ keyword }} 
+                                        <span class="badge badge-light ml-1 keyword-count" style="display: none;">0</span>
+                                    </button>
+                                {% endfor %}
+                            </div>
+                            <hr>
+                            <div class="search-controls">
+                                <div class="input-group mb-3">
+                                    <input type="text" id="custom-search" class="form-control" placeholder="Search for any text...">
+                                    <div class="input-group-append">
+                                        <button class="btn btn-primary" id="search-btn" type="button">
+                                            <i class="fas fa-search"></i>
+                                        </button>
+                                    </div>
+                                </div>
+                                <div class="search-results d-none">
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span id="match-count">0 matches</span>
+                                        <div>
+                                            <button class="btn btn-sm btn-outline-secondary" id="prev-match" disabled>
+                                                <i class="fas fa-chevron-up"></i> Previous
+                                            </button>
+                                            <button class="btn btn-sm btn-outline-secondary" id="next-match" disabled>
+                                                Next <i class="fas fa-chevron-down"></i>
+                                            </button>
+                                        </div>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="highlight-all" checked>
+                                        <label class="form-check-label" for="highlight-all">
+                                            Highlight all matches
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="case-sensitive">
+                                        <label class="form-check-label" for="case-sensitive">
+                                            Case sensitive
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" id="whole-word">
+                                        <label class="form-check-label" for="whole-word">
+                                            Whole words only
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- PDF Viewer -->
+                        <div class="col-md-8">
+                            <div class="pdf-viewer-container shadow-sm border">
+                                    <div id="pdf-viewer" style="height: 600px; overflow-y: auto;"></div>
+                            </div>
+                            <div class="pdf-controls mt-2 d-flex justify-content-between align-items-center">
+                                <div>
+                                    <button class="btn btn-sm btn-outline-secondary" id="prev-page">
+                                        <i class="fas fa-arrow-left"></i> Previous
+                                    </button>
+                                    <span class="mx-2">
+                                        Page <span id="page-num">1</span> of <span id="page-count">0</span>
+                                    </span>
+                                    <button class="btn btn-sm btn-outline-secondary" id="next-page">
+                                        Next <i class="fas fa-arrow-right"></i>
+                                    </button>
+                                </div>
+                                <div>
+                                    <button class="btn btn-sm btn-outline-secondary" id="zoom-out">
+                                        <i class="fas fa-search-minus"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-secondary" id="zoom-in">
+                                        <i class="fas fa-search-plus"></i>
+                                    </button>
+                                    <button class="btn btn-sm btn-outline-primary" id="download-pdf">
+                                        <i class="fas fa-download"></i> Download
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- PDF.js libraries -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+<script>
+    // Set the worker path
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js';
+    
+    $(document).ready(function() {
+        // Initialize PDF viewer
+        const pdfViewer = document.getElementById('pdf-viewer');
+        let pdfDoc = null,
+            pageNum = 1,
+            pageRendering = false,
+            pageNumPending = null,
+            scale = 1.5,
+            canvas = document.createElement('canvas'),
+            ctx = canvas.getContext('2d'),
+            currentSearch = '',
+            currentMatches = [],
+            currentMatchIndex = 0,
+            searchActive = false;
+        
+        pdfViewer.appendChild(canvas);
+        
+        // Load the PDF
+        function loadPdf() {
+            const url = "{{ full_path }}";
+            
+            // Load the PDF
+            pdfjsLib.getDocument(url).promise.then(function(pdfDoc_) {
+                pdfDoc = pdfDoc_;
+                document.getElementById('page-count').textContent = pdfDoc.numPages;
+                
+                // Initial page rendering
+                renderPage(pageNum);
+                
+                // Update keyword counts
+                updateKeywordCounts();
+            }).catch(function(error) {
+                console.error('Error loading PDF:', error);
+                alert('Error loading PDF. Please try again.');
+            });
+        }
+        
+        // Render a page
+        function renderPage(num) {
+            pageRendering = true;
+            
+            // Using promise to fetch the page
+            pdfDoc.getPage(num).then(function(page) {
+                const viewport = page.getViewport({ scale: scale });
+                canvas.height = viewport.height;
+                canvas.width = viewport.width;
+                
+                // Render PDF page into canvas context
+                const renderContext = {
+                    canvasContext: ctx,
+                    viewport: viewport
+                };
+                
+                const renderTask = page.render(renderContext);
+                
+                // Wait for rendering to finish
+                renderTask.promise.then(function() {
+                    pageRendering = false;
+                    document.getElementById('page-num').textContent = num;
+                    
+                    if (pageNumPending !== null) {
+                        // New page rendering is pending
+                        renderPage(pageNumPending);
+                        pageNumPending = null;
+                    }
+                    
+                    // Highlight search terms if any
+                    if (currentSearch) {
+                        highlightText(currentSearch);
+                    }
+                });
+            });
+        }
+        
+        // Queue rendering of a page
+        function queueRenderPage(num) {
+            if (pageRendering) {
+                pageNumPending = num;
+            } else {
+                renderPage(num);
+            }
+        }
+        
+        // Previous page
+        document.getElementById('prev-page').addEventListener('click', function() {
+            if (pageNum <= 1) {
+                return;
+            }
+            pageNum--;
+            queueRenderPage(pageNum);
+        });
+        
+        // Next page
+        document.getElementById('next-page').addEventListener('click', function() {
+            if (pageNum >= pdfDoc.numPages) {
+                return;
+            }
+            pageNum++;
+            queueRenderPage(pageNum);
+        });
+        
+        // Zoom in
+        document.getElementById('zoom-in').addEventListener('click', function() {
+            scale += 0.25;
+            queueRenderPage(pageNum);
+        });
+        
+        // Zoom out
+        document.getElementById('zoom-out').addEventListener('click', function() {
+            if (scale <= 0.5) {
+                return;
+            }
+            scale -= 0.25;
+            queueRenderPage(pageNum);
+        });
+        
+        // Download PDF
+        document.getElementById('download-pdf').addEventListener('click', function() {
+            window.open("{{ full_path }}", '_blank');
+        });
+        
+        // Keyword search
+        $('.keyword-btn').click(function() {
+            const keyword = $(this).data('keyword');
+            performSearch(keyword);
+            
+            // Update active state
+            $('.keyword-btn').removeClass('active');
+            $(this).addClass('active');
+        });
+        
+        // Custom search
+        $('#search-btn').click(function() {
+            const searchText = $('#custom-search').val().trim();
+            if (searchText) {
+                performSearch(searchText);
+            }
+        });
+        
+        // Custom search on Enter key
+        $('#custom-search').keypress(function(e) {
+            if (e.which === 13) {
+                $('#search-btn').click();
+            }
+        });
+        
+        // Filter keywords
+        $('#keyword-filter').keyup(function() {
+            const filter = $(this).val().toLowerCase();
+            $('.keyword-btn').each(function() {
+                const keyword = $(this).data('keyword').toLowerCase();
+                if (keyword.includes(filter)) {
+                    $(this).show();
+                } else {
+                    $(this).hide();
+                }
+            });
+        });
+        
+        // Previous match
+        $('#prev-match').click(function() {
+            if (currentMatchIndex > 0) {
+                currentMatchIndex--;
+                navigateToMatch();
+            }
+        });
+        
+        // Next match
+        $('#next-match').click(function() {
+            if (currentMatchIndex < currentMatches.length - 1) {
+                currentMatchIndex++;
+                navigateToMatch();
+            }
+        });
+        
+        // Perform search
+        function performSearch(searchText) {
+            currentSearch = searchText;
+            $('#custom-search').val(searchText);
+            $('.search-results').removeClass('d-none');
+            
+            // Highlight the text on current page
+            highlightText(searchText);
+            
+            // Search through the entire document to get match count
+            searchDocument(searchText).then(function(matches) {
+                currentMatches = matches;
+                updateMatchUI();
+            });
+        }
+        
+        // Highlight text on current page
+        function highlightText(searchText) {
+            if (!pdfDoc || !searchText) return;
+            
+            // Get current page
+            pdfDoc.getPage(pageNum).then(function(page) {
+                page.getTextContent().then(function(textContent) {
+                    // Clear previous highlights
+                    const highlights = document.querySelectorAll('.highlight');
+                    highlights.forEach(highlight => {
+                        highlight.parentNode.replaceChild(
+                            document.createTextNode(highlight.textContent),
+                            highlight
+                        );
+                    });
+                    
+                    // Search for the text
+                    const searchStr = searchText;
+                    const caseSensitive = $('#case-sensitive').is(':checked');
+                    const wholeWord = $('#whole-word').is(':checked');
+                    
+                    let searchRegex;
+                    if (wholeWord) {
+                        searchRegex = new RegExp(`\\b${escapeRegExp(searchStr)}\\b`, caseSensitive ? 'g' : 'gi');
+                    } else {
+                        searchRegex = new RegExp(escapeRegExp(searchStr), caseSensitive ? 'g' : 'gi');
+                    }
+                    
+                    const viewport = page.getViewport({ scale: scale });
+                    const textItems = textContent.items;
+                    const textDivs = [];
+                    
+                    // Find matches and highlight them
+                    for (let i = 0; i < textItems.length; i++) {
+                        const textItem = textItems[i];
+                        const matches = [...textItem.str.matchAll(searchRegex)];
+                        
+                        if (matches.length > 0) {
+                            const text = textItem.str;
+                            let lastIndex = 0;
+                            let highlightedText = '';
+                            
+                            for (const match of matches) {
+                                const before = text.substring(lastIndex, match.index);
+                                const matched = text.substring(match.index, match.index + match[0].length);
+                                
+                                highlightedText += before + `<span class="highlight">${matched}</span>`;
+                                lastIndex = match.index + match[0].length;
+                            }
+                            
+                            highlightedText += text.substring(lastIndex);
+                            
+                            // Create a div for this text item
+                            const textDiv = document.createElement('div');
+                            textDiv.style.position = 'absolute';
+                            textDiv.style.left = `${textItem.transform[4]}px`;
+                            textDiv.style.top = `${textItem.transform[5]}px`;
+                            textDiv.style.fontSize = `${textItem.height}px`;
+                            textDiv.style.lineHeight = `${textItem.height}px`;
+                            textDiv.style.transform = `matrix(${textItem.transform[0]}, ${textItem.transform[1]}, ${textItem.transform[2]}, ${textItem.transform[3]}, 0, 0)`;
+                            textDiv.innerHTML = highlightedText;
+                            
+                            textDivs.push(textDiv);
+                        }
+                    }
+                    
+                    // Add highlights to the canvas
+                    const highlightLayer = document.createElement('div');
+                    highlightLayer.style.position = 'absolute';
+                    highlightLayer.style.left = '0';
+                    highlightLayer.style.top = '0';
+                    highlightLayer.style.width = '100%';
+                    highlightLayer.style.height = '100%';
+                    highlightLayer.style.pointerEvents = 'none';
+                    
+                    textDivs.forEach(div => highlightLayer.appendChild(div));
+                    
+                    // Remove previous highlight layer if exists
+                    const oldLayer = document.querySelector('.highlight-layer');
+                    if (oldLayer) oldLayer.remove();
+                    
+                    highlightLayer.classList.add('highlight-layer');
+                    canvas.parentNode.appendChild(highlightLayer);
+                });
+            });
+        }
+        
+        // Search through the entire document
+        function searchDocument(searchText) {
+            return new Promise((resolve) => {
+                if (!pdfDoc) {
+                    resolve([]);
+                    return;
+                }
+                
+                const matches = [];
+                const promises = [];
+                const caseSensitive = $('#case-sensitive').is(':checked');
+                const wholeWord = $('#whole-word').is(':checked');
+                
+                let searchRegex;
+                if (wholeWord) {
+                    searchRegex = new RegExp(`\\b${escapeRegExp(searchText)}\\b`, caseSensitive ? 'g' : 'gi');
+                } else {
+                    searchRegex = new RegExp(escapeRegExp(searchText), caseSensitive ? 'g' : 'gi');
+                }
+                
+                // Search each page
+                for (let i = 1; i <= pdfDoc.numPages; i++) {
+                    promises.push(
+                        pdfDoc.getPage(i).then(function(page) {
+                            return page.getTextContent().then(function(textContent) {
+                                let pageMatches = 0;
+                                
+                                for (let j = 0; j < textContent.items.length; j++) {
+                                    const textItem = textContent.items[j];
+                                    const textMatches = textItem.str.match(searchRegex);
+                                    
+                                    if (textMatches) {
+                                        pageMatches += textMatches.length;
+                                    }
+                                }
+                                
+                                if (pageMatches > 0) {
+                                    matches.push({
+                                        page: i,
+                                        count: pageMatches
+                                    });
+                                }
+                                
+                                return pageMatches;
+                            });
+                        })
+                    );
+                }
+                
+                Promise.all(promises).then(() => {
+                    resolve(matches);
+                });
+            });
+        }
+        
+        // Update match UI
+        function updateMatchUI() {
+            const totalMatches = currentMatches.reduce((sum, match) => sum + match.count, 0);
+            $('#match-count').text(`${totalMatches} matches`);
+            
+            // Enable/disable navigation buttons
+            $('#prev-match').prop('disabled', currentMatchIndex <= 0);
+            $('#next-match').prop('disabled', currentMatchIndex >= totalMatches - 1);
+            
+            // If we have matches, navigate to the first one
+            if (totalMatches > 0) {
+                currentMatchIndex = 0;
+                navigateToMatch();
+            }
+        }
+        
+        // Navigate to current match
+        function navigateToMatch() {
+            if (currentMatches.length === 0) return;
+            
+            // Find which page contains this match
+            let cumulativeCount = 0;
+            let targetPage = 1;
+            
+            for (const match of currentMatches) {
+                if (currentMatchIndex < cumulativeCount + match.count) {
+                    targetPage = match.page;
+                    break;
+                }
+                cumulativeCount += match.count;
+            }
+            
+            // Go to the page if not already there
+            if (pageNum !== targetPage) {
+                pageNum = targetPage;
+                queueRenderPage(pageNum);
+            }
+            
+            // Highlight the active match (this is simplified - would need more complex logic for exact positioning)
+            setTimeout(() => {
+                const highlights = document.querySelectorAll('.highlight');
+                if (highlights.length > 0) {
+                    // Remove active class from all
+                    highlights.forEach(h => h.classList.remove('active'));
+                    
+                    // Add active class to the current match
+                    const matchIndex = currentMatchIndex - cumulativeCount;
+                    if (matchIndex >= 0 && matchIndex < highlights.length) {
+                        highlights[matchIndex].classList.add('active');
+                        highlights[matchIndex].scrollIntoView({
+                            behavior: 'smooth',
+                            block: 'center'
+                        });
+                    }
+                }
+            }, 500);
+        }
+        
+        // Update keyword counts
+        function updateKeywordCounts() {
+            if (!pdfDoc) return;
+            
+            $('.keyword-btn').each(function() {
+                const keyword = $(this).data('keyword');
+                const countElement = $(this).find('.keyword-count');
+                
+                searchDocument(keyword).then(function(matches) {
+                    const total = matches.reduce((sum, match) => sum + match.count, 0);
+                    if (total > 0) {
+                        countElement.text(total).show();
+                    } else {
+                        countElement.hide();
+                    }
+                });
+            });
+        }
+        
+        // Helper function to escape regex special characters
+        function escapeRegExp(string) {
+            return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+        }
+        
+        // Initialize
+        loadPdf();
+    });
+</script>
+
+{% endblock %}
