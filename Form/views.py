@@ -626,14 +626,14 @@ def form_action_builder(request):
         messages.error(request, 'Oops...! Something went wrong!')
         return JsonResponse({"error": "Something went wrong!"}, status=500)
     
-    finally:
-        return render(request, "Form/form_action_builder.html", {
-            "form": form,
-            "master_values":master_values,
-            "button_type":json.dumps(button_type),
-            "form_fields_json": form_fields_json,
-            "dropdown_options": json.dumps(dropdown_options),
-        })
+    
+    return render(request, "Form/form_action_builder.html", {
+        "form": form,
+        "master_values":master_values,
+        "button_type":json.dumps(button_type),
+        "form_fields_json": form_fields_json,
+        "dropdown_options": json.dumps(dropdown_options),
+    })
 
 
 def form_action_builder_master(request):
@@ -678,12 +678,12 @@ def form_action_builder_master(request):
         messages.error(request, 'Oops...! Something went wrong!')
         return JsonResponse({"error": "Something went wrong!"}, status=500)
     
-    finally:
-        return render(request, "Form/form_action_builder.html", {
-            "master_values": master_values,
-            "button_type": json.dumps(button_type),
-            "dropdown_options": json.dumps(dropdown_options),
-        })
+    
+    return render(request, "Form/form_action_builder.html", {
+        "master_values": master_values,
+        "button_type": json.dumps(button_type),
+        "dropdown_options": json.dumps(dropdown_options),
+    })
 
 
 
