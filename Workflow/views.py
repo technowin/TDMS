@@ -393,8 +393,8 @@ def workflow_starts(request):
             editORcreate = ''
         # editORcreate = workflow_matrix.objects.get(id=editcrt).button_act_details
         formDataId_Status= item[7]
-        revised_Status = VersionControlFileMap.objects.filter(form_data=formDataId_Status)
-        #revised_Status = WorkflowVersionControl.objects.filter(form_data_id=formDataId_Status).exclude(temp_version=1)
+        #revised_Status = VersionControlFileMap.objects.filter(form_data=formDataId_Status)
+        revised_Status = WorkflowVersion.objects.filter(req_id=req_num).exclude(version=1)
         #revised_Status = WorkflowVersionControl.objects.filter(form_data_id=formDataId_Status).exclude(temp_version=1)
         rejectedCheckWF=None
         if revised_Status.exists():
