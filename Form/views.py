@@ -1404,6 +1404,16 @@ def common_form_post(request):
             #             file_category=latest_file_category if latest_file_category else None,
             #             form_data_id=form_dataID
             #             )
+            if role_idC == '1':
+                latest_record = WorkflowVersionControl.objects.filter(
+                        file_name=file_name
+                    ).order_by('-id').first()
+                latest_temp_version = latest_record.temp_version if latest_record else None
+                if latest_temp_version is None:
+                    temp_version = Decimal('1.0')
+                else:
+                    temp_version = Decimal(str(latest_temp_version)) + Decimal('0.1')
+                WorkflowVersion.objects.create(req_id = workflow_detail.req_id, version = temp_version)
             if role_idC == '2':
             # Check if any row with version_no=0 exists for the given file_name
                 reject_case = WorkflowVersionControl.objects.filter(
@@ -1437,7 +1447,7 @@ def common_form_post(request):
                         form_data_id=form_dataID
                     )
 
-                    WorkflowVersion.objects.create(req_id = workflow_detail.req_id, version = temp_version)
+                    # WorkflowVersion.objects.create(req_id = workflow_detail.req_id, version = temp_version)
             if role_idC == '5':
                 count_row = WorkflowVersionControl.objects.filter(file_name=file_name).count()
                 latest_row = WorkflowVersionControl.objects.filter(
