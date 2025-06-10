@@ -1473,7 +1473,7 @@ def common_form_post(request):
             for key, value in request.POST.items():
                 if key.startswith("action_field_") and not key.startswith("action_field_id_"):
                     match = re.match(r'action_field_(\d+)', key)
-                    latest_row = WorkflowVersionControl.objects.filter(file_name=file_name).order_by('-id').first()
+                    latest_row = WorkflowVersionControl.objects.filter(file_name=form_data.file_ref).order_by('-id').first()
 
                     # Set temp_vers based on whether a row was found
                     if latest_row and latest_row.temp_version is not None:
