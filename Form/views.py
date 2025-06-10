@@ -2974,4 +2974,20 @@ def get_grouped_comments(version_no, form_data_id):
 
     return grouped_data
 
+def check_file_status(request):
+    if request.method == 'POST':
+        file_name = request.POST.get('file_name')
+        try:
+            # Get the latest entry for the given file
+            latest_entry = WorkflowVersionControl.objects.filter(file_name=file_name).order_by('-id').first()
+            
+            if latest_entry and latest_entry.baseline_date:
+                return JsonResponse({"status": 1})  # Valid file with baseline data
+            else:
+                return JsonResponse({"status": 0, "message": "This file version is ongoing (no baseline data)."})
+        
+        except Exception as e:
+            return JsonResponse({"status": -1, "error": str(e)})
+
+    return JsonResponse({"status": -1, "error": "Invalid request method"})
 

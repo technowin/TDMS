@@ -1154,34 +1154,41 @@ function validateRegexInput(inputElement) {
     }
 </script>
 
-{% comment %} <script>
-    $(document).ready(function () {
-        $('.field_select').on('change', function () {
-            const selectedValue = $(this).val();
-            const selectElement = $(this); // to refer inside AJAX success
+ <script>
+$(document).ready(function () {
+    $('.field_select').on('change', function () {
+        const selectedValue = $(this).val();
+        const selectElement = $(this);
 
-            if (selectedValue === "") return;
+        if (selectedValue === "New File") return;
 
-            $.ajax({
-                type: "POST",
-                url: "{% url 'check_file_status' %}",
-                data: {
-                    file_name: selectedValue,
-                    csrfmiddlewaretoken: '{{ csrf_token }}',
-                },
-                success: function (response) {
-                    if (response.status !== 1) {
-                        alert("This file is not allowed. Please select a different one.");
-                        selectElement.val(""); // Reset selection
-                    }
-                },
-                error: function (xhr, status, error) {
-                    console.error("AJAX Error:", error);
+        $.ajax({
+            type: "POST",
+            url: "{% url 'check_file_status' %}",
+            data: {
+                file_name: selectedValue,
+                csrfmiddlewaretoken: '{{ csrf_token }}',
+            },
+            success: function (response) {
+                if (response.status !== 1) {
+                    Swal.fire({
+                        icon: 'warning',
+                        title: 'Ongoing File',
+                        text: response.message || "This file version is ongoing and you cant use this file.",
+                    }).then(() => {
+                        selectElement.val(""); // Reset dropdown only when status is not 1
+                    });
                 }
-            });
+                // If status is 1, do nothing (keep the selected value)
+            },
+            error: function (xhr, status, error) {
+                console.error("AJAX Error:", error);
+                selectElement.val(""); // Reset dropdown on error
+            }
         });
     });
-</script> {% endcomment %}
+});
+</script> 
 
 <script>
    {% comment %} $('#compareButton').click(function () {
