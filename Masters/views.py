@@ -633,3 +633,49 @@ def workflow_Editmap(request):
         m.commit()
         m.close()
         Db.closeConnection()
+        
+def view_access(request):
+    Db.closeConnection()
+    m = Db.get_connection()
+    cursor=m.cursor()
+    if request.user.is_authenticated ==True:                
+                global user,role_id
+                user = request.user.id    
+                role_id = request.user.role_id
+    try:
+        if request.method == "GET":
+            cursor.callproc("stp_getRoleForAccessControl")
+            for result in cursor.stored_results():
+                roles_dropdown = list(result.fetchall())
+                # roles_dropdown = [row[0] for row in result.fetchall()]
+           
+            
+            roles_data_qs = roles.objects.all()
+            roles_data_dict = {r.id: r for r in roles_data_qs}
+            
+            getformdata = {'roles':roles_dropdown,'roles_data': roles_data_dict,}
+            return render(request, "Master/view_access.html",getformdata)
+        if request.method == "POST":
+            data = json.loads(request.body)
+            name = data.get("name")  # like workflow_inward
+            value = data.get("value")  # 1 or 0
+
+            type_, role_slug = name.split("_")
+            role = role_slug.replace("-", " ").title()  # reverse slugify
+            
+            if type_ == 'workflow':
+                roles.objects.filter(id=role).update(workflow_view=value)
+            elif type_ == 'form':
+                roles.objects.filter(id=role).update(form_view=value)
+            elif type_ == 'report':
+                roles.objects.filter(id=role).update(report_view=value)
+    except Exception as e:
+        print("error-"+e)
+        response_data = "fail"
+        messages.error(request,"Some Error Occured !!")
+    
+    finally:
+        cursor.close()
+        m.commit()
+        m.close()
+        Db.closeConnection()
