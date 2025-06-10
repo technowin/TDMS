@@ -39,8 +39,9 @@
                         </select>
                       </div>  
                   {% endif %}    
+                  {% if entity != 'form_master' %}
                    <div class="col-sm-2">
-                     <form method="GET" action="{% if entity == 'user' %}/register_new_user {% elif entity == 'form' %}/form_builder{% elif entity == 'wfseq' %}/workflow_mapping{% elif entity == 'action' %}/form_action_builder{% elif entity == 'form_master' %}/form_master{% else %}/masters{% endif %}">
+                     <form method="GET" action="{% if entity == 'user' %}/register_new_user {% elif entity == 'form' %}/form_builder{% elif entity == 'wfseq' %}/workflow_mapping{% elif entity == 'action' %}/form_action_builder{% else %}/masters{% endif %}">
                     
                          <input type="hidden" name="id" value="0">
                          <input type="hidden" name="entity" value="{{entity}}">
@@ -48,6 +49,7 @@
                          <button type="submit"  class="btn btn-sm btn-primary">Create</button>
                       </form>
                    </div>   
+                    {% endif %}
                </div>  
                <div class="card-body">
                 <div class="table-responsive">
