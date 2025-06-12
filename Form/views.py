@@ -1562,7 +1562,6 @@ def common_form_edit(request):
                     input_value = request.POST.get(f"field_{field_id}", "").strip()
 
                 if field.field_type == "generative":
-                    file_name = get_object_or_404(FormFieldValues, form_data_id=form_data, field_id=field).value
                     continue
 
                 if field.field_type in ['file', 'file multiple']:
@@ -1586,6 +1585,7 @@ def common_form_edit(request):
 
             
         handle_uploaded_files(request, form_name, created_by, form_data, user)
+        file_name = get_object_or_404(FormFieldValues, form_data_id=form_data, field_id=field).value
                     
         # Run only if type is reference
         if type == 'reference' or reference_type =='1':
