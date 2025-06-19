@@ -1297,7 +1297,7 @@ def common_form_post(request):
                             except FormField.DoesNotExist:
                                 pass  
 
-                if already_exists is not True and field.field_type == 'field_dropdown':
+                if already_exists is not True:
                     handle_uploaded_files(request, form_name, created_by, form_data, user)
                     file_name = handle_generative_fields(form, form_data, created_by)
 
