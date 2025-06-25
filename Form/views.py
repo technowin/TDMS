@@ -965,7 +965,7 @@ def form_master(request):
                 else:
                     reference_type = '0'
                     new_data_id = form_data_id
-                if step_id == '1' or step_id == '6':
+                if step_id == '1' or step_id == '6' or readonlyWF == '1':
                     version_no = 1.0
                 else:
                     version_no = get_object_or_404(WorkflowVersion, req_id=req_num).version
